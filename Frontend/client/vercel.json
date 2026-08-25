@@ -1,0 +1,89 @@
+{
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "http://151.185.41.194:8003/:path*"
+    },
+    {
+      "source": "/docs",
+      "destination": "http://151.185.41.194:8003/docs"
+    },
+    {
+      "source": "/docs/:path*",
+      "destination": "http://151.185.41.194:8003/docs/:path*"
+    },
+    {
+      "source": "/openapi.json",
+      "destination": "http://151.185.41.194:8003/openapi.json"
+    },
+    {
+      "source": "/customers/:path*",
+      "destination": "http://151.185.41.194:8003/customers/:path*"
+    },
+    {
+      "source": "/doctors/:path*",
+      "destination": "http://151.185.41.194:8003/doctors/:path*"
+    },
+    {
+      "source": "/appointments/:path*",
+      "destination": "http://151.185.41.194:8003/appointments/:path*"
+    },
+    {
+      "source": "/payments/:path*",
+      "destination": "http://151.185.41.194:8003/payments/:path*"
+    },
+    {
+      "source": "/prescriptions/:path*",
+      "destination": "http://151.185.41.194:8003/prescriptions/:path*"
+    },
+    {
+      "source": "/sessions/:path*",
+      "destination": "http://151.185.41.194:8003/sessions/:path*"
+    },
+    {
+      "source": "/webhook/:path*",
+      "destination": "http://151.185.41.194:8003/webhook/:path*"
+    },
+    {
+      "source": "/system/:path*",
+      "destination": "http://151.185.41.194:8003/system/:path*"
+    },
+    {
+      "source": "/google/:path*",
+      "destination": "http://151.185.41.194:8003/google/:path*"
+    },
+    
+    {
+      "source": "/clinic_configs/:path*",
+      "destination": "http://151.185.41.194:8003/clinic_configs/:path*"
+    },
+    {
+      "source": "/demo/:path*",
+      "destination": "http://151.185.41.194:8003/demo/:path*"
+    },
+    {
+      "source": "/car-bookings/:path*",
+      "destination": "http://151.185.41.194:8003/car-bookings/:path*"
+    },
+    {
+      "source": "/links/:path*",
+      "destination": "http://151.185.41.194:8003/links/:path*"
+    },
+    {
+      "source": "/status-types/:path*",
+      "destination": "http://151.185.41.194:8003/status-types/:path*"
+    },
+    {
+      "source": "/consultation-types/:path*",
+      "destination": "http://151.185.41.194:8003/consultation-types/:path*"
+    },
+    {
+      "source": "/test-ui",
+      "destination": "http://151.185.41.194:8003/test-ui"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}
