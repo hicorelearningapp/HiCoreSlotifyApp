@@ -72,7 +72,8 @@ class SessionService:
             else:
                 session_update = schemas.SessionUpdate(StateData=initial_state)
                 session = session_svc.update_session_by_id_or_phone(phone_number, session_update)
-
+                
+        assert session is not None, "Session must exist at this point"
         data = session.StateData or {}
         if isinstance(data, str):
             try:

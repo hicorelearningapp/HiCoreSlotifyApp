@@ -471,7 +471,7 @@ class DoctorService:
         for pid, appts_list in patient_appts.items():
             customer = self.db.query(models.Customer).filter(models.Customer.PatientId == pid).first()
             
-            name = customer.PatientName if (customer and customer.PatientName) else (customer.AccountName if customer else appts_list[0].PatientName or "Unknown")
+            name = customer.PatientName if (customer and customer.PatientName) else (customer.CustomerName if customer else appts_list[0].PatientName or "Unknown")
             mobile = customer.PhoneNumber if customer else None
 
             age = None

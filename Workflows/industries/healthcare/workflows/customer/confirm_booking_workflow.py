@@ -72,7 +72,7 @@ class ConfirmBookingWorkflow(Workflow):
                 if not patient:
                     patient = CustomerService().create_customer(
                         schemas.CustomerCreate(
-                            AccountName="VIP Patient",
+                            CustomerName="VIP Patient",
                             Name="VIP Patient",
                             PhoneNumber=session.PhoneNumber,
                         )

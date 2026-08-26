@@ -51,7 +51,7 @@ class ConfirmOrderWorkflow:
             # Create customer if doesn't exist
             customer = customer_svc.get_customer_by_phone(session.PhoneNumber)
             if not customer:
-                customer_create = schemas.CustomerCreate(AccountName=session.PhoneNumber, Name=session.PhoneNumber, PhoneNumber=session.PhoneNumber)
+                customer_create = schemas.CustomerCreate(CustomerName=session.PhoneNumber, Name=session.PhoneNumber, PhoneNumber=session.PhoneNumber)
                 customer = customer_svc.create_customer(customer_create)
             
             # Create Order
@@ -75,7 +75,7 @@ class ConfirmOrderWorkflow:
             
             # Notify Owner
             product = product_service.get_product_by_id(db_session, product_id)
-            notification_service.notify_owner_new_order(order, customer.AccountName or session.PhoneNumber, product.name)
+            notification_service.notify_owner_new_order(order, customer.CustomerName or session.PhoneNumber, product.name)
             
             if payment_method == "Pay Online":
                 reply = Reply("text", f"🎉 Thank you! Your order #{order.id} has been confirmed.\n\nTo complete your purchase, please make a payment of ₹{total} to our UPI ID: *hicore.store@upi*\nOnce paid, please share the payment screenshot here.\n\nWe will process your order immediately after verification!")

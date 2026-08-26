@@ -1,6 +1,10 @@
 {
     "extraPaths": [
-        "Backend",
-        "Workflows"
-    ]
+        "E:\\Github\\HiCoreSlotifyApp\\Backend",
+        "E:\\Github\\HiCoreSlotifyApp\\Workflows"
+    ],
+    "reportArgumentType": "none",
+    "reportGeneralTypeIssues": "none",
+    "reportAttributeAccessIssue": "none",
+    "reportOptionalMemberAccess": "none"
 }

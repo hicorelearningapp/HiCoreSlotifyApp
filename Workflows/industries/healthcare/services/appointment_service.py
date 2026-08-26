@@ -661,7 +661,7 @@ class AppointmentService:
                 Id=patient_id,
                 AccountId=patient_id,
                 Name=appointment_data.Name.strip(),
-                AccountName=appointment_data.Name.strip(),
+                CustomerName=appointment_data.Name.strip(),
                 PhoneNumber=phone,
                 EmailAddress=appointment_data.MailId.strip() if appointment_data.MailId else None
             )

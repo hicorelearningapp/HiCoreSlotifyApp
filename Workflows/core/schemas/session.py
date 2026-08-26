@@ -1,21 +1,17 @@
 from pydantic import BaseModel
 from datetime import datetime
-from typing import Optional
-
+from typing import Optional, Any
 
 class SessionBase(BaseModel):
     PhoneNumber: str
-    StateData: Optional[dict] = {}
-
+    StateData: Optional[Any] = None
 
 class SessionCreate(SessionBase):
     pass
 
-
 class SessionUpdate(BaseModel):
     PhoneNumber: Optional[str] = None
-    StateData: Optional[dict] = None
-
+    StateData: Optional[Any] = None
 
 class SessionOut(SessionBase):
     Id: str

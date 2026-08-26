@@ -19,7 +19,7 @@ from core.services.customer_service import CustomerService
 from core.sequence.Sequence import SequenceFactory
 from core.channels.whatsapp.services.whatsapp_service import whatsapp
 from core.identify.IdentifyService import IdentifyServiceFactory
-from core.config.BusinessManager import BusinessManager
+
 import core.schemas as schemas
 from core.services.session_service import SessionService
 
@@ -78,14 +78,14 @@ class NLRouter:
         name = extract.get("customer_name")
         if name:
             if not customer:
-                customer_create = schemas.CustomerCreate(AccountName=name, PhoneNumber=phone)
+                customer_create = schemas.CustomerCreate(CustomerName=name, PhoneNumber=phone)
                 customer = CustomerService().create_customer(customer=customer_create)
                 whatsapp.send_text(phone, f"Thanks {name}!")
-            elif not customer.AccountName or customer.AccountName == "Guest":
+            elif not customer.CustomerName or customer.CustomerName == "Guest":
                 CustomerService().update_customer_name(phone, name)
                 if hasattr(customer, 'PatientName'):
                     customer.PatientName = name
-                customer.AccountName = name
+                customer.CustomerName = name
                 whatsapp.send_text(phone, f"Thanks {name}!")
         return customer
 
@@ -163,7 +163,7 @@ class NLRouter:
         # --- Route to specific step based on what's missing ---
         
         # 1. Name check
-        if not customer or not customer.AccountName or customer.AccountName == "Guest":
+        if not customer or not customer.CustomerName or customer.CustomerName == "Guest":
             self._start_sequence(session, "PatientRegisterAndBookSequence", index=0)
             whatsapp.send_text(phone, "Before I book that, what's your name?")
             return False
@@ -271,15 +271,24 @@ class NLRouter:
     def _handle_restart_flow(self, customer_phone: str, session) -> bool:
         """Restarts the session explicitly."""
         SessionService().reset_session(customer_phone)
-        user = self._identify(customer_phone, session.state.BusinessPhoneNumber)
+        from core.config.BusinessManager import BusinessManager
+        business_phone = session.state.BusinessPhoneNumber if session else None
+        config = BusinessManager.get_config(self.db, business_phone) if business_phone else BusinessManager._load_default_config()
+        industry = config.get("industry", "default")
+        user = IdentifyServiceFactory.get_service(industry).identify_user(customer_phone, business_phone)
         sequence_name = SequenceFactory.GetSequenceName(user.UserType, self.db, session.state.BusinessPhoneNumber)
         session = SessionService.load_session(customer_phone, session.state.BusinessPhoneNumber) # This creates a fresh one
         self._start_sequence(session, sequence_name, index=0)
         return False
 
     def _menu(self, phone, session) -> bool:
+        from core.config.BusinessManager import BusinessManager
+        business_phone = session.state.BusinessPhoneNumber if session else None
+        config = BusinessManager.get_config(self.db, business_phone) if business_phone else BusinessManager._load_default_config()
+        industry = config.get("industry", "default")
+        user = IdentifyServiceFactory.get_service(industry).identify_user(phone, business_phone)
         
-        user = self._identify(phone, session.state.BusinessPhoneNumber)
+
         sequence_name = SequenceFactory.GetSequenceName(user.UserType, self.db, session.state.BusinessPhoneNumber)
         
         session.state.WorkflowData = user.WorkflowData

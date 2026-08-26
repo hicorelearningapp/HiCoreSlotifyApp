@@ -22,9 +22,9 @@ class SelectPatientWorkflow(Workflow):
         
         rows = []
         if cust:
-            rows.append({"id": "SELF", "title": session.translate("select_patient_myself", name=cust.AccountName[:15]), "description": session.translate("select_patient_myself_desc")})
+            rows.append({"id": "SELF", "title": session.translate("select_patient_myself", name=cust.CustomerName[:15]), "description": session.translate("select_patient_myself_desc")})
             
-        other_patients = [p for p in patients if p.Name != (cust.AccountName if cust else "")][:7]
+        other_patients = [p for p in patients if p.Name != (cust.CustomerName if cust else "")][:7]
         
         if sequence in ["PatientViewSequence", "PatientCancelSequence"] and not other_patients and cust:
             session.WorkflowData["patient_id"] = cust.Id
