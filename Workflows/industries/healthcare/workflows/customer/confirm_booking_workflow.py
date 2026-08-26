@@ -83,7 +83,7 @@ class ConfirmBookingWorkflow(Workflow):
                 patient = CustomerService().get_customer(patient_id)
 
             if consultation_type == "Video" and doctor:
-                from core.services.google_oauth_service import GoogleOAuthService
+                from backend_app.modules.doctor_appointment.services.google_oauth_service import GoogleOAuthService
 
                 try:
                     import uuid
