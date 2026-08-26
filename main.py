@@ -1,70 +1,86 @@
 import sys
 import os
+import asyncio
+import logging
 
-# Add the Backend folder to sys.path so we can import from backend_app
-backend_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "Backend")
-sys.path.insert(0, backend_dir)
+# Ensure both Backend and Workflows are in the Python path
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "Backend"))
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "Workflows"))
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
-import logging
-import asyncio
 
 # Setup DB Connection
-from backend_app.core.database import engine, Base, db_session
+from backend_app.core.database import engine, Base, db_session, request_context, ensure_dynamic_schemas
 
 # Import models so they are registered with Base.metadata before create_all is called
-import core.models
-import core.channels.instagram.models.instagram_connection
-import backend_app.modules.doctor_appointment.models
-import backend_app.modules.ecommerce.models
+import core.models  # type: ignore
+import core.channels.instagram.models.instagram_connection  # type: ignore
+import backend_app.modules.doctor_appointment.models  # type: ignore
+import backend_app.modules.ecommerce.models  # type: ignore
 
 Base.metadata.create_all(bind=engine)
+ensure_dynamic_schemas(engine)
 
 # Instagram schema migrator
-from core.database.migrate_instagram import ensure_instagram_schema
+from core.database.migrate_instagram import ensure_instagram_schema  # type: ignore
 ensure_instagram_schema(engine)
 
 # Import factories to ensure workflows are registered
-import industries.healthcare.workflow.HealthcareWorkflowFactory
-import industries.ecommerce.workflow.EcommerceWorkflowFactory
+import industries.healthcare.workflow.HealthcareWorkflowFactory  # type: ignore
+import industries.ecommerce.workflow.EcommerceWorkflowFactory  # type: ignore
 
-# Webhook routers
-from core.channels.whatsapp.routers import whatsapp_webhook_router
-# Note: we need to point to the correct instagram router path if it moved
-from core.routers import instagram_webhook_router
+# --- ROUTERS ---
+# Workflows Webhook routers
+from core.channels.whatsapp.routers import whatsapp_webhook_router  # type: ignore
+from core.routers import instagram_webhook_router  # type: ignore
+
+# Backend API routers
+from backend_app.common.router import router as common_router  # type: ignore
+from backend_app.modules.doctor_appointment.routers import router as doctor_appointment_router  # type: ignore
+from backend_app.modules.ecommerce.routers import router as ecommerce_router  # type: ignore
+from backend_app.modules.doctor_appointment.services import StatusTypeService, ConsultationTypeService  # type: ignore
 
 app = FastAPI(
-    title="HiCore Slotify - Bot Engine",
-    description="Bot workflows and conversation management (WhatsApp/Instagram)",
+    title="HiCore Slotify - Unified Server",
+    description="Bot workflows (WhatsApp/Instagram) and modular API Backend supporting Doctor Appointment & Ecommerce.",
     openapi_url="/docs/openapi.json"
 )
 
-# Serve static images for the simulator
-images_dir = os.path.join(os.path.dirname(__file__), "images")
-os.makedirs(images_dir, exist_ok=True)
-app.mount("/images", StaticFiles(directory=images_dir), name="images")
+# Serve static images for the simulator (from Workflows)
+workflows_images_dir = os.path.join(os.path.dirname(__file__), "Workflows", "images")
+os.makedirs(workflows_images_dir, exist_ok=True)
+app.mount("/images", StaticFiles(directory=workflows_images_dir), name="images")
 
-from backend_app.core.database import request_context
+# Serve backend images
+backend_images_dir = os.path.join(os.path.dirname(__file__), "Backend", "backend_app", "images")
+os.makedirs(backend_images_dir, exist_ok=True)
+app.mount("/api_images", StaticFiles(directory=backend_images_dir), name="api_images")
 
 @app.middleware("http")
 async def db_session_middleware(request: Request, call_next):
-    token = request_context.set(object())
+    token = request_context.set(object())  # type: ignore
     try:
         response = await call_next(request)
         return response
     except Exception as e:
-        db_session.rollback()
+        try:
+            db_session.rollback()
+        except Exception:
+            pass
         raise e
     finally:
-        db_session.remove()
+        try:
+            db_session.remove()
+        except Exception:
+            pass
         request_context.reset(token)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"], # In production, restrict this
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -80,7 +96,7 @@ def setup_logging():
         for handler in logger.handlers:
             handler.setFormatter(formatter)
 
-# --- Background Tasks ---
+# --- Background Tasks from Workflows ---
 from core.services.session_service import SessionService
 async def cleanup_sessions_task():
     while True:
@@ -152,9 +168,18 @@ async def appointment_reviews_task():
         except Exception as e:
             logging.getLogger("uvicorn").error(f"Error processing reviews: {e}")
 
-@app.on_event("startup")
+@app.on_event("startup")  # type: ignore
 async def startup_event():
     setup_logging()
+    
+    # Backend initialization
+    try:
+        StatusTypeService.seed_defaults(db_session())
+        ConsultationTypeService.seed_defaults(db_session())
+    except Exception as e:
+        logging.getLogger("uvicorn").error(f"Error seeding default types: {e}")
+        
+    # Workflows Background tasks
     asyncio.create_task(cleanup_sessions_task())
     asyncio.create_task(appointment_reminders_task())
     asyncio.create_task(appointment_reviews_task())
@@ -162,17 +187,26 @@ async def startup_event():
     asyncio.create_task(instagram_reply_worker_task())
     asyncio.create_task(instagram_token_refresh_task())
 
-# Include ONLY Webhooks for the Bot
+# Include Webhooks for the Bot
 app.include_router(whatsapp_webhook_router.router)
 app.include_router(instagram_webhook_router.router)
 
+# Include Backend API Routers
+app.include_router(common_router)
+app.include_router(doctor_appointment_router)
+app.include_router(ecommerce_router)
+
 @app.get("/")
 def read_root():
-    return {"message": "HiCore Slotify - Bot Engine. Visit /test-ui for the interactive tester."}
+    return {
+        "message": "HiCore Slotify - Unified Server",
+        "bot_ui": "Visit /test-ui for the interactive tester.",
+        "api_documentation": "/docs"
+    }
 
 @app.get("/test-ui", response_class=HTMLResponse)
 def get_test_ui():
-    ui_path = os.path.join(os.path.dirname(__file__), "test_ui.html")
+    ui_path = os.path.join(os.path.dirname(__file__), "Workflows", "test_ui.html")
     if os.path.exists(ui_path):
         with open(ui_path, "r", encoding="utf-8") as f:
             return f.read()
@@ -180,8 +214,5 @@ def get_test_ui():
 
 if __name__ == "__main__":
     import uvicorn
-    # Run the bot engine on port 8001
-    uvicorn.run("main:app", host="127.0.0.1", port=8001, reload=True)
-
-
- 
+    # Run the unified server on port 8003
+    uvicorn.run("main:app", host="0.0.0.0", port=8003, reload=True)
