@@ -1,24 +1,6 @@
 from pydantic import BaseModel
 from typing import Optional, List, Dict, Any
 
-class ProductVariantBase(BaseModel):
-    variant_name: str
-    sku: Optional[str] = None
-    price: float = 0.0
-    compare_at_price: Optional[float] = None
-    stock_quantity: int = 0
-    variant_data: Optional[Dict[str, Any]] = {}
-
-class ProductVariantCreate(ProductVariantBase):
-    pass
-
-class ProductVariantOut(ProductVariantBase):
-    id: int
-    product_id: int
-
-    class Config:
-        from_attributes = True
-
 class ProductBase(BaseModel):
     name: str
     category: Optional[str] = None
@@ -37,7 +19,7 @@ class ProductBase(BaseModel):
     product_data: Optional[Dict[str, Any]] = {}
 
 class ProductCreate(ProductBase):
-    variants: Optional[List[ProductVariantCreate]] = []
+    pass
 
 class ProductUpdate(BaseModel):
     name: Optional[str] = None
@@ -58,7 +40,6 @@ class ProductUpdate(BaseModel):
 
 class ProductOut(ProductBase):
     id: int
-    variants: List[ProductVariantOut] = []
 
     class Config:
         from_attributes = True

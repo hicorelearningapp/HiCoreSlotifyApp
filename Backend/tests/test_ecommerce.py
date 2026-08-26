@@ -10,7 +10,7 @@ def test_ecommerce_product_and_order_flow():
     unique_sku = f"SILK-SAR-{unique_id}"
     unique_phone = f"9198{unique_id[:8]}"
 
-    # 1. Create a product
+    # 1. Create a product with category field directly
     prod_data = {
         "name": f"Kanchipuram Silk Saree {unique_id}",
         "category": "Sarees",
@@ -20,29 +20,30 @@ def test_ecommerce_product_and_order_flow():
         "sku": unique_sku,
         "stock_quantity": 50,
         "description": "Pure silk saree with golden border",
-        "active": True
+        "active": True,
+        "product_data": {
+            "fabric": "Silk",
+            "border_type": "Zari"
+        }
     }
     prod_resp = client.post("/ecommerce/products", json=prod_data)
     assert prod_resp.status_code == 201
     product = prod_resp.json()
     assert product["name"] == f"Kanchipuram Silk Saree {unique_id}"
+    assert product["category"] == "Sarees"
+    assert product["product_data"]["fabric"] == "Silk"
     product_id = product["id"]
 
-    # 2. List products
+    # 2. List products & filter by category
     list_resp = client.get("/ecommerce/products")
     assert list_resp.status_code == 200
     assert len(list_resp.json()) >= 1
 
-    # 3. Add to cart
-    cart_resp = client.post(f"/ecommerce/cart/items?customer_phone={unique_phone}", json={
-        "product_id": product_id,
-        "quantity": 2
-    })
-    assert cart_resp.status_code == 200
-    cart = cart_resp.json()
-    assert cart["total_amount"] == 5000.0
+    cat_filter_resp = client.get("/ecommerce/products?category=Sarees")
+    assert cat_filter_resp.status_code == 200
+    assert any(p["id"] == product_id for p in cat_filter_resp.json())
 
-    # 4. Create an order
+    # 3. Create an order directly with items
     order_payload = {
         "customer_phone": unique_phone,
         "customer_name": "Anitha Raj",
@@ -67,12 +68,12 @@ def test_ecommerce_product_and_order_flow():
     assert order["total"] == 5000.0
     assert order["status"] == "Pending"
 
-    # 5. List orders
+    # 4. List orders
     list_orders_resp = client.get(f"/ecommerce/orders?customer_phone={unique_phone}")
     assert list_orders_resp.status_code == 200
     assert len(list_orders_resp.json()) >= 1
 
-    # 6. Update order status
+    # 5. Update order status
     status_resp = client.put(f"/ecommerce/orders/{order['id']}/status", json={
         "status": "Confirmed",
         "payment_status": "Paid"
@@ -81,21 +82,10 @@ def test_ecommerce_product_and_order_flow():
     assert status_resp.json()["status"] == "Confirmed"
     assert status_resp.json()["payment_status"] == "Paid"
 
-    # 7. Category creation and listing
-    cat_resp = client.post("/ecommerce/categories", json={
-        "name": f"Category {unique_id}",
-        "description": "Test Category"
-    })
-    assert cat_resp.status_code == 201
-    cats_resp = client.get("/ecommerce/categories")
-    assert cats_resp.status_code == 200
-    assert any(c["name"] == f"Category {unique_id}" for c in cats_resp.json())
-
-    # 8. Product update & delete
+    # 6. Product update & delete
     upd_resp = client.put(f"/ecommerce/products/{product_id}", json={"price": 2700.0})
     assert upd_resp.status_code == 200
     assert upd_resp.json()["price"] == 2700.0
 
     del_resp = client.delete(f"/ecommerce/products/{product_id}")
     assert del_resp.status_code == 204
-

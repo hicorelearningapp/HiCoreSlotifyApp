@@ -1,7 +1,7 @@
 import pytest
 import uuid
 from fastapi.testclient import TestClient
-from datetime import date
+from datetime import date, timedelta
 from backend_app.main import app
 
 client = TestClient(app)
@@ -101,8 +101,8 @@ def test_appointment_booking_buffer_and_reschedule():
     cust_out = cust_resp.json()
     patient_id = cust_out["PatientId"]
 
-    # 3. Get available slots
-    target_date = date.today().isoformat()
+    # 3. Get available slots (use tomorrow so slots are always in future regardless of time of day)
+    target_date = (date.today() + timedelta(days=1)).isoformat()
     slots_resp = client.get(f"/doctors/{doctor_id}/available-slots?target_date={target_date}")
     assert slots_resp.status_code == 200
     slots = slots_resp.json()

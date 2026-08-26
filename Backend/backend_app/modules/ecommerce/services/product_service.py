@@ -3,7 +3,7 @@ from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
 from backend_app.core.database import db_session
-from backend_app.modules.ecommerce.models import Product, ProductVariant, Inventory
+from backend_app.modules.ecommerce.models import Product, Inventory
 from backend_app.modules.ecommerce.schemas import ProductCreate, ProductUpdate
 
 class ProductService:
@@ -23,17 +23,11 @@ class ProductService:
         return product
 
     def create_product(self, data: ProductCreate) -> Product:
-        variants_data = data.variants or []
-        prod_data = data.model_dump(exclude={"variants"})
-
+        prod_data = data.model_dump()
         product = Product(**prod_data)
         self.db.add(product)
         self.db.commit()
         self.db.refresh(product)
-
-        for v_in in variants_data:
-            variant = ProductVariant(product_id=product.id, **v_in.model_dump())
-            self.db.add(variant)
 
         inventory = Inventory(product_id=product.id, stock_quantity=product.stock_quantity)
         self.db.add(inventory)
@@ -56,4 +50,3 @@ class ProductService:
             self.db.commit()
             return True
         return False
-

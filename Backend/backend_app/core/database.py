@@ -55,12 +55,6 @@ PRODUCT_COLUMNS = {
         ("store_id", "VARCHAR(50) DEFAULT 'default'"),
         ("product_data", "TEXT"),
     ],
-    "product_variants": [
-        ("sku", "VARCHAR(100)"),
-        ("compare_at_price", "FLOAT"),
-        ("stock_quantity", "INTEGER DEFAULT 0"),
-        ("variant_data", "TEXT"),
-    ],
 }
 
 ORDER_COLUMNS = {
