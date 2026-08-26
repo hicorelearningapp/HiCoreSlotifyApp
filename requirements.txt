@@ -1,0 +1,16 @@
+cryptography==49.0.0
+fastapi==0.141.1
+google_api_python_client==2.199.0
+google_auth_oauthlib==1.4.1
+python-jose==3.3.0
+openpyxl==3.1.5
+passlib==1.7.4
+protobuf==7.36.0
+pydantic==2.13.4
+pydantic_settings==2.15.0
+pytest==9.1.1
+python-dotenv==1.2.3
+bcrypt==4.1.2
+Requests==2.34.2
+SQLAlchemy==2.0.52
+uvicorn==0.52.4

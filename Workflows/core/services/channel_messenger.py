@@ -66,3 +66,4 @@ class ChannelMessenger:
 
 
 channel_messenger = ChannelMessenger()
+

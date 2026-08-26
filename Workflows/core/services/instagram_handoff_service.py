@@ -68,3 +68,4 @@ class InstagramHandoffService:
 
 
 instagram_handoff_service = InstagramHandoffService()
+

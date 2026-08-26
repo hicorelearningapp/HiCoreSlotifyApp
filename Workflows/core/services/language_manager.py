@@ -168,3 +168,4 @@ class LanguageManager(metaclass=LanguageManagerMeta):
             if img:
                 images[lang] = img
         return images
+

@@ -5,7 +5,7 @@ from core.workflows.workflow_models import ConversationSession as DomainConversa
 from core.workflows.workflow_models import SessionState
 from datetime import datetime, timedelta
 from backend_app.core.database import db_session
-from core.identify.IdentifyService import IdentifyService
+
 from core.channels.whatsapp.services.whatsapp_service import whatsapp
 import logging
 from core.channels.whatsapp.services.whatsapp_service import whatsapp
@@ -42,7 +42,14 @@ class SessionService:
 
 
         if not session or not session.StateData:
-            user = IdentifyService().identify_user(phone_number, business_phone_number)
+            from core.identify.IdentifyService import IdentifyServiceFactory
+            from core.config.BusinessManager import BusinessManager
+            
+            config = BusinessManager.get_config(db_session, business_phone_number) if business_phone_number else BusinessManager._load_default_config()
+            industry = config.get("industry", "default")
+            
+            identify_svc = IdentifyServiceFactory.get_service(industry)
+            user = identify_svc.identify_user(phone_number, business_phone_number)
             from core.sequence.Sequence import SequenceFactory
             sequence_name = SequenceFactory.GetSequenceName(user.UserType, db_session, business_phone_number)
             seq = SequenceFactory.Get(sequence_name, db_session, business_phone_number)

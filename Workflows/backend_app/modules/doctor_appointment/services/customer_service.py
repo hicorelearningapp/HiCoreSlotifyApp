@@ -1,8 +1,8 @@
 from datetime import date
 from sqlalchemy.orm import Session
-from typing import List, Optional, Dict, Any
-import core.models as models
-import core.schemas as schemas
+from typing import List, Optional
+import backend_app.modules.doctor_appointment.models as models
+import backend_app.modules.doctor_appointment.schemas as schemas
 import uuid
 from backend_app.core.database import db_session
 
@@ -11,18 +11,19 @@ class CustomerService:
         self.db = db_session
 
     def create_customer(self, customer: schemas.CustomerCreate, language: str = None) -> models.Customer:
-        account_id = str(uuid.uuid4())
-        profile_id = str(uuid.uuid4())
-        profile_name = customer.PatientName if customer.PatientName else customer.CustomerName
+        customer_id = str(uuid.uuid4())
+        patient_id = str(uuid.uuid4())
+        patient_name = customer.PatientName if customer.PatientName else customer.CustomerName
         
         db_customer = models.Customer(
-            PatientId=profile_id,
-            CustomerId=account_id,
+            PatientId=patient_id,
+            CustomerId=customer_id,
             CustomerName=customer.CustomerName,
-            PatientName=profile_name,
+            PatientName=patient_name,
             PhoneNumber=customer.PhoneNumber,
             EmailAddress=customer.EmailAddress,
             DateOfBirth=customer.DateOfBirth,
+            BloodGroup=customer.BloodGroup,
             Gender=customer.Gender,
             Address=customer.Address,
             Language=language
@@ -44,8 +45,8 @@ class CustomerService:
             )
         return query.offset(skip).limit(limit).all()
 
-    def get_customer(self, profile_id: str) -> Optional[models.Customer]:
-        return self.db.query(models.Customer).filter(models.Customer.PatientId == profile_id).first()
+    def get_customer(self, patient_id: str) -> Optional[models.Customer]:
+        return self.db.query(models.Customer).filter(models.Customer.PatientId == patient_id).first()
 
     def get_customer_by_phone(self, phone_number: str) -> Optional[models.Customer]:
         cust = self.db.query(models.Customer).filter(
@@ -56,44 +57,45 @@ class CustomerService:
             cust = self.db.query(models.Customer).filter(models.Customer.PhoneNumber == phone_number).first()
         return cust
 
-    def get_profiles_by_phone(self, phone_number: str) -> List[models.Customer]:
+    def get_patients_by_phone(self, phone_number: str) -> List[models.Customer]:
         primary_cust = self.get_customer_by_phone(phone_number)
         if not primary_cust:
             return []
         return self.db.query(models.Customer).filter(models.Customer.CustomerId == primary_cust.CustomerId).all()
 
-    def add_profile_by_phone(
+    def add_patient_by_phone(
         self,
         phone_number: str,
-        name: str,
+        patient_name: str,
         date_of_birth: Optional[date] = None,
+        blood_group: Optional[str] = None,
         gender: Optional[str] = None,
-        address: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None
+        address: Optional[str] = None
     ) -> models.Customer:
         primary_cust = self.get_customer_by_phone(phone_number)
         if not primary_cust:
-            account_id = str(uuid.uuid4())
-            account_name = name
+            customer_id = str(uuid.uuid4())
+            customer_name = patient_name
         else:
-            account_id = primary_cust.CustomerId
-            account_name = primary_cust.CustomerName
+            customer_id = primary_cust.CustomerId
+            customer_name = primary_cust.CustomerName
 
-        profile_id = str(uuid.uuid4())
-        db_customer = models.Customer(
-            PatientId=profile_id,
-            CustomerId=account_id,
-            CustomerName=account_name,
-            PatientName=name,
+        patient_id = str(uuid.uuid4())
+        db_patient = models.Customer(
+            PatientId=patient_id,
+            CustomerId=customer_id,
+            CustomerName=customer_name,
+            PatientName=patient_name,
             PhoneNumber=phone_number,
             DateOfBirth=date_of_birth,
+            BloodGroup=blood_group,
             Gender=gender,
             Address=address
         )
-        self.db.add(db_customer)
+        self.db.add(db_patient)
         self.db.commit()
-        self.db.refresh(db_customer)
-        return db_customer
+        self.db.refresh(db_patient)
+        return db_patient
 
 
     def update_customer_name(self, phone_number: str, new_name: str) -> bool:
@@ -113,8 +115,8 @@ class CustomerService:
             return True
         return False
 
-    def update_customer(self, profile_id: str, customer_update: schemas.CustomerUpdate) -> Optional[models.Customer]:
-        customer = self.db.query(models.Customer).filter(models.Customer.PatientId == profile_id).first()
+    def update_customer(self, patient_id: str, customer_update: schemas.CustomerUpdate) -> Optional[models.Customer]:
+        customer = self.db.query(models.Customer).filter(models.Customer.PatientId == patient_id).first()
         if not customer:
             return None
 
@@ -126,8 +128,8 @@ class CustomerService:
         self.db.refresh(customer)
         return customer
 
-    def delete_customer(self, profile_id: str) -> bool:
-        customer = self.db.query(models.Customer).filter(models.Customer.PatientId == profile_id).first()
+    def delete_customer(self, patient_id: str) -> bool:
+        customer = self.db.query(models.Customer).filter(models.Customer.PatientId == patient_id).first()
         if not customer:
             return False
 
