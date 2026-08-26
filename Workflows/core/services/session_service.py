@@ -1,16 +1,16 @@
-from typing import List, Optional
+from typing import List, Optional, cast
+import json
+import logging
+from datetime import datetime, timedelta
+
 import core.models as models
 import core.schemas as schemas
 from core.workflows.workflow_models import ConversationSession as DomainConversationSession
 from core.workflows.workflow_models import SessionState
-from datetime import datetime, timedelta
 from backend_app.core.database import db_session
-
-from core.channels.whatsapp.services.whatsapp_service import whatsapp
-import logging
 from core.channels.whatsapp.services.whatsapp_service import whatsapp
 from core.services.message_logger import MessageLogger
-import json
+
 
 class SessionService:
     def __init__(self):
@@ -36,18 +36,21 @@ class SessionService:
         return session_obj
 
     @staticmethod
-    def load_session(phone_number: str, business_phone_number: str = None) -> DomainConversationSession:
+    def load_session(phone_number: str, business_phone_number: Optional[str] = None) -> DomainConversationSession:
         session_svc = SessionService()
         session = session_svc.get_session_by_id_or_phone(phone_number)
-
 
         if not session or not session.StateData:
             from core.identify.IdentifyService import IdentifyServiceFactory
             from core.config.BusinessManager import BusinessManager
-            
-            config = BusinessManager.get_config(db_session, business_phone_number) if business_phone_number else BusinessManager._load_default_config()
-            industry = config.get("industry", "default")
-            
+
+            config = (
+                BusinessManager.get_config(db_session, business_phone_number)
+                if business_phone_number
+                else BusinessManager._load_default_config()
+            )
+            industry = config.get("industry", "default") if isinstance(config, dict) else "default"
+
             identify_svc = IdentifyServiceFactory.get_service(industry)
             user = identify_svc.identify_user(phone_number, business_phone_number)
             from core.sequence.Sequence import SequenceFactory
@@ -55,7 +58,7 @@ class SessionService:
             seq = SequenceFactory.Get(sequence_name, db_session, business_phone_number)
             first_workflow_class = seq.Current(0)
             current_workflow = first_workflow_class.__name__ if first_workflow_class else ""
-            
+
             initial_state = {
                 "SequenceName": sequence_name,
                 "CurrentFlow": current_workflow,
@@ -65,14 +68,14 @@ class SessionService:
                 "Initialized": False,
                 "BusinessPhoneNumber": business_phone_number or ""
             }
-            
+
             if not session:
                 session_create = schemas.SessionCreate(PhoneNumber=phone_number, StateData=initial_state)
                 session = session_svc.create_session(session_create)
             else:
                 session_update = schemas.SessionUpdate(StateData=initial_state)
                 session = session_svc.update_session_by_id_or_phone(phone_number, session_update)
-                
+
         assert session is not None, "Session must exist at this point"
         data = session.StateData or {}
         if isinstance(data, str):
@@ -86,7 +89,7 @@ class SessionService:
         state = SessionState.model_validate(data)
 
         return DomainConversationSession(
-            phone_number=session.PhoneNumber,
+            phone_number=str(session.PhoneNumber),
             state=state
         )
 
@@ -126,18 +129,18 @@ class SessionService:
 
     def delete_inactive_sessions(self, timeout_minutes: int) -> int:
         threshold = datetime.utcnow() - timedelta(minutes=timeout_minutes)
-        deleted_count = self.db.query(models.ConversationSession).filter(models.ConversationSession.UpdatedAt < threshold).delete()
+        deleted_count = self.db.query(models.ConversationSession).filter(models.ConversationSession.UpdatedAt < threshold).delete()  # type: ignore
         self.db.commit()
         return deleted_count
 
     def process_timeouts(self):
         sessions = self.list_sessions()
         now = datetime.utcnow()
-        
+
         for session in sessions:
             if not session.UpdatedAt:
                 continue
-                
+
             data = session.StateData or {}
             if isinstance(data, str):
                 try:
@@ -146,26 +149,27 @@ class SessionService:
                         data = json.loads(data)
                 except json.JSONDecodeError:
                     data = {}
-            
+
             business_phone = data.get("BusinessPhoneNumber", "")
-            
+
             from core.sequence.Sequence import SequenceFactory
             time_out_enabled = SequenceFactory.get_setting(self.db, business_phone, "time_out_enabled", True)
             if not time_out_enabled:
                 continue
-                
+
             session_timeout_minutes = SequenceFactory.get_setting(self.db, business_phone, "session_timeout_minutes", 10)
             timeout_delta = timedelta(minutes=session_timeout_minutes)
-            
-            if (now - session.UpdatedAt) > timeout_delta:
+
+            updated_at = cast(datetime, session.UpdatedAt)
+            if (now - updated_at) > timeout_delta:
                 timeout_msg = f"⏰ You have been inactive for {session_timeout_minutes} minutes. We are closing your session. Type *hi* to get the main menu."
                 try:
-                    MessageLogger().log_sent(session.PhoneNumber, timeout_msg)
-                    whatsapp.send_text(session.PhoneNumber, timeout_msg)
+                    MessageLogger().log_sent(str(session.PhoneNumber), timeout_msg)
+                    whatsapp.send_text(str(session.PhoneNumber), timeout_msg)
                 except Exception as e:
                     logging.getLogger("uvicorn").error(f"Error sending timeout to {session.PhoneNumber}: {e}")
-                
-                self.reset_session(session.PhoneNumber)
+
+                self.reset_session(str(session.PhoneNumber))
                 logging.getLogger("uvicorn").info(f"Closed inactive session for {session.PhoneNumber}")
 
     def delete_session_by_id_or_phone(self, identifier: str) -> bool:
@@ -177,4 +181,3 @@ class SessionService:
         self.db.commit()
         print("Committed")
         return True
-
