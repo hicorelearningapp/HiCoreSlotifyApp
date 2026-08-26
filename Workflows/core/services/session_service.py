@@ -51,11 +51,12 @@ class SessionService:
             )
             industry = config.get("industry", "default") if isinstance(config, dict) else "default"
 
+            biz_phone = business_phone_number or ""
             identify_svc = IdentifyServiceFactory.get_service(industry)
-            user = identify_svc.identify_user(phone_number, business_phone_number)
+            user = identify_svc.identify_user(phone_number, biz_phone)
             from core.sequence.Sequence import SequenceFactory
-            sequence_name = SequenceFactory.GetSequenceName(user.UserType, db_session, business_phone_number)
-            seq = SequenceFactory.Get(sequence_name, db_session, business_phone_number)
+            sequence_name = SequenceFactory.GetSequenceName(user.UserType, db_session, biz_phone)
+            seq = SequenceFactory.Get(sequence_name, db_session, biz_phone)
             first_workflow_class = seq.Current(0)
             current_workflow = first_workflow_class.__name__ if first_workflow_class else ""
 
