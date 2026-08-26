@@ -1,6 +1,7 @@
 from core.workflows.GreetingMessageWorkflow import GreetingMessageWorkflow
 from core.workflows.ExitWorkflow import ExitWorkflow
 from core.workflows.LanguageSelectionWorkflow import LanguageSelectionWorkflow
+from core.workflows.InstagramHandoffWorkflow import InstagramHandoffWorkflow
 
 class WorkflowFactory:
     """
@@ -11,6 +12,7 @@ class WorkflowFactory:
         "GreetingMessageWorkflow": GreetingMessageWorkflow,
         "ExitWorkflow": ExitWorkflow,
         "LanguageSelectionWorkflow": LanguageSelectionWorkflow,
+        "InstagramHandoffWorkflow": InstagramHandoffWorkflow,
     }
 
     @classmethod

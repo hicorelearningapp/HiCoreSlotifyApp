@@ -1,9 +1,12 @@
 {
-  "greeting_image_filename": "Welcome to HiCore Slotify.jpeg",
-  "greeting_image_caption": "Welcome to our Store!",
-  "main_menu_greeting": "How can I help you today?",
-  "btn_book_appointment": "Browse Catalog",
-  "btn_view_appointments": "Track Order",
-  "btn_cancel_appointment": "Customer Support",
-  "exit_message": "Thank you for shopping with us! Type 'hi' to return."
+    "greeting_image_filename": "Welcome to HiCore Slotify.jpeg",
+    "greeting_image_caption": "Welcome to our Store!",
+    "main_menu_greeting": "How can I help you today?",
+    "btn_book_appointment": "Browse Catalog",
+    "btn_view_appointments": "Track Order",
+    "btn_cancel_appointment": "Customer Support",
+    "exit_message": "Thank you for shopping with us! Type 'hi' to return.",
+    "instagram_handoff_booking": "Thanks for reaching out! Tap here to continue on WhatsApp:",
+    "instagram_handoff_order": "Great choice! Tap here to finish your order on WhatsApp:",
+    "cancel_message": "Your flow has been cancelled."
 }

@@ -56,6 +56,16 @@ class SessionService:
             user = identify_svc.identify_user(phone_number, biz_phone)
             from core.sequence.Sequence import SequenceFactory
             sequence_name = SequenceFactory.GetSequenceName(user.UserType, db_session, biz_phone)
+            if not sequence_name:
+                # The business config has no mapping for this user type. The
+                # IdentifyService already worked out a sensible sequence for it,
+                # so use that rather than handing SequenceFactory a None it can
+                # only raise on.
+                sequence_name = user.Sequence
+                logging.getLogger("uvicorn").warning(
+                    "No user_type_mapping for %s on business %s; falling back to %s",
+                    user.UserType, biz_phone or "<default>", sequence_name,
+                )
             seq = SequenceFactory.Get(sequence_name, db_session, biz_phone)
             first_workflow_class = seq.Current(0)
             current_workflow = first_workflow_class.__name__ if first_workflow_class else ""
