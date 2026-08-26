@@ -1,6 +1,6 @@
 from core.conversation.BaseConversationManager import BaseConversationManager
 from backend_app.core.database import db_session
-from core.sequence.Sequence import SequenceFactory
+from core.sequence.SequenceFactory import SequenceFactory
 
 class EcommerceConversationManager(BaseConversationManager):
     """

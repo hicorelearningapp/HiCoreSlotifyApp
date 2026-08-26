@@ -11,12 +11,12 @@ class CollectNameWorkflow:
         # If they explicitly chose to enter new details, or no saved details
         prompt_new = session.WorkflowData.get("prompt_new_details", False)
         
-        if customer and customer.AccountName and customer.Address and not prompt_new:
+        if customer and customer.CustomerName and customer.Address and not prompt_new:
             options = [
                 {"id": "USE_SAVED", "title": "Use Saved Details"},
                 {"id": "ENTER_NEW", "title": "Enter New Details"}
             ]
-            reply_text = f"We have your details saved on file:\n*Name:* {customer.AccountName}\n*Address:* {customer.Address}\n\nWould you like to use these saved details for this order?"
+            reply_text = f"We have your details saved on file:\n*Name:* {customer.CustomerName}\n*Address:* {customer.Address}\n\nWould you like to use these saved details for this order?"
             
             # Using standard buttons format
             reply = Reply("buttons", reply_text, options=options)
@@ -28,7 +28,7 @@ class CollectNameWorkflow:
         customer_service = CustomerService()
         if message.InteractiveId == "USE_SAVED":
             customer = customer_service.get_customer_by_phone(session.PhoneNumber)
-            session.WorkflowData["name"] = customer.AccountName
+            session.WorkflowData["name"] = customer.CustomerName
             session.WorkflowData["address"] = customer.Address
             session.WorkflowData["use_saved_details"] = True
             return WorkflowResult.completed()
@@ -42,7 +42,7 @@ class CollectNameWorkflow:
             # Update customer if exists, or create
             customer = customer_service.get_customer_by_phone(session.PhoneNumber)
             if not customer:
-                customer_create = schemas.CustomerCreate(AccountName=message.Text, Name=message.Text, PhoneNumber=session.PhoneNumber)
+                customer_create = schemas.CustomerCreate(CustomerName=message.Text, Name=message.Text, PhoneNumber=session.PhoneNumber)
                 customer_service.create_customer(customer_create)
             else:
                 customer_service.update_customer_name(session.PhoneNumber, message.Text)

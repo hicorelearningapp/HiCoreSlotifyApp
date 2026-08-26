@@ -56,9 +56,9 @@ class AdminService:
             return None
             
         if payload.name is not None:
-            category.name = payload.name
+            category.name = payload.name  # type: ignore
         if payload.description is not None:
-            category.description = payload.description
+            category.description = payload.description  # type: ignore
             
         db.commit()
         return category
@@ -84,9 +84,9 @@ class AdminService:
             return None
             
         if payload.reel_id is not None:
-            product.reel_id = payload.reel_id
+            product.reel_id = payload.reel_id  # type: ignore
         if payload.active is not None:
-            product.active = payload.active
+            product.active = payload.active  # type: ignore
             
         db.commit()
         return product
@@ -116,12 +116,12 @@ class AdminService:
         if not variant:
             return None
             
-        variant.stock_quantity = payload.stock_quantity
+        variant.stock_quantity = payload.stock_quantity  # type: ignore
         db.commit()
         return variant
 
     @staticmethod
-    def fetch_instagram_media(instagram_account_id: str = None, limit: int = 20):
+    def fetch_instagram_media(instagram_account_id: str | None = None, limit: int = 20):
         """List recent media for one connected Instagram account.
 
         Each vendor has its own token, so the account whose media is wanted has
