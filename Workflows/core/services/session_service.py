@@ -19,6 +19,7 @@ class SessionService:
     def create_session(self, session: schemas.SessionCreate) -> models.ConversationSession:
         db_obj = models.ConversationSession(
             PhoneNumber=session.PhoneNumber,
+            BusinessPhoneNumber=session.BusinessPhoneNumber or "",
             StateData=session.StateData or {}  # dict, not a string
         )
         self.db.add(db_obj)
@@ -29,7 +30,24 @@ class SessionService:
     def list_sessions(self, skip: int = 0, limit: int = 100) -> List[models.ConversationSession]:
         return self.db.query(models.ConversationSession).offset(skip).limit(limit).all()
 
+    def get_session(self, phone_number: str, business_phone_number: Optional[str] = None) -> Optional[models.ConversationSession]:
+        """The conversation this person is having with this business.
+
+        A phone number is unique only per business, so the engine must always
+        scope by both -- otherwise someone messaging two businesses resumes
+        whichever conversation happens to be found first.
+        """
+        return (
+            self.db.query(models.ConversationSession)
+            .filter(
+                models.ConversationSession.PhoneNumber == phone_number,
+                models.ConversationSession.BusinessPhoneNumber == (business_phone_number or ""),
+            )
+            .first()
+        )
+
     def get_session_by_id_or_phone(self, identifier: str) -> Optional[models.ConversationSession]:
+        """Unscoped lookup for the admin routes, which only have an identifier."""
         session_obj = self.db.query(models.ConversationSession).filter(models.ConversationSession.Id == identifier).first()
         if not session_obj:
             session_obj = self.db.query(models.ConversationSession).filter(models.ConversationSession.PhoneNumber == identifier).first()
@@ -38,7 +56,8 @@ class SessionService:
     @staticmethod
     def load_session(phone_number: str, business_phone_number: Optional[str] = None) -> DomainConversationSession:
         session_svc = SessionService()
-        session = session_svc.get_session_by_id_or_phone(phone_number)
+        biz_key = business_phone_number or ""
+        session = session_svc.get_session(phone_number, biz_key)
 
         if not session or not session.StateData:
             from core.identify.IdentifyService import IdentifyServiceFactory
@@ -81,11 +100,16 @@ class SessionService:
             }
 
             if not session:
-                session_create = schemas.SessionCreate(PhoneNumber=phone_number, StateData=initial_state)
+                session_create = schemas.SessionCreate(
+                    PhoneNumber=phone_number,
+                    BusinessPhoneNumber=biz_key,
+                    StateData=initial_state,
+                )
                 session = session_svc.create_session(session_create)
             else:
-                session_update = schemas.SessionUpdate(StateData=initial_state)
-                session = session_svc.update_session_by_id_or_phone(phone_number, session_update)
+                session.StateData = initial_state
+                session_svc.db.commit()
+                session_svc.db.refresh(session)
 
         assert session is not None, "Session must exist at this point"
         data = session.StateData or {}
@@ -121,17 +145,33 @@ class SessionService:
     def save_session(domain_session: DomainConversationSession):
         """Serialises SessionState back to a dict and saves to DB."""
         session_svc = SessionService()
-        session_update = schemas.SessionUpdate(
-            StateData=domain_session.state.model_dump()  # dict, not model_dump_json()
+        session_obj = session_svc.get_session(
+            domain_session.PhoneNumber, domain_session.state.BusinessPhoneNumber
         )
-        session_svc.update_session_by_id_or_phone(domain_session.PhoneNumber, session_update)
-
-    def reset_session(self, phone_number: str) -> Optional[models.ConversationSession]:
-        session_obj = self.get_session_by_id_or_phone(phone_number)
-        if session_obj:
-            self.db.delete(session_obj)
-            self.db.commit()
+        if not session_obj:
+            return None
+        session_obj.StateData = domain_session.state.model_dump()
+        session_svc.db.commit()
+        session_svc.db.refresh(session_obj)
         return session_obj
+
+    def reset_session(self, phone_number: str, business_phone_number: Optional[str] = None) -> int:
+        """Clear this person's conversation.
+
+        Scoped to one business when the number is known. Without it every
+        conversation for that phone is cleared, which is what the admin reset
+        route wants and is harmless where only one business is in play.
+        """
+        query = self.db.query(models.ConversationSession).filter(
+            models.ConversationSession.PhoneNumber == phone_number
+        )
+        if business_phone_number is not None:
+            query = query.filter(
+                models.ConversationSession.BusinessPhoneNumber == business_phone_number
+            )
+        deleted = query.delete()
+        self.db.commit()
+        return deleted
 
     def reset_all_sessions(self) -> int:
         deleted_count = self.db.query(models.ConversationSession).delete()
@@ -180,7 +220,7 @@ class SessionService:
                 except Exception as e:
                     logging.getLogger("uvicorn").error(f"Error sending timeout to {session.PhoneNumber}: {e}")
 
-                self.reset_session(str(session.PhoneNumber))
+                self.reset_session(str(session.PhoneNumber), str(session.BusinessPhoneNumber or ""))
                 logging.getLogger("uvicorn").info(f"Closed inactive session for {session.PhoneNumber}")
 
     def delete_session_by_id_or_phone(self, identifier: str) -> bool:

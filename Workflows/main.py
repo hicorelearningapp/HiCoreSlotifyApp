@@ -21,6 +21,11 @@ import core.channels.instagram.models.instagram_connection
 import backend_app.modules.doctor_appointment.models
 import backend_app.modules.ecommerce.models
 
+# Runs before create_all: an out-of-date conversation_sessions table is dropped
+# here so create_all can rebuild it with the per-business unique constraint.
+from core.database.migrate_sessions import ensure_session_schema
+ensure_session_schema(engine)
+
 Base.metadata.create_all(bind=engine)
 
 # Instagram schema migrator
@@ -162,9 +167,43 @@ async def appointment_reviews_task():
         except Exception as e:
             logging.getLogger("uvicorn").error(f"Error processing reviews: {e}")
 
+def check_public_base_url():
+    """Warn when the origin Meta is told to call back on can't reach this app.
+
+    A wrong PUBLIC_BASE_URL fails silently and late: OAuth only breaks once a
+    vendor clicks Connect, and Meta App Review only fails once someone opens
+    /privacy. Comparing the configured redirect against the routes this app
+    actually serves catches it at boot instead.
+    """
+    from urllib.parse import urlparse
+    from config import INSTAGRAM_OAUTH_REDIRECT_URI, PUBLIC_BASE_URL, SERVER_BASE_URL
+
+    log = logging.getLogger("uvicorn")
+    path = urlparse(INSTAGRAM_OAUTH_REDIRECT_URI).path or "/"
+    served = {getattr(r, "path", None) for r in app.routes}
+
+    if path not in served:
+        log.warning(
+            "INSTAGRAM_OAUTH_REDIRECT_URI points at %s, which this app does not "
+            "serve. Meta will get a 404 on the OAuth callback.",
+            path,
+        )
+    elif PUBLIC_BASE_URL == SERVER_BASE_URL:
+        log.warning(
+            "PUBLIC_BASE_URL is unset, so Meta callbacks are addressed to %s -- "
+            "the Backend API. That only works behind a reverse proxy forwarding "
+            "%s to this app. Set PUBLIC_BASE_URL to this app's own origin if "
+            "ports are exposed directly.",
+            SERVER_BASE_URL, path,
+        )
+    else:
+        log.info("Meta callbacks addressed to %s", PUBLIC_BASE_URL)
+
+
 @app.on_event("startup")
 async def startup_event():
     setup_logging()
+    check_public_base_url()
     asyncio.create_task(cleanup_sessions_task())
     asyncio.create_task(appointment_reminders_task())
     asyncio.create_task(appointment_reviews_task())

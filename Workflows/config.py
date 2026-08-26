@@ -29,15 +29,23 @@ ADMIN_PHONE_NUMBER = os.getenv("ADMIN_PHONE_NUMBER", "")
 ADMIN_API_KEY = os.getenv("ADMIN_API_KEY", "hicore-admin-secret-2026")
 ADMIN_USERNAME = os.getenv("ADMIN_USERNAME", "hicore")
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "hicore123")
-# Public origin Meta calls back on. INSTAGRAM_OAUTH_REDIRECT_URI is derived from
-# it, so this must match the redirect URI registered in the Meta dashboard.
-#
-# The routes it has to reach -- /integrations/instagram/callback, /privacy,
-# /data-deletion -- are served by THIS app (the bot engine, port 8001), not by
-# the Backend API on 8003. The default below is only correct if a reverse proxy
-# forwards those paths from 8003 to 8001; without one, set SERVER_BASE_URL to
-# the bot engine's own origin.
+# Public origin of the Backend API. Used for links that point at API resources.
 SERVER_BASE_URL = os.getenv("SERVER_BASE_URL", "http://151.185.41.194:8003")
+
+# Public origin of THIS app -- the bot engine. Meta reaches
+# /webhook, /webhook/instagram, /integrations/instagram/callback, /privacy and
+# /data-deletion here, and none of those are served by the Backend API.
+#
+# Two topologies, one variable:
+#   behind a reverse proxy -> leave unset; it falls back to SERVER_BASE_URL and
+#                             the proxy forwards those paths to this app
+#   ports exposed directly -> set it to this app's own origin (or its ngrok
+#                             https URL), because SERVER_BASE_URL points at the
+#                             API on a different port
+#
+# Whatever it resolves to must match the redirect URI registered in the Meta
+# dashboard exactly. main.py logs a warning at startup if it looks wrong.
+PUBLIC_BASE_URL = os.getenv("PUBLIC_BASE_URL", "").strip().rstrip("/") or SERVER_BASE_URL
 
 
 # ──────────────────────────────────────────────────────────────
@@ -110,7 +118,7 @@ INSTAGRAM_APP_ID = os.getenv("INSTAGRAM_APP_ID", "")
 INSTAGRAM_APP_SECRET_OAUTH = os.getenv("INSTAGRAM_APP_SECRET_OAUTH", "") or INSTAGRAM_APP_SECRET
 INSTAGRAM_OAUTH_REDIRECT_URI = os.getenv(
     "INSTAGRAM_OAUTH_REDIRECT_URI",
-    f"{SERVER_BASE_URL.rstrip('/')}/integrations/instagram/callback",
+    f"{PUBLIC_BASE_URL.rstrip('/')}/integrations/instagram/callback",
 )
 INSTAGRAM_OAUTH_AUTHORIZE_URL = os.getenv(
     "INSTAGRAM_OAUTH_AUTHORIZE_URL", "https://www.instagram.com/oauth/authorize"

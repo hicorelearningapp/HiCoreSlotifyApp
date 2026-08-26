@@ -10,6 +10,7 @@ from backend_app.core.database import db_session
 from core.services.language_manager import LanguageManager
 from core.services.message_logger import MessageLogger
 import asyncio
+import logging
 from datetime import datetime
 
 class BaseConversationManager:
@@ -26,19 +27,94 @@ class BaseConversationManager:
         return is_uninitialized or is_greeting
 
     async def apply_industry_interceptions(self, session, message, customer_phone: str):
+        """Spot a product deep link arriving from Instagram or a QR code.
+
+        Instagram and QR codes both hand a conversation to WhatsApp with the
+        product encoded in the prefilled text. That is not specific to an
+        ecommerce-configured business -- a clinic sharing one WhatsApp number
+        with a shop receives exactly the same message -- so the detection lives
+        here rather than in one industry's manager.
+
+        Returns True to stop processing; subclasses may override.
         """
-        Hook for industry-specific global interceptions (e.g. handoff logic).
-        Should return a boolean indicating if processing should be stopped, or modify the session state.
-        By default, does nothing.
-        """
+        if not (message and message.Text and not session.workflow_initialized):
+            return False
+
+        from industries.ecommerce.services.handoff_service import handoff_service
+        from industries.ecommerce.services.product_service import product_service
+
+        handoff_data = handoff_service.parse_order_text(message.Text)
+        if not (handoff_data and "product_name" in handoff_data):
+            return False
+
+        # An id in the deep link wins over the name -- names can collide
+        # across vendors, ids cannot.
+        identifier = handoff_data.get("product_id") or handoff_data["product_name"]
+        product = product_service.get_product_by_name_or_id(db_session, identifier)
+        if product:
+            session.WorkflowData["product_id"] = product.id
+            session.WorkflowData["category_id"] = product.category_id
+            session.WorkflowData["_handoff_pending"] = True
+
         return False
 
+    def _resolve_order_sequence(self, session, product_id) -> str:
+        """Which sequence a product deep link should land in.
+
+        Config-driven so a business declares its own catalogue flows:
+          product_order_sequences -- optional {product id: sequence} overrides
+          order_handoff_sequence  -- the fallback for everything else
+        """
+        per_product = SequenceFactory.get_setting(
+            db_session, session.state.BusinessPhoneNumber, "product_order_sequences", {}
+        ) or {}
+        mapped = per_product.get(str(product_id))
+        if mapped:
+            return mapped
+        return SequenceFactory.get_setting(
+            db_session, session.state.BusinessPhoneNumber, "order_handoff_sequence", ""
+        )
+
     async def execute_industry_handoff_jump(self, session, message, customer_phone: str) -> Message:
-        """
-        Hook for industry-specific handoff jumps after the sequence is loaded.
-        Should return the message object (which can be modified to None).
-        By default, returns the message unmodified.
-        """
+        """Jump into the order flow once the sequence has been loaded."""
+        if not session.WorkflowData.pop("_handoff_pending", False):
+            return message
+
+        sequence_name = self._resolve_order_sequence(
+            session, session.WorkflowData.get("product_id")
+        )
+        if not sequence_name:
+            logging.getLogger("uvicorn").warning(
+                "Product deep link received for business %s but no "
+                "order_handoff_sequence is configured; ignoring the jump.",
+                session.state.BusinessPhoneNumber or "<default>",
+            )
+            return message
+
+        try:
+            self.Sequence = SequenceFactory.Get(
+                sequence_name, db_session, session.state.BusinessPhoneNumber
+            )
+        except ValueError:
+            logging.getLogger("uvicorn").warning(
+                "order_handoff_sequence '%s' is not defined for business %s.",
+                sequence_name, session.state.BusinessPhoneNumber or "<default>",
+            )
+            return message
+
+        self.Workflows = self.Sequence.GetAll()
+        session.state.SequenceName = sequence_name
+
+        # Catalogues that carry variants start at the variant picker; the rest
+        # start at quantity.
+        target_idx = self.Sequence.IndexOfName("SelectVariantWorkflow")
+        if target_idx == -1:
+            target_idx = self.Sequence.IndexOfName("SelectQuantityWorkflow")
+
+        if target_idx != -1:
+            session.state.WorkflowIndex = target_idx
+            return None  # consumed: the deep link is not a reply to anything
+
         return message
 
     async def process(self, customer_phone: str, message: Message):
@@ -54,7 +130,7 @@ class BaseConversationManager:
             
         # --- GLOBAL RESET INTERCEPTION ---
         if message and message.Text and message.Text.strip().lower() in ["hi", "hello", "menu", "reset", "start", "0"]:
-            SessionService().reset_session(customer_phone)
+            SessionService().reset_session(customer_phone, business_phone)
             business_phone = message.BusinessPhoneNumber if message else None
             session = SessionService.load_session(customer_phone, business_phone)
             if message and message.BusinessPhoneNumber:
@@ -84,8 +160,8 @@ class BaseConversationManager:
         try:
             self.Sequence = SequenceFactory.Get(session.state.SequenceName, db_session, session.state.BusinessPhoneNumber)
         except ValueError:
-            SessionService().reset_session(customer_phone)
-            session = SessionService.load_session(customer_phone)
+            SessionService().reset_session(customer_phone, business_phone)
+            session = SessionService.load_session(customer_phone, business_phone)
             self.Sequence = SequenceFactory.Get(session.state.SequenceName, db_session, session.state.BusinessPhoneNumber)
             
         self.Workflows = self.Sequence.GetAll()
@@ -131,7 +207,7 @@ class BaseConversationManager:
                     SessionService.save_session(session)
                     break
                 elif result.status == WorkflowStatus.FINISHED:
-                    SessionService().reset_session(customer_phone)
+                    SessionService().reset_session(customer_phone, session.state.BusinessPhoneNumber)
                     break
                 elif result.status == WorkflowStatus.COMPLETED:
                     skip_process = True
@@ -171,7 +247,7 @@ class BaseConversationManager:
                     moved = self.move_to_next_workflow(session)
                     print(f"[DEBUG] [{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] move_to_next_workflow returned {moved}, new workflow: {session.current_workflow}")
                     if not moved:
-                        SessionService().reset_session(customer_phone)
+                        SessionService().reset_session(customer_phone, session.state.BusinessPhoneNumber)
                         break
 
                 session.workflow_initialized = False
@@ -181,7 +257,7 @@ class BaseConversationManager:
                 continue
 
             if result.status == WorkflowStatus.FINISHED:
-                SessionService().reset_session(customer_phone)
+                SessionService().reset_session(customer_phone, session.state.BusinessPhoneNumber)
                 break
 
             SessionService.save_session(session)

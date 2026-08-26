@@ -13,7 +13,8 @@
         "language_selection_enabled": false,
         "time_out_enabled": true,
         "session_timeout_minutes": 10,
-        "nlu_enabled": false
+        "nlu_enabled": false,
+        "order_handoff_sequence": "WhatsAppResumeSequence"
     },
     "user_type_mappings": {
         "OWNER": "OwnerSequence",
@@ -21,7 +22,9 @@
         "INSTAGRAM_DM": "InstagramHandoffSequence"
     },
     "number": {
-        "owner": ["9876543210"]
+        "owner": [
+            "9876543210"
+        ]
     },
     "sequences": {
         "OrderingMainMenuWorkflow": [

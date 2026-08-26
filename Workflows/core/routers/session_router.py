@@ -15,7 +15,7 @@ class SessionRouter:
         self.router.add_api_route("", self.create_session, methods=["POST"], response_model=schemas.SessionOut, status_code=status.HTTP_201_CREATED)
         self.router.add_api_route("", self.list_sessions, methods=["GET"], response_model=List[schemas.SessionOut])
         self.router.add_api_route("/reset-all", self.reset_all_sessions, methods=["POST"])
-        self.router.add_api_route("/{phone_number}/reset", self.reset_session, methods=["POST"], response_model=schemas.SessionOut)
+        self.router.add_api_route("/{phone_number}/reset", self.reset_session, methods=["POST"])
         self.router.add_api_route("/{identifier}", self.get_session, methods=["GET"], response_model=schemas.SessionOut)
         self.router.add_api_route("/{identifier}", self.update_session, methods=["PUT"], response_model=schemas.SessionOut)
         self.router.add_api_route("/{identifier}", self.delete_session, methods=["DELETE"])
@@ -42,10 +42,12 @@ class SessionRouter:
         return session_obj
 
     def reset_session(self, phone_number: str):
-        session_obj = self.session_svc.reset_session(phone_number)
-        if not session_obj:
+        # Unscoped on purpose: the admin route has only a phone number, so it
+        # clears that person's conversation with every business.
+        deleted = self.session_svc.reset_session(phone_number)
+        if not deleted:
             raise HTTPException(status_code=404, detail="Session for this phone number not found")
-        return session_obj
+        return {"success": True, "message": "Session reset successfully", "count": deleted}
 
     def reset_all_sessions(self):
         deleted_count = self.session_svc.reset_all_sessions()

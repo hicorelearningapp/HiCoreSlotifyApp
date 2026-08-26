@@ -29,7 +29,7 @@ class BookingHelpers:
             if page == 0:
                 whatsapp.send_text(phone, "Sorry, this doctor has no available dates in the near future.")
                 from core.services.session_service import SessionService
-                SessionService(db).reset_session(phone)
+                SessionService().reset_session(phone)
                 whatsapp.send_text(phone, "Booking process cancelled.")
             else:
                 whatsapp.send_text(phone, "No more available dates found.")
@@ -146,10 +146,10 @@ class BookingHelpers:
             whatsapp.send_text(phone, "Thank you for booking your appointment with HiCore! We hope you have a great experience.")
             
             from core.services.session_service import SessionService
-            SessionService(db).reset_session(phone)
+            SessionService().reset_session(phone)
         except Exception as e:
             error_msg = getattr(e, 'detail', str(e))
             whatsapp.send_text(phone, f"❌ Failed to book appointment: {error_msg}")
             from core.services.session_service import SessionService
-            SessionService(db).reset_session(phone)
+            SessionService().reset_session(phone)
             whatsapp.send_text(phone, "Booking process cancelled.")

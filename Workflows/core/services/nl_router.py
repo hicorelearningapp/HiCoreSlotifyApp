@@ -270,7 +270,7 @@ class NLRouter:
 
     def _handle_restart_flow(self, customer_phone: str, session) -> bool:
         """Restarts the session explicitly."""
-        SessionService().reset_session(customer_phone)
+        SessionService().reset_session(customer_phone, session.state.BusinessPhoneNumber)
         user = self._identify(customer_phone, session.state.BusinessPhoneNumber)
         sequence_name = SequenceFactory.GetSequenceName(user.UserType, self.db, session.state.BusinessPhoneNumber)
         session = SessionService.load_session(customer_phone, session.state.BusinessPhoneNumber) # This creates a fresh one

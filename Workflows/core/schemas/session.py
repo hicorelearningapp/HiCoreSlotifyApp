@@ -4,6 +4,7 @@ from typing import Optional, Any
 
 class SessionBase(BaseModel):
     PhoneNumber: str
+    BusinessPhoneNumber: str = ""
     StateData: Optional[Any] = None
 
 class SessionCreate(SessionBase):
@@ -11,6 +12,7 @@ class SessionCreate(SessionBase):
 
 class SessionUpdate(BaseModel):
     PhoneNumber: Optional[str] = None
+    BusinessPhoneNumber: Optional[str] = None
     StateData: Optional[Any] = None
 
 class SessionOut(SessionBase):
