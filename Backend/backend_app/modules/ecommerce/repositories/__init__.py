@@ -1,3 +1,0 @@
-from backend_app.modules.ecommerce.repositories.product_repository import ProductRepository
-from backend_app.modules.ecommerce.repositories.category_repository import CategoryRepository
-from backend_app.modules.ecommerce.repositories.order_repository import OrderRepository

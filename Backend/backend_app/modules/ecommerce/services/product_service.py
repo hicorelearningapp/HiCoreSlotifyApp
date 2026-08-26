@@ -5,18 +5,19 @@ from sqlalchemy.orm import Session
 from backend_app.core.database import db_session
 from backend_app.modules.ecommerce.models import Product, ProductVariant, Inventory
 from backend_app.modules.ecommerce.schemas import ProductCreate, ProductUpdate
-from backend_app.modules.ecommerce.repositories.product_repository import ProductRepository
 
 class ProductService:
     def __init__(self, db: Session = None):
         self.db = db or db_session
-        self.repo = ProductRepository(self.db)
 
     def list_products(self, category: Optional[str] = None, skip: int = 0, limit: int = 100) -> List[Product]:
-        return self.repo.list_products(category=category, skip=skip, limit=limit)
+        query = self.db.query(Product).filter(Product.active == True)
+        if category:
+            query = query.filter(Product.category == category)
+        return query.offset(skip).limit(limit).all()
 
     def get_product(self, product_id: int) -> Product:
-        product = self.repo.get_by_id(product_id)
+        product = self.db.query(Product).filter(Product.id == product_id).first()
         if not product:
             raise HTTPException(status_code=404, detail="Product not found.")
         return product
@@ -44,7 +45,15 @@ class ProductService:
         product = self.get_product(product_id)
         for field, val in data.model_dump(exclude_unset=True).items():
             setattr(product, field, val)
-        return self.repo.update(product)
+        self.db.commit()
+        self.db.refresh(product)
+        return product
 
     def delete_product(self, product_id: int) -> bool:
-        return self.repo.delete(product_id)
+        product = self.db.query(Product).filter(Product.id == product_id).first()
+        if product:
+            self.db.delete(product)
+            self.db.commit()
+            return True
+        return False
+

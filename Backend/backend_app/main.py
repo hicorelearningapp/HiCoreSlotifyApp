@@ -87,5 +87,5 @@ def read_root():
     return {
         "message": "Welcome to HiCore Slotify Multi-Industry API Backend.",
         "documentation": "/docs",
-        "supported_domains": ["doctor_appointment", "ecommerce", "demo_request"]
+        "supported_domains": ["common_business", "doctor_appointment", "ecommerce", "demo_request"]
     }

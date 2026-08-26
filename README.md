@@ -1,2 +1,3 @@
 # HiCoreSlotifyApp
-A unified AI platform for building conversational workflows across any industry and any messaging channel
+
+A modular multi-industry platform supporting Doctor Appointment and E-Commerce systems with FastAPI backend and React frontend.
