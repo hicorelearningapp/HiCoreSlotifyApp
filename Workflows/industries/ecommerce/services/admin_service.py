@@ -8,7 +8,7 @@ from config import (
     INSTAGRAM_GRAPH_API_VERSION,
     INSTAGRAM_HTTP_TIMEOUT,
 )
-from backend_app.modules.ecommerce.models.product_category import ProductCategory
+from backend_app.modules.ecommerce.models.category import Category
 from backend_app.modules.doctor_appointment.schemas.admin_schemas import CategoryCreate, CategoryUpdate
 
 class AdminService:
@@ -40,7 +40,7 @@ class AdminService:
 
     @staticmethod
     def create_category(db: Session, payload: CategoryCreate):
-        new_category = ProductCategory(
+        new_category = Category(
             name=payload.name,
             description=payload.description
         )
@@ -51,7 +51,7 @@ class AdminService:
 
     @staticmethod
     def update_category(db: Session, category_id: int, payload: CategoryUpdate):
-        category = db.query(ProductCategory).filter(ProductCategory.id == category_id).first()
+        category = db.query(Category).filter(Category.id == category_id).first()
         if not category:
             return None
             

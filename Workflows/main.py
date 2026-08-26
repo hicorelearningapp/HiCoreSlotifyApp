@@ -33,8 +33,18 @@ import industries.ecommerce.workflow.EcommerceWorkflowFactory
 
 # Webhook routers
 from core.channels.whatsapp.routers import whatsapp_webhook_router
-# Note: we need to point to the correct instagram router path if it moved
-from core.routers import instagram_webhook_router
+from core.channels.instagram.routers import instagram_webhook_router
+
+# Instagram onboarding / management routers
+from core.channels.instagram.routers import instagram_oauth_router, instagram_connection_router
+
+# Platform routers
+from core.routers import (
+    business_config_router,
+    google_auth_router,
+    session_router,
+    system_router,
+)
 
 app = FastAPI(
     title="HiCore Slotify - Bot Engine",
@@ -103,7 +113,7 @@ async def appointment_reminders_task():
         except Exception as e:
             logging.getLogger("uvicorn").error(f"Error processing reminders: {e}")
 
-from core.services.instagram_dedup import instagram_event_guard
+from core.channels.instagram.services.instagram_dedup import instagram_event_guard
 async def instagram_event_prune_task():
     while True:
         try:
@@ -114,7 +124,7 @@ async def instagram_event_prune_task():
         except Exception as e:
             logging.getLogger("uvicorn").error(f"Error pruning instagram events: {e}")
 
-from core.services.instagram_reply_queue import instagram_reply_queue
+from core.channels.instagram.services.instagram_reply_queue import instagram_reply_queue
 async def instagram_reply_worker_task():
     from config import INSTAGRAM_WORKER_POLL_SECONDS
     try:
@@ -130,7 +140,7 @@ async def instagram_reply_worker_task():
         except Exception as e:
             logging.getLogger("uvicorn").error(f"Error in instagram reply worker: {e}")
 
-from core.services.instagram_onboarding_service import instagram_onboarding_service
+from core.channels.instagram.services.instagram_onboarding_service import instagram_onboarding_service
 async def instagram_token_refresh_task():
     while True:
         try:
@@ -162,9 +172,20 @@ async def startup_event():
     asyncio.create_task(instagram_reply_worker_task())
     asyncio.create_task(instagram_token_refresh_task())
 
-# Include ONLY Webhooks for the Bot
+# Channel webhooks
 app.include_router(whatsapp_webhook_router.router)
 app.include_router(instagram_webhook_router.router)
+
+# Instagram onboarding: /integrations/instagram/*, plus the /privacy and
+# /data-deletion pages Meta App Review requires.
+app.include_router(instagram_oauth_router.router)
+app.include_router(instagram_connection_router.router)
+
+# Platform management
+app.include_router(business_config_router.router)
+app.include_router(google_auth_router.router)
+app.include_router(session_router.router)
+app.include_router(system_router.router)
 
 @app.get("/")
 def read_root():
@@ -182,6 +203,3 @@ if __name__ == "__main__":
     import uvicorn
     # Run the bot engine on port 8001
     uvicorn.run("main:app", host="127.0.0.1", port=8001, reload=True)
-
-
- 

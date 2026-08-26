@@ -4,7 +4,7 @@ from typing import List
 
 from backend_app.core.database import get_db
 from core.services.business_config_service import BusinessConfigService
-from backend_app.modules.doctor_appointment.schemas.business_config import BusinessConfigCreate, BusinessConfigResponse, BusinessConfigUpdate
+from core.schemas.business_config import BusinessConfigCreate, BusinessConfigResponse, BusinessConfigUpdate
 
 class BusinessConfigRouter:
     def __init__(self):

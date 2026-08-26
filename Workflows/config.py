@@ -29,6 +29,14 @@ ADMIN_PHONE_NUMBER = os.getenv("ADMIN_PHONE_NUMBER", "")
 ADMIN_API_KEY = os.getenv("ADMIN_API_KEY", "hicore-admin-secret-2026")
 ADMIN_USERNAME = os.getenv("ADMIN_USERNAME", "hicore")
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "hicore123")
+# Public origin Meta calls back on. INSTAGRAM_OAUTH_REDIRECT_URI is derived from
+# it, so this must match the redirect URI registered in the Meta dashboard.
+#
+# The routes it has to reach -- /integrations/instagram/callback, /privacy,
+# /data-deletion -- are served by THIS app (the bot engine, port 8001), not by
+# the Backend API on 8003. The default below is only correct if a reverse proxy
+# forwards those paths from 8003 to 8001; without one, set SERVER_BASE_URL to
+# the bot engine's own origin.
 SERVER_BASE_URL = os.getenv("SERVER_BASE_URL", "http://151.185.41.194:8003")
 
 

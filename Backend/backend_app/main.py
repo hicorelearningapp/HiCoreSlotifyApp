@@ -11,6 +11,7 @@ from backend_app.core.database import engine, Base, db_session, request_context,
 from backend_app.common.router import router as common_router
 from backend_app.modules.doctor_appointment.routers import router as doctor_appointment_router
 from backend_app.modules.ecommerce.routers import router as ecommerce_router
+from backend_app.modules.demo_request.routers import router as demo_request_router
 from backend_app.modules.doctor_appointment.services import StatusTypeService, ConsultationTypeService
 
 # Ensure database tables exist
@@ -79,11 +80,12 @@ async def startup_event():
 app.include_router(common_router)
 app.include_router(doctor_appointment_router)
 app.include_router(ecommerce_router)
+app.include_router(demo_request_router)
 
 @app.get("/")
 def read_root():
     return {
         "message": "Welcome to HiCore Slotify Multi-Industry API Backend.",
         "documentation": "/docs",
-        "supported_domains": ["doctor_appointment", "ecommerce"]
+        "supported_domains": ["doctor_appointment", "ecommerce", "demo_request"]
     }

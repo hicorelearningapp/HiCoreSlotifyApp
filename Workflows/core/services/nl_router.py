@@ -18,7 +18,8 @@ from industries.healthcare.services.appointment_service import AppointmentServic
 from core.services.customer_service import CustomerService
 from core.sequence.Sequence import SequenceFactory
 from core.channels.whatsapp.services.whatsapp_service import whatsapp
-from core.identify.IdentifyService import IdentifyService
+from core.identify.IdentifyService import IdentifyServiceFactory
+from core.config.BusinessManager import BusinessManager
 import core.schemas as schemas
 from core.services.session_service import SessionService
 
@@ -255,10 +256,22 @@ class NLRouter:
         self._start_sequence(session, "PatientCancelSequence", index=0)
         return False
 
+    def _identify(self, phone: str, business_phone_number: str = None):
+        """Resolve the industry's IdentifyService for this business."""
+        config = (
+            BusinessManager.get_config(self.db, business_phone_number)
+            if business_phone_number
+            else BusinessManager._load_default_config()
+        )
+        industry = config.get("industry", "default")
+        return IdentifyServiceFactory.get_service(industry).identify_user(
+            phone, business_phone_number
+        )
+
     def _handle_restart_flow(self, customer_phone: str, session) -> bool:
         """Restarts the session explicitly."""
         SessionService().reset_session(customer_phone)
-        user = IdentifyService().identify_user(customer_phone)
+        user = self._identify(customer_phone, session.state.BusinessPhoneNumber)
         sequence_name = SequenceFactory.GetSequenceName(user.UserType, self.db, session.state.BusinessPhoneNumber)
         session = SessionService.load_session(customer_phone, session.state.BusinessPhoneNumber) # This creates a fresh one
         self._start_sequence(session, sequence_name, index=0)
@@ -266,7 +279,7 @@ class NLRouter:
 
     def _menu(self, phone, session) -> bool:
         
-        user = IdentifyService().identify_user(phone)
+        user = self._identify(phone, session.state.BusinessPhoneNumber)
         sequence_name = SequenceFactory.GetSequenceName(user.UserType, self.db, session.state.BusinessPhoneNumber)
         
         session.state.WorkflowData = user.WorkflowData

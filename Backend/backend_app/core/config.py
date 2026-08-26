@@ -2,12 +2,24 @@ import os
 from pydantic_settings import BaseSettings
 from typing import List, Optional
 
+# Backend/ and Workflows/ are separate processes with separate working
+# directories. A relative sqlite path would give each of them its own
+# appointments.db, so the default is anchored to the repo root instead.
+# config.py -> core/ -> backend_app/ -> Backend/ -> repo root
+_REPO_ROOT = os.path.dirname(
+    os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+)
+_DEFAULT_SQLITE_PATH = os.path.join(_REPO_ROOT, "appointments.db")
+
+
 class Settings(BaseSettings):
     PROJECT_NAME: str = "HiCore Slotify API Platform"
     API_V1_STR: str = "/api/v1"
-    
+
     # Database
-    DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite:///./appointments.db")
+    DATABASE_URL: str = os.getenv(
+        "DATABASE_URL", f"sqlite:///{_DEFAULT_SQLITE_PATH.replace(os.sep, '/')}"
+    )
     
     # Authentication & Security
     SECRET_KEY: str = os.getenv("SECRET_KEY", "hicore_platform_super_secret_jwt_key_2026")

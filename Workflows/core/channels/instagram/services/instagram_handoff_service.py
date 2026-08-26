@@ -62,8 +62,10 @@ class InstagramHandoffService:
             policy.handoff_wa_number,
             product_name,
             str(event.commenter_id or ""),
+            product_id=product["id"] if product else None,
         )
         return wa_link, (product["name"] if product else "")
 
 
 instagram_handoff_service = InstagramHandoffService()
+

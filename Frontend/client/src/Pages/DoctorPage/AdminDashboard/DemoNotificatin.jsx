@@ -21,7 +21,7 @@ const DemoNotificatin = () => {
 
       const apiBaseUrl = isProductionHttps
         ? '/api'
-        : (import.meta.env.VITE_API_BASE_URL || '/api');
+        : (import.meta.env.VITE_API_BASE || '/api');
 
       const response = await axios.get(`${apiBaseUrl}/demo`, {
         params: {
@@ -344,7 +344,7 @@ const DemoNotificatin = () => {
 
       const apiBaseUrl = isProductionHttps
         ? '/api'
-        : (import.meta.env.VITE_API_BASE_URL || '/api');
+        : (import.meta.env.VITE_API_BASE || '/api');
 
       // =====================================================
       // PATCH /demo/{demo_id}/status

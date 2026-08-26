@@ -181,7 +181,7 @@ const BookADemo = () => {
     console.log('Book Demo Payload:', payload);
 
     try {
-      const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || '/api';
+      const apiBaseUrl = import.meta.env.VITE_API_BASE || '/api';
 
       const response = await axios.post(
         `${apiBaseUrl}/demo`,
