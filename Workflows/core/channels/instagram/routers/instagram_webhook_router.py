@@ -18,6 +18,7 @@ from core.channels.instagram.services.instagram_handoff_service import instagram
 from core.channels.instagram.services.instagram_connection_service import instagram_connection_service
 from core.channels.instagram.services.instagram_reply_queue import instagram_reply_queue
 from core.workflows.workflow_models import Message
+from core.channels.identity import to_instagram_id
 from core.channels.instagram.utils.instagram_comment_parser import extract_comment_events
 from core.channels.instagram.utils.instagram_signature import verify_meta_signature
 from core.channels.instagram.utils.instagram_rules import matches_comment
@@ -115,8 +116,8 @@ class InstagramWebhookRouter:
                             interactive_id = quick_reply.get("payload")
 
                         # Prefix sender_id with ig_ so ConversationManager knows it's from Instagram
-                        customer_id = f"ig_{sender_id}"
-                        business_id = f"ig_{instagram_account_id}"
+                        customer_id = to_instagram_id(sender_id)
+                        business_id = to_instagram_id(instagram_account_id)
 
                         message = Message(
                             phone_number=customer_id,

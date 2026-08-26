@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
 from config import ADMIN_PHONE_NUMBER
 from backend_app.core.database import db_session
+from core.channels.identity import is_instagram
 
 @dataclass
 class IdentityResult:
@@ -23,7 +24,7 @@ class BaseIdentifyService:
         mappings = config.get("user_type_mappings", {})
         
         # 0. Instagram check
-        if phone_number.startswith("ig_"):
+        if is_instagram(phone_number):
             return IdentityResult(
                 UserType="INSTAGRAM_DM",
                 Sequence=mappings.get("INSTAGRAM_DM", "InstagramHandoffSequence"),

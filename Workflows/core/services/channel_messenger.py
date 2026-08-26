@@ -15,21 +15,11 @@ from __future__ import annotations
 
 import logging
 
+from core.channels.identity import is_instagram, strip_prefix
 from core.channels.whatsapp.services.whatsapp_service import whatsapp as WhatsAppService
 from core.channels.instagram.services.instagram_service import instagram as InstagramService
 
 logger = logging.getLogger("uvicorn")
-
-INSTAGRAM_PREFIX = "ig_"
-
-
-def is_instagram(customer_id: str) -> bool:
-    return bool(customer_id) and str(customer_id).startswith(INSTAGRAM_PREFIX)
-
-
-def strip_prefix(value: str) -> str:
-    value = str(value or "")
-    return value[len(INSTAGRAM_PREFIX):] if value.startswith(INSTAGRAM_PREFIX) else value
 
 
 class ChannelMessenger:

@@ -7,6 +7,7 @@ from config import (
     INSTAGRAM_GRAPH_API_VERSION,
     INSTAGRAM_HTTP_TIMEOUT,
 )
+from core.channels.identity import to_instagram_id
 from core.services.message_logger import MessageLogger
 
 
@@ -203,13 +204,13 @@ class InstagramService:
         
         try:
             if reply.message_type == "text":
-                logger.log_sent(f"ig_{recipient_id}", reply.text)
+                logger.log_sent(to_instagram_id(recipient_id), reply.text)
                 self.send_text(recipient_id, reply.text, access_token=access_token)
             elif reply.message_type == "buttons":
-                logger.log_sent(f"ig_{recipient_id}", f"[BUTTONS] {reply.text}")
+                logger.log_sent(to_instagram_id(recipient_id), f"[BUTTONS] {reply.text}")
                 self.send_interactive_buttons(recipient_id, reply.text, reply.options, access_token=access_token)
             elif reply.message_type == "list":
-                logger.log_sent(f"ig_{recipient_id}", f"[LIST] {reply.text}")
+                logger.log_sent(to_instagram_id(recipient_id), f"[LIST] {reply.text}")
                 self.send_list_message(recipient_id, reply.text, "Select Option", reply.sections, access_token=access_token)
             else:
                 # Fallback for images/carousels (simplifying for MVP prototype)
