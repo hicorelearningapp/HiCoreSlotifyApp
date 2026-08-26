@@ -22,6 +22,7 @@ from core.identify.IdentifyService import IdentifyServiceFactory
 
 import core.schemas as schemas
 from core.services.session_service import SessionService
+from core.config.BusinessManager import BusinessManager
 
 # How many days ahead to scan when the user asks for the "earliest" slot.
 _EARLIEST_SCAN_DAYS = 21
