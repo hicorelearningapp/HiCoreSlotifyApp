@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HiCore WhatsApp Bot Simulator</title>
+    <!-- Google Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0b141a;
+            --sidebar-bg: #111b21;
+            --chat-bg: #0b141a;
+            --header-bg: #202c33;
+            --incoming-bubble: #202c33;
+            --outgoing-bubble: #005c4b;
+            --text-primary: #e9edef;
+            --text-secondary: #8696a0;
+            --accent-color: #00a884;
+            --border-color: #222d34;
+            --button-hover: #182229;
+            --input-bg: #2a3942;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #121b22;
+            color: var(--text-primary);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        #app {
+            width: 100%;
+            height: 100%;
+            max-width: 1400px;
+            max-height: 900px;
+            display: flex;
+            background-color: var(--sidebar-bg);
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+        }
+
+        /* Settings Sidebar */
+        .sidebar {
+            width: 320px;
+            background-color: var(--sidebar-bg);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar-header {
+            height: 60px;
+            background-color: var(--header-bg);
+            display: flex;
+            align-items: center;
+            padding: 0 16px;
+            font-weight: 600;
+            font-size: 1.1rem;
+            color: var(--accent-color);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .settings-panel {
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            flex-grow: 1;
+            overflow-y: auto;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        label {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 10px 12px;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+            background-color: var(--input-bg);
+            color: var(--text-primary);
+            font-size: 0.9rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        input:focus {
+            border-color: var(--accent-color);
+        }
+
+        .btn {
+            background-color: var(--accent-color);
+            color: #ffffff;
+            border: none;
+            padding: 12px;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        .btn:hover {
+            opacity: 0.9;
+        }
+
+        .btn-outline {
+            background-color: transparent;
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-outline:hover {
+            background-color: var(--button-hover);
+        }
+
+        .btn-danger {
+            background-color: transparent;
+            color: #ef4444;
+            border: 1px solid #ef4444;
+        }
+
+        .btn-danger:hover {
+            background-color: rgba(239, 68, 68, 0.1);
+        }
+
+        /* Chat Window */
+        .chat-container {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            background-color: var(--chat-bg);
+            position: relative;
+        }
+
+        /* Chat Header */
+        .chat-header {
+            height: 60px;
+            background-color: var(--header-bg);
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .chat-partner {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: var(--accent-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: 600;
+            color: #ffffff;
+        }
+
+        .partner-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .partner-name {
+            font-weight: 500;
+            font-size: 0.95rem;
+        }
+
+        .partner-status {
+            font-size: 0.75rem;
+            color: var(--accent-color);
+        }
+
+        /* Chat Messages Area */
+        .chat-messages {
+            flex-grow: 1;
+            padding: 24px 8% 24px 8%;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            background-image: radial-gradient(circle, #182229 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+
+        .message {
+            max-width: 65%;
+            padding: 8px 12px 10px 12px;
+            border-radius: 8px;
+            position: relative;
+            line-height: 1.4;
+            font-size: 0.92rem;
+            animation: fadeIn 0.2s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message.incoming {
+            background-color: var(--incoming-bubble);
+            align-self: flex-start;
+            border-top-left-radius: 0;
+        }
+
+        .message.outgoing {
+            background-color: var(--outgoing-bubble);
+            align-self: flex-end;
+            border-top-right-radius: 0;
+        }
+
+        .message-time {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            text-align: right;
+            margin-top: 4px;
+        }
+
+        /* Interactive Elements styling (Buttons/Lists) */
+        .interactive-buttons-container {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin-top: 8px;
+            border-top: 1px solid var(--border-color);
+            padding-top: 8px;
+        }
+
+        .interactive-btn {
+            background-color: var(--header-bg);
+            border: 1px solid var(--border-color);
+            color: var(--accent-color);
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            text-align: center;
+            transition: background-color 0.2s;
+        }
+
+        .interactive-btn:hover {
+            background-color: var(--button-hover);
+        }
+
+        .interactive-list-btn {
+            background-color: var(--header-bg);
+            border: 1px solid var(--border-color);
+            color: var(--accent-color);
+            padding: 10px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 8px;
+            border-top: 1px solid var(--border-color);
+            padding-top: 8px;
+        }
+
+        /* Dropdown Modal/List styling */
+        .list-options-modal {
+            position: absolute;
+            bottom: 70px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            max-width: 500px;
+            background-color: var(--sidebar-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.5);
+            display: none;
+            flex-direction: column;
+            z-index: 100;
+            max-height: 300px;
+            animation: slideUp 0.2s ease-out;
+        }
+
+        @keyframes slideUp {
+            from { transform: translate(-50%, 20px); opacity: 0; }
+            to { transform: translate(-50%, 0); opacity: 1; }
+        }
+
+        .list-header {
+            padding: 12px 16px;
+            background-color: var(--header-bg);
+            font-weight: 600;
+            font-size: 0.9rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .list-close {
+            cursor: pointer;
+            color: var(--text-secondary);
+            font-size: 1.2rem;
+        }
+
+        .list-close:hover {
+            color: var(--text-primary);
+        }
+
+        .list-sections {
+            overflow-y: auto;
+            flex-grow: 1;
+        }
+
+        .list-section-title {
+            padding: 8px 16px;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            color: var(--text-secondary);
+            font-weight: 600;
+            background-color: #182229;
+        }
+
+        .list-item {
+            padding: 12px 16px;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            border-bottom: 1px solid var(--border-color);
+            transition: background-color 0.2s;
+        }
+
+        .list-item:hover {
+            background-color: var(--button-hover);
+        }
+
+        .list-item-title {
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .list-item-desc {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        /* Chat Input Area */
+        .chat-footer {
+            height: 62px;
+            background-color: var(--header-bg);
+            display: flex;
+            align-items: center;
+            padding: 0 16px;
+            gap: 12px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .input-wrapper {
+            flex-grow: 1;
+            position: relative;
+        }
+
+        .chat-input {
+            width: 100%;
+            background-color: var(--input-bg);
+            border: none;
+            padding: 12px 16px;
+            border-radius: 8px;
+            color: var(--text-primary);
+            outline: none;
+            font-size: 0.92rem;
+        }
+
+        .send-btn {
+            background-color: var(--accent-color);
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            color: #ffffff;
+            font-size: 1.1rem;
+            transition: transform 0.1s;
+        }
+
+        .send-btn:active {
+            transform: scale(0.95);
+        }
+    </style>
+</head>
+<body>
+
+<div id="app">
+    <!-- Sidebar / Settings -->
+    <div class="sidebar">
+        <div class="sidebar-header">Simulator Config</div>
+        <div class="settings-panel">
+            <div class="form-group">
+                <label for="webhookUrl">Webhook URL</label>
+                <input type="text" id="webhookUrl" value="http://127.0.0.1:8001/webhook" placeholder="http://127.0.0.1:8001/webhook">
+            </div>
+            <div class="form-group">
+                <label for="phone">Test Phone Number (Customer)</label>
+                <input type="text" id="phone" value="15551111111" placeholder="e.g. 15551111111">
+            </div>
+            <div class="form-group">
+                <label for="businessPhone">Business Phone Number</label>
+                <input type="text" id="businessPhone" value="917550175964" placeholder="e.g. 15556684309">
+            </div>
+            <div class="form-group" style="margin-top: 10px;">
+                <button class="btn btn-outline" id="clearBtn">Clear Chat Window</button>
+            </div>
+            <div class="form-group">
+                <button class="btn btn-outline" id="resetStateBtn">Reset Bot State (Simulate New Convo)</button>
+            </div>
+            <div class="form-group">
+                <button class="btn btn-danger" id="resetAllBtn">Reset All Sessions</button>
+            </div>
+            <hr style="border-color: var(--border-color); margin: 10px 0;">
+            <div style="font-size: 0.8rem; color: var(--text-secondary); line-height: 1.4;">
+                <p style="font-weight: 600; margin-bottom: 4px; color: var(--text-primary);">Instructions:</p>
+                <ol style="padding-left: 15px; display: flex; flex-direction: column; gap: 4px;">
+                    <li>Ensure your local FastAPI server is running.</li>
+                    <li>Type "hi" in the chat and press Send to start the flow.</li>
+                    <li>Click buttons and select options directly inside the chat bubbles!</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chat Interface -->
+    <div class="chat-container">
+        <!-- Header -->
+        <div class="chat-header">
+            <div class="chat-partner">
+                <div class="avatar">DA</div>
+                <div class="partner-info">
+                    <span class="partner-name">Test Doctor AI</span>
+                    <span class="partner-status">Online</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Messages Area -->
+        <div class="chat-messages" id="chatMessages">
+            <div class="message incoming">
+                Hi! Welcome to the WhatsApp Bot Simulator. Type "hi" below or click "Book" to test your dialog flows.
+                <div class="message-time">System</div>
+            </div>
+        </div>
+
+        <!-- List Selection Dropdown Modal -->
+        <div class="list-options-modal" id="listModal">
+            <div class="list-header">
+                <span id="listModalTitle">Select Option</span>
+                <span class="list-close" id="listModalClose">&times;</span>
+            </div>
+            <div class="list-sections" id="listModalSections">
+                <!-- Populated dynamically -->
+            </div>
+        </div>
+
+        <!-- Input Area -->
+        <div class="chat-footer">
+            <div class="input-wrapper">
+                <input type="text" class="chat-input" id="messageInput" placeholder="Type a message..." autocomplete="off">
+            </div>
+            <button class="send-btn" id="sendBtn">
+                <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+                    <path d="M1.101 21.757L23.8 12.028 1.101 2.3l.011 7.912 13.623 1.816-13.623 1.817-.011 7.912z"/>
+                </svg>
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const webhookUrlInput = document.getElementById('webhookUrl');
+    const phoneInput = document.getElementById('phone');
+    const businessPhoneInput = document.getElementById('businessPhone');
+    const chatMessages = document.getElementById('chatMessages');
+    const messageInput = document.getElementById('messageInput');
+    const sendBtn = document.getElementById('sendBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    const resetStateBtn = document.getElementById('resetStateBtn');
+    const resetAllBtn = document.getElementById('resetAllBtn');
+
+    const listModal = document.getElementById('listModal');
+    const listModalTitle = document.getElementById('listModalTitle');
+    const listModalSections = document.getElementById('listModalSections');
+    const listModalClose = document.getElementById('listModalClose');
+
+    // Automatically fill in current URL prefix if opened via browser
+    if (window.location.host) {
+        webhookUrlInput.value = `${window.location.protocol}//${window.location.host}/webhook`;
+    }
+
+    // Scroll chat to bottom
+    function scrollToBottom() {
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    // Add a message bubble to the chat
+    function addMessageBubble(text, isOutgoing, interactivePayload = null, imageUrl = null) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message ${isOutgoing ? 'outgoing' : 'incoming'}`;
+        
+        // Escape HTML for text
+        const safeText = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        
+        let innerHtmlContent = '';
+        if (imageUrl) {
+            innerHtmlContent += `<img src="${imageUrl}" style="max-width: 100%; border-radius: 8px; margin-bottom: 8px;" /><br>`;
+        }
+        innerHtmlContent += safeText.replace(/\n/g, '<br>');
+        
+        messageDiv.innerHTML = innerHtmlContent;
+
+        // Render interactive attachments
+        if (interactivePayload) {
+            if (interactivePayload.type === 'button') {
+                const buttonsContainer = document.createElement('div');
+                buttonsContainer.className = 'interactive-buttons-container';
+                interactivePayload.action.buttons.forEach(btn => {
+                    const btnElement = document.createElement('button');
+                    btnElement.className = 'interactive-btn';
+                    btnElement.innerText = btn.reply.title;
+                    btnElement.onclick = () => {
+                        // Send button reply
+                        sendWebhookPayload({
+                            type: 'interactive',
+                            interactive: {
+                                type: 'button_reply',
+                                button_reply: {
+                                    id: btn.reply.id,
+                                    title: btn.reply.title
+                                }
+                            }
+                        }, `Clicked: ${btn.reply.title}`);
+                    };
+                    buttonsContainer.appendChild(btnElement);
+                });
+                messageDiv.appendChild(buttonsContainer);
+            } else if (interactivePayload.type === 'list') {
+                const listButton = document.createElement('button');
+                listButton.className = 'interactive-list-btn';
+                listButton.innerHTML = `<span>${interactivePayload.action.button_text || 'Select Option'}</span> <span>▼</span>`;
+                listButton.onclick = () => {
+                    showListModal(interactivePayload);
+                };
+                messageDiv.appendChild(listButton);
+            }
+        }
+
+        const timeDiv = document.createElement('div');
+        timeDiv.className = 'message-time';
+        const now = new Date();
+        timeDiv.innerText = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        messageDiv.appendChild(timeDiv);
+
+        chatMessages.appendChild(messageDiv);
+        scrollToBottom();
+    }
+
+    // Send payload to local webhook endpoint
+    async function sendWebhookPayload(payloadContent, displayLabel) {
+        // Add User Message Bubble
+        addMessageBubble(displayLabel, true);
+
+        const url = webhookUrlInput.value;
+        const phone = phoneInput.value;
+        const businessPhone = businessPhoneInput.value;
+
+        const webhookBody = {
+            object: "whatsapp_business_account",
+            entry: [{
+                id: "12345",
+                changes: [{
+                    value: {
+                        messaging_product: "whatsapp",
+                        metadata: {
+                            display_phone_number: businessPhone,
+                            phone_number_id: "1153690384499792"
+                        },
+                        contacts: [{
+                            profile: { name: "Test User" },
+                            wa_id: phone
+                        }],
+                        messages: [{
+                            from: phone,
+                            id: "wamid.simulated_" + Math.random().toString(36).substring(7),
+                            timestamp: Math.floor(Date.now() / 1000).toString(),
+                            ...payloadContent
+                        }]
+                    },
+                    field: "messages"
+                }]
+            }]
+        };
+
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(webhookBody)
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP Error: ${response.status}`);
+            }
+
+            const data = await response.json();
+            
+            // Process Bot Responses returned from mock sent payloads
+            if (data.bot_replies && data.bot_replies.length > 0) {
+                data.bot_replies.forEach(reply => {
+                    // Only render the message if it is addressed to the test phone number
+                    if (reply.to === phone) {
+                        if (reply.type === 'text') {
+                            addMessageBubble(reply.text.body, false);
+                        } else if (reply.type === 'interactive') {
+                            const bodyText = reply.interactive.body ? reply.interactive.body.text : (reply.interactive.type === 'carousel' ? '[Carousel Message: Check WhatsApp to view]' : '');
+                            addMessageBubble(bodyText, false, reply.interactive);
+                        } else if (reply.type === 'image') {
+                            addMessageBubble(reply.image.caption || '[Image Message]', false, null, reply.image.link);
+                        }
+                    }
+                });
+            } else {
+                addMessageBubble("[Server acknowledged, but no outgoing messages were triggered]", false);
+            }
+        } catch (err) {
+            addMessageBubble(`Error communicating with webhook:\n${err.message}`, false);
+        }
+    }
+
+    // Handle standard text sending
+    async function sendText() {
+        const text = messageInput.value.trim();
+        if (!text) return;
+        messageInput.value = '';
+        messageInput.disabled = true;
+        sendBtn.disabled = true;
+        
+        try {
+            await sendWebhookPayload({
+                type: 'text',
+                text: { body: text }
+            }, text);
+        } finally {
+            messageInput.disabled = false;
+            sendBtn.disabled = false;
+            messageInput.focus();
+        }
+    }
+
+    // Modal / List message handling
+    function showListModal(listPayload) {
+        listModalTitle.innerText = listPayload.header?.text || "Options Menu";
+        listModalSections.innerHTML = '';
+
+        listPayload.action.sections.forEach(section => {
+            if (section.title) {
+                const secHeader = document.createElement('div');
+                secHeader.className = 'list-section-title';
+                secHeader.innerText = section.title;
+                listModalSections.appendChild(secHeader);
+            }
+
+            section.rows.forEach(row => {
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'list-item';
+                itemDiv.innerHTML = `
+                    <div class="list-item-title">${row.title}</div>
+                    ${row.description ? `<div class="list-item-desc">${row.description}</div>` : ''}
+                `;
+                itemDiv.onclick = () => {
+                    listModal.style.display = 'none';
+                    sendWebhookPayload({
+                        type: 'interactive',
+                        interactive: {
+                            type: 'list_reply',
+                            list_reply: {
+                                id: row.id,
+                                title: row.title,
+                                description: row.description
+                            }
+                        }
+                    }, `Selected: ${row.title}`);
+                };
+                listModalSections.appendChild(itemDiv);
+            });
+        });
+
+        listModal.style.display = 'flex';
+    }
+
+    // Event listeners
+    sendBtn.onclick = sendText;
+    messageInput.onkeydown = (e) => {
+        if (e.key === 'Enter') sendText();
+    };
+
+    clearBtn.onclick = () => {
+        chatMessages.innerHTML = '';
+        addMessageBubble('Chat window cleared.', false);
+    };
+
+    resetStateBtn.onclick = async () => {
+        const phone = phoneInput.value;
+        try {
+            await fetch(`/sessions/${phone}/reset`, { method: 'POST' });
+            addMessageBubble('Bot session reset on server. Initiating new conversation...', false);
+        } catch (err) {
+            console.error('Error resetting session:', err);
+        }
+        sendWebhookPayload({
+            type: 'text',
+            text: { body: 'hi' }
+        }, 'hi');
+    };
+
+    resetAllBtn.onclick = async () => {
+        if (confirm("Are you sure you want to reset all sessions?")) {
+            try {
+                const res = await fetch('/sessions/reset-all', { method: 'POST' });
+                const data = await res.json();
+                addMessageBubble(`All sessions reset successfully (${data.count || 0} deleted).`, false);
+            } catch (err) {
+                console.error('Error resetting all sessions:', err);
+                addMessageBubble('Error resetting all sessions.', false);
+            }
+        }
+    };
+
+    listModalClose.onclick = () => {
+        listModal.style.display = 'none';
+    };
+
+    window.onclick = (e) => {
+        if (e.target === listModal) {
+            listModal.style.display = 'none';
+        }
+    };
+</script>
+</body>
+</html>

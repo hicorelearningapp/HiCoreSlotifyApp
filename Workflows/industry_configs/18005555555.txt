@@ -1,0 +1,84 @@
+{
+    "settings": {
+        "welcome_message_override": null,
+        "welcome_image_filename": "Welcome to HiCore Image English.jpeg",
+        "business_hours": {
+            "open": "09:00",
+            "close": "17:00"
+        },
+        "appointment_interval_minutes": 10,
+        "max_bookings_per_slot": 1,
+        "customer_appointment_buffer_minutes": 60,
+        "language_selection_enabled": false,
+        "time_out_enabled": true,
+        "session_timeout_minutes": 10,
+        "nlu_enabled": false
+    },
+    "user_type_mappings": {
+        "ADMIN": "AdminFlow",
+        "DOCTOR": "DoctorFlow",
+        "PATIENT": "PatientMainWorkSequence"
+    },
+    "number": {
+        "doctor": [
+            "15555551111",
+            "15555552222"
+        ],
+        "admin": [
+            "18005555555",
+            "15559990000"
+        ]
+    },
+    "sequences": {
+        "PatientMainWorkSequence": [
+            "LanguageSelectionWorkflow",
+            "GreetingMessageWorkflow",
+            "MainMenuWorkflow"
+        ],
+        "PatientRegisterAndBookSequence": [
+            "RegisterPatientWorkflow",
+            "SelectDoctorWorkflow",
+            "CollectEmailWorkflow",
+            "SelectConsultationWorkflow",
+            "SelectDateWorkflow",
+            "SelectTimeSlotWorkflow",
+            "ProcessPaymentWorkflow",
+            "ConfirmBookingWorkflow",
+            "ExitWorkflow"
+        ],
+        "PatientViewSequence": [
+            "ViewAppointmentsWorkflow",
+            "ExitWorkflow"
+        ],
+        "PatientCancelSequence": [
+            "SelectAppointmentToCancelWorkflow",
+            "ConfirmCancellationWorkflow",
+            "ExitWorkflow"
+        ],
+        "DoctorFlow": [
+            "LanguageSelectionWorkflow",
+            "GreetingMessageWorkflow",
+            "DoctorMenuWorkflow"
+        ],
+        "DoctorScheduleFlow": [
+            "DoctorViewScheduleWorkflow",
+            "ExitWorkflow"
+        ],
+        "DoctorCancelFlow": [
+            "DoctorSelectAppointmentsToCancelWorkflow",
+            "DoctorCancelAppointmentsWorkflow",
+            "DoctorCancellationConfirmationWorkflow",
+            "ExitWorkflow"
+        ],
+        "DoctorRefundFlow": [
+            "DoctorViewRefundsWorkflow",
+            "DoctorProcessRefundWorkflow",
+            "ExitWorkflow"
+        ],
+        "AdminFlow": [
+            "LanguageSelectionWorkflow",
+            "GreetingMessageWorkflow",
+            "AdminMenuWorkflow"
+        ]
+    }
+}
