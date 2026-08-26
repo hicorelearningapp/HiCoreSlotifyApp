@@ -1,17 +1,15 @@
 import uuid
-from typing import Optional
+from typing import List, Optional
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
 from backend_app.core.database import db_session
 from backend_app.modules.ecommerce.models import Product, Order, OrderItem
 from backend_app.modules.ecommerce.schemas import OrderCreate
-from backend_app.modules.ecommerce.repositories.order_repository import OrderRepository
 
 class OrderService:
     def __init__(self, db: Session = None):
         self.db = db or db_session
-        self.repo = OrderRepository(self.db)
 
     def create_order(self, data: OrderCreate) -> Order:
         subtotal = 0.0
@@ -61,16 +59,31 @@ class OrderService:
             items=order_items
         )
 
-        return self.repo.create(order)
+        self.db.add(order)
+        self.db.commit()
+        self.db.refresh(order)
+        return order
 
     def get_order(self, order_id: int) -> Order:
-        order = self.repo.get_by_id(order_id)
+        order = self.db.query(Order).filter(Order.id == order_id).first()
         if not order:
             raise HTTPException(status_code=404, detail="Order not found.")
         return order
 
+    def list_orders(self, customer_phone: Optional[str] = None, skip: int = 0, limit: int = 100) -> List[Order]:
+        query = self.db.query(Order)
+        if customer_phone:
+            query = query.filter(Order.customer_phone == customer_phone)
+        return query.order_by(Order.created_at.desc()).offset(skip).limit(limit).all()
+
     def update_status(self, order_id: int, status_str: str, payment_status: Optional[str] = None) -> Order:
-        order = self.repo.update_status(order_id, status_str, payment_status)
+        order = self.db.query(Order).filter(Order.id == order_id).first()
         if not order:
             raise HTTPException(status_code=404, detail="Order not found.")
+        order.status = status_str
+        if payment_status:
+            order.payment_status = payment_status
+        self.db.commit()
+        self.db.refresh(order)
         return order
+

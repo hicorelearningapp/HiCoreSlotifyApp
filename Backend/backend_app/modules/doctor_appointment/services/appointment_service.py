@@ -55,17 +55,9 @@ class AppointmentService:
             models.Appointment.Date == appointment.Date,
             models.Appointment.Status.notin_(['Cancelled', 'NotAvailable'])
         ).count()
-        from SequenceFlows.SequenceFactory import SequenceFactory
-        max_bookings_per_day = SequenceFactory.get_setting(self.db, doctor.BusinessPhoneNumber, "max_bookings_per_day", None)
-        if max_bookings_per_day is not None and customer_day_count >= max_bookings_per_day:
-            raise HTTPException(
-                status_code=400,
-                detail=f"You already have {max_bookings_per_day} appointment(s) booked on this day.",
-            )
-
         # Check for overlapping appointments within the buffer
         requested_dt = datetime.combine(appointment.Date, appointment.SlotTime)
-        buffer_minutes = SequenceFactory.get_setting(self.db, doctor.BusinessPhoneNumber, "customer_appointment_buffer_minutes", 60)
+        buffer_minutes = 60
         buffer_delta = timedelta(minutes=buffer_minutes)
         
         existing_appointments = self.db.query(models.Appointment).filter(
@@ -345,8 +337,7 @@ class AppointmentService:
 
         # Check for overlapping appointments within the buffer
         requested_dt = datetime.combine(target_date, slot_time)
-        from SequenceFlows.SequenceFactory import SequenceFactory
-        buffer_minutes = SequenceFactory.get_setting(self.db, doctor.BusinessPhoneNumber, "customer_appointment_buffer_minutes", 60)
+        buffer_minutes = 60
         buffer_delta = timedelta(minutes=buffer_minutes)
         
         existing_appointments = self.db.query(models.Appointment).filter(

@@ -8,4 +8,11 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from backend_app.main import app
 
 if __name__ == "__main__":
-    uvicorn.run("backend_app.main:app", host="127.0.0.1", port=8003, reload=True)
+    app_dir = os.path.dirname(os.path.abspath(__file__))
+    uvicorn.run(
+        "backend_app.main:app",
+        host="127.0.0.1",
+        port=8003,
+        reload=True,
+        reload_dirs=[app_dir, os.path.join(app_dir, "backend_app")]
+    )

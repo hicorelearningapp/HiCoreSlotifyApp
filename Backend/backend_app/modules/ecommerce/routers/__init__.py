@@ -4,8 +4,9 @@ from backend_app.modules.ecommerce.routers.category_router import router as cate
 from backend_app.modules.ecommerce.routers.cart_router import router as cart_router
 from backend_app.modules.ecommerce.routers.order_router import router as order_router
 
-router = APIRouter(prefix="/api/v1/ecommerce")
+router = APIRouter(prefix="/ecommerce")
 router.include_router(product_router)
 router.include_router(category_router)
 router.include_router(cart_router)
 router.include_router(order_router)
+

@@ -16,7 +16,7 @@ def create_order(data: OrderCreate, db: Session = Depends(get_db)):
 @router.get("", response_model=List[OrderOut])
 def list_orders(customer_phone: Optional[str] = None, skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     svc = OrderService(db)
-    return svc.repo.list_orders(customer_phone=customer_phone, skip=skip, limit=limit)
+    return svc.list_orders(customer_phone=customer_phone, skip=skip, limit=limit)
 
 @router.get("/{order_id}", response_model=OrderOut)
 def get_order(order_id: int, db: Session = Depends(get_db)):

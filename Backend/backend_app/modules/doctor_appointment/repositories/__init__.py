@@ -1,2 +1,0 @@
-from backend_app.modules.doctor_appointment.repositories.doctor_repository import DoctorRepository
-from backend_app.modules.doctor_appointment.repositories.appointment_repository import AppointmentRepository

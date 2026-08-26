@@ -77,3 +77,83 @@ def test_admin_login():
     response = client.post("/admin/login", json={"username": "admin", "password": "admin123"})
     assert response.status_code == 200
     assert response.json()["status"] == "success"
+
+def test_appointment_booking_buffer_and_reschedule():
+    # 1. Register & Approve doctor
+    doc_out = create_test_doctor()
+    doctor_id = doc_out["Id"]
+    # Connect WhatsApp business status first
+    wa_resp = client.patch(f"/doctors/{doctor_id}/whatsapp-status", json={"WhatsAppBusinessStatus": "Connected"})
+    assert wa_resp.status_code == 200
+    approve_resp = client.post(f"/admin/doctors/{doctor_id}/approve", headers={"X-Admin-Key": "admin_access_token_2026"})
+    assert approve_resp.status_code == 200
+
+    # 2. Create customer / patient
+    unique_phone = f"9188{uuid.uuid4().hex[:8]}"
+    cust_resp = client.post("/customers", json={
+        "CustomerName": "Ananya Sharma",
+        "PatientName": "Ananya Sharma",
+        "PhoneNumber": unique_phone,
+        "EmailAddress": f"ananya_{uuid.uuid4().hex[:6]}@example.com",
+        "Gender": "Female"
+    })
+    assert cust_resp.status_code == 201
+    cust_out = cust_resp.json()
+    patient_id = cust_out["PatientId"]
+
+    # 3. Get available slots
+    target_date = date.today().isoformat()
+    slots_resp = client.get(f"/doctors/{doctor_id}/available-slots?target_date={target_date}")
+    assert slots_resp.status_code == 200
+    slots = slots_resp.json()
+    assert len(slots) >= 2
+
+    first_slot = slots[0]
+    second_slot = slots[1]
+
+    # 4. Book appointment using pure API endpoint
+    book_payload = {
+        "DoctorId": doctor_id,
+        "PatientId": patient_id,
+        "Date": target_date,
+        "SlotTime": first_slot["SlotTime"],
+        "Slot": first_slot["Slot"],
+        "ConsultationType": "Clinic",
+        "Status": "Booked"
+    }
+    book_resp = client.post("/appointments", json=book_payload)
+    assert book_resp.status_code == 201
+    book_out = book_resp.json()
+    assert book_out["DoctorId"] == doctor_id
+    assert book_out["PatientId"] == patient_id
+    assert book_out["Status"] == "Booked"
+    appointment_id = book_out["Id"]
+
+    # 5. Verify buffer rule prevents booking another slot within 60 mins for same patient
+    overlap_payload = {
+        "DoctorId": doctor_id,
+        "PatientId": patient_id,
+        "Date": target_date,
+        "SlotTime": second_slot["SlotTime"],
+        "Slot": second_slot["Slot"],
+        "ConsultationType": "Clinic",
+        "Status": "Booked"
+    }
+    overlap_resp = client.post("/appointments", json=overlap_payload)
+    assert overlap_resp.status_code == 400
+    assert "buffer" in overlap_resp.json()["detail"].lower() or "within 60 minutes" in overlap_resp.json()["detail"].lower()
+
+    # 6. Verify rescheduling works cleanly
+    # Find a slot later in the day (e.g. 5th slot)
+    if len(slots) > 4:
+        reschedule_slot = slots[4]
+        resched_resp = client.put(f"/appointments/{appointment_id}/reschedule", json={
+            "Date": target_date,
+            "SlotTime": reschedule_slot["SlotTime"],
+            "Slot": reschedule_slot["Slot"]
+        })
+        assert resched_resp.status_code == 200
+        resched_out = resched_resp.json()
+        assert resched_out["Status"] == "Rescheduled"
+        assert resched_out["SlotTime"] == reschedule_slot["SlotTime"]
+
