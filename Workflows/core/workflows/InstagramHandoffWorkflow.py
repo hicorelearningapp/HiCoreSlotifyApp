@@ -1,17 +1,3 @@
-"""
-Hands an Instagram conversation over to WhatsApp.
-
-Instagram is a funnel, not a place where business gets done: comments get a
-public reply and a DM, and everything past that happens on WhatsApp. This
-workflow is the last step of any Instagram sequence -- it sends the wa.me link
-and finishes, so the conversation resumes on the WhatsApp side.
-
-Two shapes of link, matching InstagramHandoffService:
-  a product is known -> an order link whose prefill carries the product id, so
-                        the WhatsApp side resolves the exact row
-  no product         -> a plain booking link, so WhatsApp starts on the normal
-                        greeting flow
-"""
 from config import INSTAGRAM_HANDOFF_PREFILL_TEXT, INSTAGRAM_HANDOFF_WA_NUMBER
 from core.channels.identity import strip_prefix
 from core.workflows.BaseWorkflow import Workflow

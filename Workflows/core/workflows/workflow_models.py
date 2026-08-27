@@ -59,7 +59,7 @@ class ConversationSession:
     def translate(self, key: str, default: str = None, **kwargs) -> str:
         import os, json
         industry = self.WorkflowData.get("industry", "healthcare") if self.state else "healthcare"
-        locale_path = os.path.join(os.path.dirname(__file__), "..", "..", "locales", industry, "en.json")
+        locale_path = os.path.join(os.path.dirname(__file__), "..", "..", "industries", industry, "locales", "en.json")
         template = default or key
         if os.path.exists(locale_path):
             try:
