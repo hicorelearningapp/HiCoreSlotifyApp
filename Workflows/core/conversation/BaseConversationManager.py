@@ -4,7 +4,6 @@ from core.services.session_service import SessionService
 from core.services.channel_messenger import channel_messenger as ChannelMessenger
 from core.sequence.Sequence import Sequence
 from core.workflows.ExitWorkflow import ExitWorkflow
-from config import NLU_ENABLED
 from backend_app.core.database import db_session
 from core.services.language_manager import LanguageManager
 from core.services.message_logger import MessageLogger
@@ -19,11 +18,6 @@ class BaseConversationManager:
         self.Workflows = []
         self.CurrentWorkflowIndex = 0
 
-    def _is_nlu_eligible(self, session) -> bool:
-        """NLU is only allowed when the session is fresh or in GreetingMessageWorkflow."""
-        is_uninitialized = not session.state.SequenceName
-        is_greeting = session.current_workflow == "GreetingMessageWorkflow"
-        return is_uninitialized or is_greeting
 
     async def apply_industry_interceptions(self, session, message, customer_phone: str):
         """Spot a product deep link arriving from Instagram or a QR code.

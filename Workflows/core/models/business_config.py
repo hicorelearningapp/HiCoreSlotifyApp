@@ -1,10 +1,11 @@
-from sqlalchemy import Column, String, Text
+from sqlalchemy import String, Text
+from sqlalchemy.orm import Mapped, mapped_column
 from backend_app.core.database import Base
 from core.models.utils import generate_uuid
 
 class BusinessConfig(Base):
     __tablename__ = "business_configurations"
 
-    Id = Column(String(36), primary_key=True, default=generate_uuid, index=True)
-    BusinessPhoneNumber = Column(String(20), unique=True, nullable=False, index=True)
-    ConfigJson = Column(Text, nullable=False)
+    Id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid, index=True)
+    BusinessPhoneNumber: Mapped[str] = mapped_column(String(20), unique=True, nullable=False, index=True)
+    ConfigJson: Mapped[str] = mapped_column(Text, nullable=False)

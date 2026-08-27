@@ -5,10 +5,10 @@ from core.channels.identity import is_instagram
 
 @dataclass
 class IdentityResult:
-    UserType: str = None
-    AccountId: str = None
-    ProfileId: str = None
-    Sequence: str = None
+    UserType: str | None = None
+    AccountId: str | None = None
+    ProfileId: str | None = None
+    Sequence: str | None = None
     WorkflowIndex: int = 0
     WorkflowData: dict = field(default_factory=dict)
     IsRegistered: bool = False
@@ -17,7 +17,7 @@ class BaseIdentifyService:
     def identify_customer(self, phone_number: str, industry: str, mappings: dict) -> IdentityResult:
         raise NotImplementedError("Subclasses must implement identify_customer")
 
-    def identify_user(self, phone_number: str, business_phone_number: str = None) -> IdentityResult:
+    def identify_user(self, phone_number: str, business_phone_number: str | None = None) -> IdentityResult:
         from core.config.BusinessManager import BusinessManager
         config = BusinessManager.get_config(db_session, business_phone_number) if business_phone_number else BusinessManager._load_default_config()
         industry = config.get("industry", "default")
@@ -64,13 +64,20 @@ class BaseIdentifyService:
 class IdentifyServiceFactory:
     @staticmethod
     def get_service(industry: str) -> BaseIdentifyService:
-        if industry == "healthcare":
-            from industries.healthcare.services.HealthcareIdentifyService import HealthcareIdentifyService
-            return HealthcareIdentifyService()
-        elif industry == "ecommerce":
-            from industries.ecommerce.services.EcommerceIdentifyService import EcommerceIdentifyService
-            return EcommerceIdentifyService()
-        else:
+        # Prevent completely invalid identifiers
+        if not industry or not industry.isalnum():
+            industry = "healthcare"
+            
+        try:
+            module_name = f"industries.{industry}.services.{industry.capitalize()}IdentifyService"
+            class_name = f"{industry.capitalize()}IdentifyService"
+            
+            # Dynamically import the industry's identify service module
+            module = __import__(module_name, fromlist=[class_name])
+            service_class = getattr(module, class_name)
+            return service_class()
+        except (ImportError, AttributeError) as e:
+            print(f"[WARNING] Could not dynamically load IdentifyService for industry '{industry}'. Error: {e}. Falling back to Healthcare.")
             # Fallback to healthcare for default/legacy behavior
             from industries.healthcare.services.HealthcareIdentifyService import HealthcareIdentifyService
             return HealthcareIdentifyService()

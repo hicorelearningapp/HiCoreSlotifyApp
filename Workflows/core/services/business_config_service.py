@@ -23,6 +23,20 @@ class BusinessConfigService:
             except json.JSONDecodeError:
                 print(f"Error decoding JSON for clinic config: {business_number}")
                 return None
+                
+        # Fallback to local file if DB record doesn't exist (useful for manual edits)
+        file_path = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+            "industry_configs",
+            f"{business_number}.txt"
+        )
+        if os.path.exists(file_path):
+            try:
+                with open(file_path, "r", encoding="utf-8") as f:
+                    return json.load(f)
+            except Exception as e:
+                print(f"Failed to load fallback config file for {business_number}: {e}")
+                
         return None
 
     @staticmethod

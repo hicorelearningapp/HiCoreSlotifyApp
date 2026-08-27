@@ -18,7 +18,7 @@ class CreatePatientWorkflow(Workflow):
             patient_name=patient_name
         )
         
-        session.WorkflowData["patient_id"] = new_patient.Id
+        session.WorkflowData["patient_id"] = new_patient.PatientId
         session.current_workflow = "SelectDoctorWorkflow" # Bridge back into standard BookFlow
         
         return WorkflowResult.completed(reply=Reply("text", f"{patient_name} has been added! 🎉"))

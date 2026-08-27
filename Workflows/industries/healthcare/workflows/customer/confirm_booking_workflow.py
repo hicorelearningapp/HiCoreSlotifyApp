@@ -22,7 +22,7 @@ class ConfirmBookingWorkflow(Workflow):
 
         summary = session.translate(
             "booking_summary",
-            patient=patient.Name if patient else "Patient",
+            patient=patient.PatientName if patient else "Patient",
             doctor=doctor.FullName if doctor else "Doctor",
             type=session.WorkflowData.get("ConsultationType", "In-Person"),
             date=session.WorkflowData.get("date"),
@@ -77,7 +77,7 @@ class ConfirmBookingWorkflow(Workflow):
                             PhoneNumber=session.PhoneNumber,
                         )
                     )
-                patient_id = patient.Id
+                patient_id = patient.PatientId
                 session.WorkflowData["patient_id"] = patient_id
             else:
                 patient = CustomerService().get_customer(patient_id)

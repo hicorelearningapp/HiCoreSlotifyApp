@@ -8,7 +8,7 @@ from core.channels.whatsapp.services.whatsapp_service import whatsapp as WhatsAp
 class SelectAppointmentToCancelWorkflow(Workflow):
     def Initialize(self, session: ConversationSession):
         patients = CustomerService().get_profiles_by_phone(session.PhoneNumber)
-        patient_ids = [p.Id for p in patients]
+        patient_ids = [p.PatientId for p in patients]
         
         all_appointments = []
         appt_service = AppointmentService()

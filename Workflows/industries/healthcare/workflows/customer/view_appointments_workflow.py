@@ -6,7 +6,7 @@ from backend_app.modules.doctor_appointment.services.customer_service import Cus
 class ViewAppointmentsWorkflow(Workflow):
     def Initialize(self, session: ConversationSession):
         patients = CustomerService().get_profiles_by_phone(session.PhoneNumber)
-        patient_ids = [p.Id for p in patients]
+        patient_ids = [p.PatientId for p in patients]
         
         all_appointments = []
         appt_service = AppointmentService()
@@ -20,7 +20,7 @@ class ViewAppointmentsWorkflow(Workflow):
         
         msg = session.translate("view_upcoming_appointments")
         for idx, appt in enumerate(all_appointments, 1):
-            pat_name = appt.patient.Name if appt.patient else "Unknown"
+            pat_name = appt.patient.PatientName if appt.patient else "Unknown"
             doc_name = appt.doctor.FullName if appt.doctor else "Unknown Doctor"
             date_str = appt.Date.strftime('%A, %b %d, %Y') if appt.Date else 'Unknown Date'
             time_str = appt.SlotTime.strftime('%I:%M %p') if appt.SlotTime else 'Unknown Time'
