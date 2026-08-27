@@ -26,5 +26,5 @@ class Customer(Base):
 
     @property
     def Name(self) -> str:
-        return self.PatientName or self.CustomerName
-    
+        val = self.PatientName or self.CustomerName
+        return str(val) if val else ""

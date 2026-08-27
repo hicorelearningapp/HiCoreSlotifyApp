@@ -1,6 +1,6 @@
 from core.workflows.BaseWorkflow import Workflow
 from core.models.workflow_models import ConversationSession, Message, WorkflowResult, Reply
-from backend_app.modules.doctor_appointment.services.appointment_service import AppointmentService
+from core.api_client import api_client
 
 class ConfirmCancellationWorkflow(Workflow):
     def Initialize(self, session: ConversationSession):
@@ -16,7 +16,7 @@ class ConfirmCancellationWorkflow(Workflow):
             appointment_id = session.WorkflowData.get("appointment_id_to_cancel")
             if appointment_id:
                 try:
-                    AppointmentService().delete_appointment(appointment_id)
+                    api_client.delete_appointment(appointment_id)
                     return WorkflowResult.completed(reply=Reply("text", session.translate("msg_cancel_success")))
                 except Exception:
                     return WorkflowResult.finished(reply=Reply("text", session.translate("msg_cancel_failed")))

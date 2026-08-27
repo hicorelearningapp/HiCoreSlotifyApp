@@ -2,8 +2,9 @@ import sys
 import os
 
 # Add the Backend folder to sys.path so we can import from backend_app
-backend_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "Backend")
-sys.path.insert(0, backend_dir)
+# (Wait, actually we don't need this anymore since we decoupled)
+# backend_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "Backend")
+# sys.path.insert(0, backend_dir)
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -13,12 +14,10 @@ import logging
 import asyncio
 
 # Setup DB Connection
-from backend_app.core.database import engine, Base, db_session
+from core.database import engine, Base
 
 # Import models so they are registered with Base.metadata before create_all is called
 import core.models
-import backend_app.modules.doctor_appointment.models
-import backend_app.modules.ecommerce.models
 
 Base.metadata.create_all(bind=engine)
 
@@ -48,11 +47,8 @@ images_dir = os.path.join(os.path.dirname(__file__), "images")
 os.makedirs(images_dir, exist_ok=True)
 app.mount("/images", StaticFiles(directory=images_dir), name="images")
 
-from backend_app.core.database import request_context
-
 @app.middleware("http")
 async def db_session_middleware(request: Request, call_next):
-    token = request_context.set(object())
     try:
         response = await call_next(request)
         return response
@@ -61,7 +57,6 @@ async def db_session_middleware(request: Request, call_next):
         raise e
     finally:
         db_session.remove()
-        request_context.reset(token)
 
 app.add_middleware(
     CORSMiddleware,
@@ -93,34 +88,12 @@ async def cleanup_sessions_task():
         except Exception as e:
             logging.getLogger("uvicorn").error(f"Error in session cleanup task: {e}")
 
-from backend_app.modules.doctor_appointment.services.reminder_service import ReminderService
-async def appointment_reminders_task():
-    while True:
-        try:
-            await asyncio.sleep(5 * 60)
-            ReminderService().process_reminders()
-        except asyncio.CancelledError:
-            break
-        except Exception as e:
-            logging.getLogger("uvicorn").error(f"Error processing reminders: {e}")
 
-from backend_app.modules.doctor_appointment.services.review_service import ReviewService
-async def appointment_reviews_task():
-    while True:
-        try:
-            await asyncio.sleep(60 * 60)
-            ReviewService().process_reviews()
-        except asyncio.CancelledError:
-            break
-        except Exception as e:
-            logging.getLogger("uvicorn").error(f"Error processing reviews: {e}")
 
 @app.on_event("startup")
 async def startup_event():
     setup_logging()
     asyncio.create_task(cleanup_sessions_task())
-    asyncio.create_task(appointment_reminders_task())
-    asyncio.create_task(appointment_reviews_task())
 
 # Channel webhooks
 app.include_router(whatsapp_webhook_router.router)

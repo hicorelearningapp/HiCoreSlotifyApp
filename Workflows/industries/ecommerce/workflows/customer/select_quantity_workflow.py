@@ -28,14 +28,13 @@ class SelectQuantityWorkflow:
             quantity = int(message.Text)
             
         if quantity is not None and quantity > 0:
-            from backend_app.modules.ecommerce.services.product_service import product_service
-            from backend_app.core.database import db_session
-            
+            from core.api_client import api_client as product_service
+                        
             product_id = session.WorkflowData.get("product_id")
             variant_id = session.WorkflowData.get("variant_id")
             
             if variant_id:
-                variants = product_service.get_variants_by_product_id(db_session, product_id)
+                variants = product_service.get_variants_by_product_id(product_id)
                 selected_variant = next((v for v in variants if v.id == variant_id), None)
                 if selected_variant and quantity > selected_variant.stock_quantity:
                     return WorkflowResult.waiting(Reply("text", f"Sorry, only {selected_variant.stock_quantity} units of this variation are currently in stock. Please enter a lower quantity."))

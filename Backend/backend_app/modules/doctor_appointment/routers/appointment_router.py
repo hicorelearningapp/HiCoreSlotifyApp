@@ -17,6 +17,7 @@ class AppointmentRouter:
         self.router.add_api_route("/manual", self.create_manual_appointment, methods=["POST"], response_model=schemas.AppointmentOut, status_code=status.HTTP_201_CREATED)
         self.router.add_api_route("", self.list_appointments, methods=["GET"], response_model=schemas.AppointmentListResponse)
         self.router.add_api_route("/doctor/{doctor_id}/past", self.get_past_doctor_appointments, methods=["GET"], response_model=List[schemas.AppointmentOut])
+        self.router.add_api_route("/doctor/{doctor_id}/upcoming", self.get_upcoming_doctor_appointments, methods=["GET"], response_model=List[schemas.AppointmentOut])
         self.router.add_api_route("/past", self.get_past_appointments, methods=["GET"], response_model=List[schemas.AppointmentOut])
         self.router.add_api_route("/status/bulk", self.update_multiple_appointments_status, methods=["PATCH"], response_model=List[schemas.AppointmentOut])
         self.router.add_api_route("/{appointment_id}", self.get_appointment, methods=["GET"], response_model=schemas.AppointmentOut)
@@ -24,6 +25,7 @@ class AppointmentRouter:
         self.router.add_api_route("/{appointment_id}/status", self.update_appointment_status, methods=["PATCH"], response_model=schemas.AppointmentOut)
         self.router.add_api_route("/{appointment_id}/review-date", self.update_review_date, methods=["PATCH"], response_model=schemas.AppointmentOut)
         self.router.add_api_route("/{appointment_id}/reschedule", self.reschedule_appointment, methods=["PUT"], response_model=schemas.AppointmentOut)
+        self.router.add_api_route("/{appointment_id}/cancel", self.cancel_appointment, methods=["PATCH"])
         self.router.add_api_route("/{appointment_id}", self.delete_appointment, methods=["DELETE"])
 
 
@@ -53,6 +55,9 @@ class AppointmentRouter:
         limit: int = Query(100, ge=1, le=500)
     ):
         return self.appt_svc.get_past_doctor_appointments(doctor_id=doctor_id, skip=skip, limit=limit)
+
+    def get_upcoming_doctor_appointments(self, doctor_id: str, limit: int = Query(15, ge=1, le=100)):
+        return self.appt_svc.get_upcoming_doctor_appointments(doctor_id=doctor_id, limit=limit)
 
     def get_past_appointments(
         self,
@@ -100,6 +105,12 @@ class AppointmentRouter:
         if not success:
             raise HTTPException(status_code=404, detail="Appointment not found")
         return {"success": True, "message": "Appointment deleted successfully"}
+
+    def cancel_appointment(self, appointment_id: str):
+        success = self.appt_svc.cancel_appointment(appointment_id)
+        if not success:
+            raise HTTPException(status_code=404, detail="Appointment not found")
+        return {"success": True, "message": "Appointment cancelled successfully"}
 
 
 router = AppointmentRouter().router

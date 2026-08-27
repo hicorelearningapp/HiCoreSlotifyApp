@@ -1,11 +1,10 @@
 from core.models.workflow_models import WorkflowResult, Reply
-from backend_app.modules.ecommerce.services.product_service import product_service
-from backend_app.core.database import db_session
+from core.api_client import api_client as product_service
 
 class SelectVariantWorkflow:
     def Initialize(self, session):
         product_id = session.WorkflowData.get("product_id")
-        variants = product_service.get_variants_by_product_id(db_session, product_id)
+        variants = product_service.get_variants_by_product_id(product_id)
         
         if not variants:
             # Should not happen if correctly routed, but fallback just in case
@@ -34,7 +33,7 @@ class SelectVariantWorkflow:
             product_id = session.WorkflowData.get("product_id")
             
             # Fetch to get the price override
-            variants = product_service.get_variants_by_product_id(db_session, product_id)
+            variants = product_service.get_variants_by_product_id(product_id)
             selected_variant = next((v for v in variants if v.id == variant_id), None)
             
             if selected_variant:

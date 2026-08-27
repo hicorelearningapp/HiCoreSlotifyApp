@@ -1,6 +1,6 @@
 from core.workflows.BaseWorkflow import Workflow
 from core.models.workflow_models import ConversationSession, Message, WorkflowResult, Reply
-from backend_app.modules.doctor_appointment.services.customer_service import CustomerService
+from core.api_client import api_client
 # from core.services.language_manager import LanguageManager
 from core.services.whatsapp_service import whatsapp as WhatsAppService
 import time
@@ -54,13 +54,13 @@ class SelectPatientWorkflow(Workflow):
             if not message.Text:
                 return WorkflowResult.waiting(reply=Reply("text", session.translate("prompt_add_person_invalid")))
             new_name = message.Text.strip()
-            new_patient = CustomerService().add_patient_by_phone(session.PhoneNumber, new_name)
+            new_patient = api_client.add_patient_by_phone(session.PhoneNumber, new_name)
             session.WorkflowData["patient_id"] = new_patient.PatientId
             session.WorkflowData["is_adding_new_person"] = False
             return WorkflowResult.completed()
             
         if message.InteractiveId == "SELF":
-            cust = CustomerService().get_customer_by_phone(session.PhoneNumber)
+            cust = api_client.get_customer_by_phone(session.PhoneNumber)
             if cust: session.WorkflowData["patient_id"] = cust.PatientId
 
         elif message.InteractiveId and message.InteractiveId.startswith("PATIENT_"):
@@ -69,10 +69,10 @@ class SelectPatientWorkflow(Workflow):
         elif message.Text:
             text_lower = message.Text.strip().lower()
             if text_lower in ["self", "myself", "for myself", "me"]:
-                cust = CustomerService().get_customer_by_phone(session.PhoneNumber)
+                cust = api_client.get_customer_by_phone(session.PhoneNumber)
                 if cust: session.WorkflowData["patient_id"] = cust.PatientId
             else:
-                patients = CustomerService().get_profiles_by_phone(session.PhoneNumber)
+                patients = api_client.get_profiles_by_phone(session.PhoneNumber)
                 matched_patient = next((p for p in patients if p.Name.lower() == text_lower), None)
                 if matched_patient:
                     session.WorkflowData["patient_id"] = matched_patient.PatientId

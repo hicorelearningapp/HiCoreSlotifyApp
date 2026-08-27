@@ -1,6 +1,5 @@
 from core.workflows.BaseWorkflow import Workflow
 from core.models.workflow_models import ConversationSession, Message, WorkflowResult, Reply
-from backend_app.core.database import db_session
 from config import SERVER_BASE_URL
 import urllib.parse
 
@@ -20,12 +19,12 @@ class GreetingMessageWorkflow(Workflow):
             greeting = session.translate("greeting_image_caption")
             
         business_phone = session.state.BusinessPhoneNumber
-        welcome_message_override = SequenceFactory.get_setting(db_session, business_phone, "welcome_message_override")
+        welcome_message_override = SequenceFactory.get_setting(business_phone, "welcome_message_override")
         if welcome_message_override and not user_name:
             greeting = welcome_message_override
 
         if role != "admin":
-            image_filename = SequenceFactory.get_setting(db_session, business_phone, "welcome_image_filename", "Welcome to HiCore Image English.jpeg")
+            image_filename = SequenceFactory.get_setting(business_phone, "welcome_image_filename", "Welcome to HiCore Image English.jpeg")
             if not image_filename:
                 return WorkflowResult.completed(
                     reply=Reply(message_type="text", text=greeting)

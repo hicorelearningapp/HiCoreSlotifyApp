@@ -1,10 +1,9 @@
 from core.models.workflow_models import WorkflowResult, Reply, WorkflowStatus
-from backend_app.modules.ecommerce.services.order_service import order_service
-from backend_app.modules.ecommerce.services.product_service import product_service
-from backend_app.modules.ecommerce.services.notification_service import notification_service
-from backend_app.modules.ecommerce.services.customer_service import CustomerService
+from core.api_client import api_client as order_service
+from core.api_client import api_client as product_service
+from core.api_client import api_client as notification_service
+from core.api_client import api_client
 import core.schemas as schemas
-from backend_app.core.database import db_session
 
 class ConfirmOrderWorkflow:
     def Initialize(self, session):
@@ -12,7 +11,7 @@ class ConfirmOrderWorkflow:
         product_id = session.WorkflowData.get("product_id")
         quantity = session.WorkflowData.get("quantity", 1)
         
-        product = product_service.get_product_by_id(db_session, product_id)
+        product = product_service.get_product_by_id(product_id)
         if not product:
             return WorkflowResult.completed(Reply("text", "Error: Product not found."))
             
@@ -20,7 +19,7 @@ class ConfirmOrderWorkflow:
         price = product.price
         
         if variant_id:
-            variants = product_service.get_variants_by_product_id(db_session, product_id)
+            variants = product_service.get_variants_by_product_id(product_id)
             variant = next((v for v in variants if v.id == variant_id), None)
             if variant and variant.price is not None:
                 price = variant.price
@@ -71,10 +70,10 @@ class ConfirmOrderWorkflow:
             )
             
             # Optionally update order details like address etc. here
-            order_service.update_order_details(db_session, order.id, "Standard", payment_method)
+            order_service.update_order_details(order.id, "Standard", payment_method)
             
             # Notify Owner
-            product = product_service.get_product_by_id(db_session, product_id)
+            product = product_service.get_product_by_id(product_id)
             notification_service.notify_owner_new_order(order, customer.CustomerName or session.PhoneNumber, product.name)
             
             if payment_method == "Pay Online":

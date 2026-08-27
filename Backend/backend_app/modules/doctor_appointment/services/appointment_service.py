@@ -136,8 +136,29 @@ class AppointmentService:
         available_slot.PatientName = customer.PatientName
         if hasattr(appointment, 'ReviewDate') and appointment.ReviewDate:
             available_slot.ReviewDate = appointment.ReviewDate
-        if hasattr(appointment, 'MeetingLink') and appointment.MeetingLink:
-            available_slot.MeetingLink = appointment.MeetingLink
+
+        meeting_link = appointment.MeetingLink
+        if appointment.ConsultationType == "Video" and not meeting_link:
+            try:
+                import uuid
+                req_id = str(uuid.uuid4())
+                patient_name_str = customer.PatientName if customer else "Patient"
+                dt_start = datetime.combine(appointment.Date, appointment.SlotTime)
+                duration = doctor.ConsultationDuration if getattr(doctor, "ConsultationDuration", None) else 30
+                
+                meeting_link = GoogleOAuthService().create_meet_event(
+                    appointment_id=req_id,
+                    patient_name=patient_name_str,
+                    start_dt=dt_start,
+                    duration_mins=duration,
+                    doctor_email=doctor.EmailAddress if doctor else None,
+                    patient_email=customer.EmailAddress if customer else None,
+                )
+            except Exception as e:
+                print(f"Failed to generate Google Meet link in book_appointment: {e}")
+
+        if meeting_link:
+            available_slot.MeetingLink = meeting_link
 
         try:
             self.db.commit()

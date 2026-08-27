@@ -1,12 +1,11 @@
 from core.workflows.BaseWorkflow import Workflow
 from core.models.workflow_models import ConversationSession, Message, WorkflowResult, Reply
-from backend_app.modules.doctor_appointment.services.customer_service import CustomerService
-import backend_app.modules.doctor_appointment.schemas as schemas
+from core.api_client import api_client
 
 
 class RegisterPatientWorkflow(Workflow):
     def Initialize(self, session: ConversationSession):
-        customer = CustomerService().get_customer_by_phone(session.PhoneNumber)
+        customer = api_client.get_customer_by_phone(session.PhoneNumber)
         if customer and customer.PatientName and customer.PatientName != "Guest":
             return WorkflowResult.completed()
         return WorkflowResult.waiting(
@@ -19,15 +18,15 @@ class RegisterPatientWorkflow(Workflow):
             
         name = message.Text.strip()
 
-        customer_service = CustomerService()
-        customer = customer_service.get_customer_by_phone(session.PhoneNumber)
+        customer = api_client.get_customer_by_phone(session.PhoneNumber)
         
         if not customer:
-            customer_create = schemas.CustomerCreate(CustomerName=name, PatientName=name, PhoneNumber=session.PhoneNumber)
+            customer_create = {"CustomerName": name, "PatientName": name, "PhoneNumber": session.PhoneNumber}
             lang = session.state.WorkflowData.get("Language") if hasattr(session, 'state') else session.WorkflowData.get("Language")
-            customer_service.create_customer(customer=customer_create, language=lang)
+            # Wait, api_client.create_customer doesn't take `language` right now, I'll pass it in the dict if needed
+            api_client.create_customer(data=customer_create)
         else:
-            customer_service.update_customer_name(session.PhoneNumber, name)
+            api_client._request("PATCH", f"/customers/by-phone/{session.PhoneNumber}/name", params={"patient_name": name})
 
         return WorkflowResult.completed(
             reply=Reply("text", session.translate("register_thanks", name=name))

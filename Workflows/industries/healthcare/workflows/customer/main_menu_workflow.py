@@ -1,14 +1,13 @@
 from core.workflows.BaseWorkflow import Workflow
 from core.models.workflow_models import ConversationSession, Message, WorkflowResult, Reply
 from core.services.whatsapp_service import whatsapp as WhatsAppService
-from backend_app.modules.doctor_appointment.services.customer_service import CustomerService
-from backend_app.modules.doctor_appointment.services.appointment_service import AppointmentService
+from core.api_client import api_client
 import time
 
 class MainMenuWorkflow(Workflow):
     def Initialize(self, session: ConversationSession):
         
-        patients = CustomerService().get_profiles_by_phone(session.PhoneNumber)
+        patients = api_client.get_profiles_by_phone(session.PhoneNumber)
         patient_ids = [p.PatientId for p in patients]
         
         all_appointments = []

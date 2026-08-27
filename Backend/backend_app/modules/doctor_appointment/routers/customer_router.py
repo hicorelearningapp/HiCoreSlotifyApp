@@ -19,6 +19,7 @@ class CustomerRouter:
         self.router.add_api_route("/by-phone/{phone_number}/patients", self.add_patient_by_phone, methods=["POST"], response_model=schemas.CustomerOut, status_code=status.HTTP_201_CREATED)
         self.router.add_api_route("/{patient_id}", self.get_customer, methods=["GET"], response_model=schemas.CustomerOut)
         self.router.add_api_route("/{patient_id}", self.update_customer, methods=["PUT"], response_model=schemas.CustomerOut)
+        self.router.add_api_route("/by-phone/{phone_number}/email", self.update_customer_email, methods=["PATCH"], response_model=schemas.CustomerOut)
         self.router.add_api_route("/{patient_id}", self.delete_customer, methods=["DELETE"])
 
 
@@ -63,6 +64,12 @@ class CustomerRouter:
         if not customer:
             raise HTTPException(status_code=404, detail="Patient profile not found")
         return customer
+
+    def update_customer_email(self, phone_number: str, email_address: str = Query(..., description="The new email address")):
+        success = self.customer_svc.update_customer_email(phone_number, email_address)
+        if not success:
+            raise HTTPException(status_code=404, detail="Customer account not found")
+        return self.customer_svc.get_customer_by_phone(phone_number)
 
 
     def delete_customer(self, patient_id: str):

@@ -1,11 +1,11 @@
 from core.workflows.BaseWorkflow import Workflow
 from core.models.workflow_models import ConversationSession, Message, WorkflowResult, Reply
-from backend_app.modules.doctor_appointment.services.appointment_service import AppointmentService
+from core.api_client import api_client
 
 class DoctorPatientDetailsWorkflow(Workflow):
     def Initialize(self, session: ConversationSession):
         appt_id = session.WorkflowData.get("target_appt_id")
-        appointment = AppointmentService().get_appointment_by_id(appt_id)
+        appointment = api_client.get_appointment_by_id(appt_id)
         
         if not appointment or not appointment.patient:
             return WorkflowResult.finished(reply=Reply("text", "Could not load patient details. Type 'hi' to return to menu."))

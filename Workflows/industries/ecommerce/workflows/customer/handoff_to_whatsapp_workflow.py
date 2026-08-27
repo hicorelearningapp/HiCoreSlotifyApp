@@ -1,5 +1,5 @@
 from core.models.workflow_models import WorkflowResult, Reply, WorkflowStatus
-from backend_app.modules.ecommerce.services.handoff_service import handoff_service
+from core.api_client import api_client as handoff_service
 from config import ADMIN_PHONE_NUMBER
 
 class HandoffToWhatsAppWorkflow:

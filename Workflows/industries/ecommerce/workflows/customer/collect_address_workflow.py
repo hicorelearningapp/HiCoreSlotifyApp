@@ -1,5 +1,5 @@
 from core.models.workflow_models import WorkflowResult, Reply, WorkflowStatus
-from backend_app.modules.ecommerce.services.customer_service import CustomerService
+from core.api_client import api_client
 import core.schemas as schemas
 
 class CollectAddressWorkflow:

@@ -112,8 +112,11 @@ class DoctorRouter:
         skip: int = Query(0, ge=0),
         limit: int = Query(100, ge=1, le=500),
         status: Optional[str] = Query(None, description="Filter by status: Pending, Approved, Rejected"),
-        approved_only: bool = Query(False, description="By default returns all doctors for display")
+        approved_only: bool = Query(False, description="By default returns all doctors for display"),
+        business_phone: Optional[str] = Query(None, description="Filter by business phone number")
     ):
+        if business_phone:
+            return self.doctor_svc.list_doctors_by_business_phone(business_phone=business_phone, skip=skip, limit=limit, status=status, approved_only=approved_only)
         return self.doctor_svc.list_doctors(skip=skip, limit=limit, status=status, approved_only=approved_only)
 
     def get_doctor(self, doctor_id: str):

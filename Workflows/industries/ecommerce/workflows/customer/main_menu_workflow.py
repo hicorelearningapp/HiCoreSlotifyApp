@@ -1,6 +1,5 @@
 from core.models.workflow_models import WorkflowResult, Reply, WorkflowStatus
-from backend_app.modules.ecommerce.services.product_service import product_service
-from backend_app.core.database import db_session
+from core.api_client import api_client as product_service
 
 class MainMenuWorkflow:
     def Initialize(self, session):

@@ -7,10 +7,8 @@ from core.models.workflow_models import (
     WorkflowResult,
     Reply,
 )
-from backend_app.modules.doctor_appointment.services.appointment_service import AppointmentService
-from backend_app.modules.doctor_appointment.services.doctor_service import DoctorService
+from core.api_client import api_client
 from core.services.whatsapp_service import whatsapp as WhatsAppService
-from backend_app.core.database import db_session
 
 class SelectDateWorkflow(Workflow):
     def Initialize(self, session: ConversationSession):
@@ -18,16 +16,16 @@ class SelectDateWorkflow(Workflow):
         sections = [{"title": session.translate("section_upcoming_dates"), "rows": []}]
         doctor_id = session.WorkflowData.get("DoctorId")
         if not doctor_id and session.state.BusinessPhoneNumber:
-            doctors = DoctorService().list_doctors_by_business_phone(
+            doctors = api_client.list_doctors_by_business_phone(
                 session.state.BusinessPhoneNumber
             )
             if doctors:
                 doctor_id = str(doctors[0].Id)
                 session.WorkflowData["DoctorId"] = doctor_id
-        doctor = DoctorService().get_doctor(doctor_id)
+        doctor = api_client.get_doctor(doctor_id)
 
         biz_phone = session.state.BusinessPhoneNumber if session.state else None
-        default_hours = SequenceFactory.get_setting(db_session, biz_phone, "business_hours")
+        default_hours = SequenceFactory.get_setting(biz_phone, "business_hours")
 
         days_added = 0
         current_date = date.today()
@@ -101,7 +99,7 @@ class SelectDateWorkflow(Workflow):
                 return self.Initialize(session)
 
             doctor_id = session.WorkflowData.get("DoctorId")
-            slots_dt = AppointmentService().get_available_slots(
+            slots_dt = api_client.get_available_slots(
                 target_date=target_date, doctor_id=doctor_id
             )
             if not slots_dt:

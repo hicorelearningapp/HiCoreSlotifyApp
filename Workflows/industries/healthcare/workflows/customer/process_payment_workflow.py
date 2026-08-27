@@ -1,13 +1,13 @@
 from core.workflows.BaseWorkflow import Workflow
 from core.models.workflow_models import ConversationSession, Message, WorkflowResult, Reply
-from backend_app.modules.doctor_appointment.services.doctor_service import DoctorService
+from core.api_client import api_client
 
 UPI_ID = "hicore@upi"
 MERCHANT_NAME = "HiCore%20System"
 
 class ProcessPaymentWorkflow(Workflow):
     def Initialize(self, session: ConversationSession):
-        doctor = DoctorService().get_doctor(session.WorkflowData.get("DoctorId"))
+        doctor = api_client.get_doctor(session.WorkflowData.get("DoctorId"))
         price = doctor.ClinicConsultationFee if doctor and doctor.ClinicConsultationFee else 0.0
         session.WorkflowData["Price"] = price
         session.WorkflowData["UpiId"] = doctor.UpiId if doctor and doctor.UpiId else UPI_ID

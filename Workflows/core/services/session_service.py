@@ -8,7 +8,7 @@ import core.models as models
 import core.schemas as schemas
 from core.models.workflow_models import ConversationSession as DomainConversationSession
 from core.models.workflow_models import SessionState
-from backend_app.core.database import db_session
+from core.database import db_session
 from core.services.whatsapp_service import whatsapp
 from core.services.message_logger import MessageLogger
 
@@ -65,7 +65,7 @@ class SessionService:
             from core.config.BusinessManager import BusinessManager
 
             config = (
-                BusinessManager.get_config(db_session, business_phone_number)
+                BusinessManager.get_config(business_phone_number)
                 if business_phone_number
                 else BusinessManager._load_default_config()
             )
@@ -75,7 +75,7 @@ class SessionService:
             identify_svc = IdentifyServiceFactory.get_service(industry)
             user = identify_svc.identify_user(phone_number, biz_phone)
             from core.Sequence import SequenceFactory
-            sequence_name = SequenceFactory.GetSequenceName(user.UserType, db_session, biz_phone)
+            sequence_name = SequenceFactory.GetSequenceName(user.UserType, biz_phone)
             if not sequence_name:
                 # The business config has no mapping for this user type. The
                 # IdentifyService already worked out a sensible sequence for it,
@@ -86,7 +86,7 @@ class SessionService:
                     "No user_type_mapping for %s on business %s; falling back to %s",
                     user.UserType, biz_phone or "<default>", sequence_name,
                 )
-            seq = SequenceFactory.Get(sequence_name, db_session, biz_phone)
+            seq = SequenceFactory.Get(sequence_name, biz_phone)
             first_workflow_class = seq.Current(0)
             current_workflow = first_workflow_class.__name__ if first_workflow_class else ""
 

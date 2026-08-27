@@ -5,7 +5,6 @@ from config import VERIFY_TOKEN
 from core.conversation.ConversationManagerFactory import ConversationManagerFactory
 from core.services.whatsapp_service import whatsapp as WhatsAppService
 from core.utils.whatsapp_parser import ParseManager
-from backend_app.core.database import db_session
 
 
 class WebhookRouter:
@@ -35,7 +34,7 @@ class WebhookRouter:
             message = await ParseManager.ParseWhatsapp(request)
             if not message:
                 return {"status": "ignored"}
-            await ConversationManagerFactory.get_manager(db_session, message.BusinessPhoneNumber).process(message.PhoneNumber, message)
+            await ConversationManagerFactory.get_manager(message.BusinessPhoneNumber).process(message.PhoneNumber, message)
             bot_replies = WhatsAppService.sent_payloads
             WhatsAppService.sent_payloads = []
             

@@ -1,8 +1,7 @@
 import json
 import os
-from sqlalchemy.orm import Session
-from backend_app.modules.business_config.services.business_config_service import BusinessConfigService
 import copy
+from core.api_client import api_client
 
 class BusinessManager:
     DEFAULT_CONFIG = None
@@ -36,19 +35,19 @@ class BusinessManager:
         return merged
 
     @classmethod
-    def get_config(cls, db_session: Session = None, business_phone: str = None) -> dict:
+    def get_config(cls, business_phone: str = None=None) -> dict:
         default_config = cls._load_default_config()
-        if business_phone and db_session:
-            custom_config = BusinessConfigService.get_config(db_session, business_phone)
+        if business_phone:
+            custom_config = api_client.get_business_config(business_phone)
             if custom_config:
                 return cls._deep_merge(default_config, custom_config)
         return default_config
 
     @classmethod
-    def get_industry(cls, db_session: Session = None, business_phone: str = None) -> str:
+    def get_industry(cls, business_phone: str = None=None) -> str:
         """
         Determines the industry for the given business phone.
         Defaults to 'healthcare' if not found.
         """
-        config = cls.get_config(db_session, business_phone)
+        config = cls.get_config(business_phone)
         return config.get("industry", "healthcare").lower()

@@ -1,0 +1,122 @@
+import os
+import requests
+from typing import Dict, Any, Optional
+
+BACKEND_API_URL = os.getenv("BACKEND_API_URL", "http://localhost:8000")
+
+class BackendAPIClient:
+    def __init__(self, base_url: str = BACKEND_API_URL):
+        self.base_url = base_url.rstrip("/")
+        self.session = requests.Session()
+        
+    def _request(self, method: str, endpoint: str, **kwargs) -> Any:
+        url = f"{self.base_url}{endpoint}"
+        try:
+            response = self.session.request(method, url, **kwargs)
+            response.raise_for_status()
+            if response.text:
+                return response.json()
+            return None
+        except requests.exceptions.RequestException as e:
+            print(f"API Client Error: {method} {url} - {e}")
+            if hasattr(e, 'response') and e.response is not None:
+                print(f"Response Body: {e.response.text}")
+            return None
+
+    # --- Business Config APIs ---
+    def get_business_config(self, business_phone: str):
+        return self._request("GET", f"/business-config/{business_phone}")
+
+    # --- Customer APIs ---
+    def get_customer(self, patient_id: str):
+        return self._request("GET", f"/customers/{patient_id}")
+        
+    def get_customer_by_phone(self, phone_number: str):
+        return self._request("GET", f"/customers/by-phone/{phone_number}")
+        
+    def get_profiles_by_phone(self, phone_number: str):
+        return self._request("GET", f"/customers/by-phone/{phone_number}/patients")
+        
+    def create_customer(self, data: Dict[str, Any]):
+        return self._request("POST", "/customers", json=data)
+        
+    def add_patient_by_phone(self, phone_number: str, data: Dict[str, Any]):
+        return self._request("POST", f"/customers/by-phone/{phone_number}/patients", json=data)
+        
+    def update_customer_email(self, phone_number: str, email: str):
+        return self._request("PATCH", f"/customers/by-phone/{phone_number}/email", params={"email_address": email})
+
+    # --- Appointment APIs ---
+    def get_appointment(self, appointment_id: str):
+        return self._request("GET", f"/appointments/{appointment_id}")
+        
+    def book_appointment(self, data: Dict[str, Any]):
+        return self._request("POST", "/appointments", json=data)
+        
+    def cancel_appointment(self, appointment_id: str):
+        return self._request("PATCH", f"/appointments/{appointment_id}/cancel")
+        
+    def delete_appointment(self, appointment_id: str):
+        return self._request("DELETE", f"/appointments/{appointment_id}")
+        
+    def get_upcoming_doctor_appointments(self, doctor_id: str, limit: int = 15):
+        return self._request("GET", f"/appointments/doctor/{doctor_id}/upcoming", params={"limit": limit})
+        
+    # --- Payment APIs ---
+    def create_payment(self, data: Dict[str, Any]):
+        return self._request("POST", "/payments", json=data)
+
+    # --- Doctor APIs ---
+    def get_doctor(self, doctor_id: str):
+        return self._request("GET", f"/doctors/{doctor_id}")
+        
+    def get_doctor_first_name(self, doctor_id: str) -> str:
+        doc = self.get_doctor(doctor_id)
+        if not doc or "FullName" not in doc:
+            return "Doctor"
+        name = doc["FullName"].strip()
+        prefixes = ["Dr. ", "Dr.", "Dr ", "Doctor "]
+        for prefix in prefixes:
+            if name.lower().startswith(prefix.lower()):
+                name = name[len(prefix):].strip()
+                break
+        return f"Dr. {name.split()[0]}" if name else "Doctor"
+        
+    def list_doctors(self, approved_only: bool = True):
+        return self._request("GET", "/doctors", params={"approved_only": approved_only})
+        
+    def list_doctors_by_business_phone(self, business_phone: str, approved_only: bool = True):
+        return self._request("GET", "/doctors", params={"business_phone": business_phone, "approved_only": approved_only})
+        
+    def get_available_slots(self, doctor_id: str, target_date: str):
+        return self._request("GET", f"/doctors/{doctor_id}/available-slots", params={"target_date": target_date})
+
+    # --- Ecommerce APIs ---
+    def get_all_categories(self, store_id: str = "default"):
+        return self._request("GET", "/ecommerce/products/categories", params={"store_id": store_id})
+        
+    def get_products_by_category(self, category_id: int):
+        return self._request("GET", f"/ecommerce/products/categories/{category_id}/products")
+        
+    def get_product(self, product_id: int):
+        return self._request("GET", f"/ecommerce/products/{product_id}")
+        
+    def get_variants(self, product_id: int):
+        return self._request("GET", f"/ecommerce/products/{product_id}/variants")
+        
+    def find_product(self, identifier: str):
+        return self._request("GET", f"/ecommerce/products/find/{identifier}")
+        
+    def get_ecommerce_customer(self, phone_number: str):
+        return self._request("GET", f"/ecommerce/customers/by-phone/{phone_number}")
+        
+    def create_ecommerce_customer(self, data: Dict[str, Any]):
+        return self._request("POST", "/ecommerce/customers", json=data)
+        
+    def update_ecommerce_customer(self, phone_number: str, data: Dict[str, Any]):
+        return self._request("PUT", f"/ecommerce/customers/by-phone/{phone_number}", json=data)
+
+    def create_order(self, data: Dict[str, Any]):
+        return self._request("POST", "/ecommerce/orders", json=data)
+
+api_client = BackendAPIClient()

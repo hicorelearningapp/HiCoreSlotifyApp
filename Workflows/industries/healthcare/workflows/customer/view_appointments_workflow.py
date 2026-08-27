@@ -1,11 +1,10 @@
 from core.workflows.BaseWorkflow import Workflow
 from core.models.workflow_models import ConversationSession, Message, WorkflowResult, Reply
-from backend_app.modules.doctor_appointment.services.appointment_service import AppointmentService
-from backend_app.modules.doctor_appointment.services.customer_service import CustomerService
+from core.api_client import api_client
 
 class ViewAppointmentsWorkflow(Workflow):
     def Initialize(self, session: ConversationSession):
-        patients = CustomerService().get_profiles_by_phone(session.PhoneNumber)
+        patients = api_client.get_profiles_by_phone(session.PhoneNumber)
         patient_ids = [p.PatientId for p in patients]
         
         all_appointments = []
@@ -33,7 +32,7 @@ class ViewAppointmentsWorkflow(Workflow):
                     
                 email_to_use = getattr(appt.patient, 'EmailAddress', None) if appt.patient else None
                 if not email_to_use and appt.patient:
-                    primary_cust = CustomerService().get_customer_by_phone(appt.patient.PhoneNumber)
+                    primary_cust = api_client.get_customer_by_phone(appt.patient.PhoneNumber)
                     if primary_cust:
                         email_to_use = getattr(primary_cust, 'EmailAddress', None)
                         

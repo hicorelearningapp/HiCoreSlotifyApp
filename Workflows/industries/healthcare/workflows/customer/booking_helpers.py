@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 import core.models as models
 import core.schemas as schemas
 from core.services.whatsapp_service import whatsapp
-from backend_app.modules.doctor_appointment.services.appointment_service import AppointmentService
+from core.api_client import api_client
 
 class BookingHelpers:
     @staticmethod
@@ -17,7 +17,7 @@ class BookingHelpers:
         
         for i in range(max_lookahead):
             d = today + timedelta(days=i)
-            slots = AppointmentService().get_available_slots(target_date=d, doctor_id=doctor_id)
+            slots = api_client.get_available_slots(target_date=d, doctor_id=doctor_id)
             if slots:
                 available_dates.append(d)
             if len(available_dates) == target_count:
@@ -132,11 +132,10 @@ class BookingHelpers:
             ConsultationType=consultation_type
         )
         try:
-            AppointmentService().book_appointment(app_create)
+            api_client.book_appointment(app_create)
             whatsapp.send_text(phone, f"Success! Your appointment is confirmed for {start_datetime.strftime('%Y-%m-%d %I:%M %p')}.")
             
-            from backend_app.modules.doctor_appointment.services.customer_service import CustomerService
-            patient = CustomerService().get_customer(patient_id)
+            patient = api_client.get_customer(patient_id)
             patient_name = patient.patient_name if patient else "Unknown"
 
             doctor = db.query(models.Doctor).filter(models.Doctor.Id == doctor_id).first()

@@ -1,5 +1,5 @@
 from core.IdentifyService import BaseIdentifyService, IdentityResult
-from backend_app.modules.doctor_appointment.services.customer_service import CustomerService
+from core.api_client import api_client
 
 class HealthcareIdentifyService(BaseIdentifyService):
     def __init__(self):

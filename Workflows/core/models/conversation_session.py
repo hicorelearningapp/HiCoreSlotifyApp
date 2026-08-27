@@ -1,5 +1,5 @@
 from sqlalchemy import Column, String, DateTime, JSON, UniqueConstraint
-from backend_app.core.database import Base
+from core.database import Base
 from datetime import datetime
 from core.models.utils import generate_uuid
 from sqlalchemy.orm import Mapped, mapped_column

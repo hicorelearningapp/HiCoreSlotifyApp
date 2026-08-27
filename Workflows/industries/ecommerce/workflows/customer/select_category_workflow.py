@@ -1,11 +1,10 @@
 from core.models.workflow_models import WorkflowResult, Reply, WorkflowStatus
-from backend_app.modules.ecommerce.services.product_service import product_service
-from backend_app.core.database import db_session
+from core.api_client import api_client as product_service
 
 class SelectCategoryWorkflow:
     def Initialize(self, session):
         store_id = session.state.BusinessPhoneNumber if session.state.BusinessPhoneNumber else "default"
-        categories = product_service.get_all_categories(db_session, store_id)
+        categories = product_service.get_all_categories(store_id)
         options = []
         for cat in categories:
             options.append({"id": f"CAT_{cat.id}", "title": cat.name[:24], "description": cat.description or ""})

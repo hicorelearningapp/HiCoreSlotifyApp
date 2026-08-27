@@ -1,13 +1,13 @@
 from core.workflows.BaseWorkflow import Workflow
 from core.models.workflow_models import ConversationSession, Message, WorkflowResult, Reply
 from core.services.whatsapp_service import whatsapp as WhatsAppService
-from backend_app.modules.doctor_appointment.services.doctor_service import DoctorService
+from core.api_client import api_client
 import time
 
 class DoctorMenuWorkflow(Workflow):
     def Initialize(self, session: ConversationSession):
         doctor_id = session.WorkflowData.get("doctor_id")
-        name = DoctorService().get_doctor_first_name(doctor_id) if doctor_id else "Doctor"
+        name = api_client.get_doctor_first_name(doctor_id) if doctor_id else "Doctor"
         reply = Reply(
             message_type="buttons",
             text=f"What would you like to do?",

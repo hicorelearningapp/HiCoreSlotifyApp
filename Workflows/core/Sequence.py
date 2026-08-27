@@ -111,20 +111,20 @@ class SequenceFactory:
     """
 
     @classmethod
-    def get_setting(cls, db_session=None, business_phone: str | None = None, setting_key: str = "", default_value=None):
-        config = BusinessManager.get_config(db_session, business_phone)
+    def get_setting(cls, business_phone: str | None = None, setting_key: str = "", default_value=None):
+        config = BusinessManager.get_config(business_phone)
         settings = config.get("settings", {})
         return settings.get(setting_key, default_value)
 
     @classmethod
-    def GetSequenceName(cls, user_type: str, db_session=None, business_phone: str | None = None) -> str:
-        config = BusinessManager.get_config(db_session, business_phone)
+    def GetSequenceName(cls, user_type: str, business_phone: str | None = None) -> str:
+        config = BusinessManager.get_config(business_phone)
         mappings = config.get("user_type_mappings", {})
         return mappings.get(user_type)
 
     @classmethod
-    def Get(cls, name: str, db_session=None, business_phone: str | None = None) -> Sequence:
-        config = BusinessManager.get_config(db_session, business_phone)
+    def Get(cls, name: str, business_phone: str | None = None) -> Sequence:
+        config = BusinessManager.get_config(business_phone)
         sequences_dict = config.get("sequences", {})
 
         if name not in sequences_dict:

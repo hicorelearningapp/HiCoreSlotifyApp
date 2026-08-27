@@ -1,7 +1,6 @@
 import logging
 from core.Sequence import SequenceFactory
 from core.conversation.BaseConversationManager import BaseConversationManager
-from backend_app.core.database import db_session
 
 class EcommerceConversationManager(BaseConversationManager):
     """
@@ -14,15 +13,15 @@ async def ecommerce_deep_link_interceptor(manager: BaseConversationManager, sess
     if not (message and message.Text and not session.workflow_initialized):
         return False
 
-    from backend_app.modules.ecommerce.services.handoff_service import handoff_service
-    from backend_app.modules.ecommerce.services.product_service import product_service
+    from core.api_client import api_client as handoff_service
+    from core.api_client import api_client as product_service
 
     handoff_data = handoff_service.parse_order_text(message.Text)
     if not (handoff_data and "product_name" in handoff_data):
         return False
 
     identifier = handoff_data.get("product_id") or handoff_data["product_name"]
-    product = product_service.get_product_by_name_or_id(db_session, identifier)
+    product = product_service.get_product_by_name_or_id(identifier)
     if not product:
         return False
 
@@ -38,7 +37,7 @@ async def ecommerce_deep_link_interceptor(manager: BaseConversationManager, sess
 
     try:
         manager.Sequence = SequenceFactory.Get(
-            sequence_name, db_session, session.state.BusinessPhoneNumber
+            sequence_name, session.state.BusinessPhoneNumber
         )
     except ValueError:
         logging.getLogger("uvicorn").warning(

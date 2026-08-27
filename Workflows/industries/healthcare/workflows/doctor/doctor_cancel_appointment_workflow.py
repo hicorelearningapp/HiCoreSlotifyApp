@@ -1,13 +1,13 @@
 from core.workflows.BaseWorkflow import Workflow
 from core.models.workflow_models import ConversationSession, Message, WorkflowResult, Reply
-from backend_app.modules.doctor_appointment.services.appointment_service import AppointmentService
+from core.api_client import api_client
 from core.services.whatsapp_service import whatsapp as WhatsAppService
 import asyncio
 
 class DoctorSelectAppointmentsToCancelWorkflow(Workflow):
     def Initialize(self, session: ConversationSession):
         doctor_id = session.WorkflowData.get("doctor_id")
-        appointments = AppointmentService().get_upcoming_doctor_appointments(doctor_id, limit=15)
+        appointments = api_client.get_upcoming_doctor_appointments(doctor_id, limit=15)
         
         if not appointments:
             return WorkflowResult.finished(reply=Reply("text", "You don't have any upcoming appointments to cancel."))
@@ -80,9 +80,9 @@ class DoctorCancellationConfirmationWorkflow(Workflow):
         
         cancelled_count = 0
         for appt_id in target_cancel_ids:
-            appointment = AppointmentService().get_appointment_by_id(appt_id)
+            appointment = api_client.get_appointment_by_id(appt_id)
             if appointment and appointment.Status != "Cancelled":
-                AppointmentService().cancel_appointment(appt_id)
+                api_client.cancel_appointment(appt_id)
                 cancelled_count += 1
                 
                 # Notify Patient

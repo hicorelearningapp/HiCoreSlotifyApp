@@ -1,5 +1,5 @@
 from core.IdentifyService import BaseIdentifyService, IdentityResult
-from backend_app.modules.ecommerce.services.customer_service import CustomerService
+from core.api_client import api_client
 
 class EcommerceIdentifyService(BaseIdentifyService):
     def __init__(self):

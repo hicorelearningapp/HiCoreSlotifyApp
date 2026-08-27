@@ -1,11 +1,10 @@
 from core.models.workflow_models import WorkflowResult, Reply, WorkflowStatus
-from backend_app.modules.ecommerce.services.product_service import product_service
-from backend_app.core.database import db_session
+from core.api_client import api_client as product_service
 
 class SelectProductWorkflow:
     def Initialize(self, session):
         cat_id = session.WorkflowData.get("category_id")
-        products = product_service.get_products_by_category(db_session, cat_id)
+        products = product_service.get_products_by_category(cat_id)
         
         if not products:
             session.state.WorkflowIndex = 0

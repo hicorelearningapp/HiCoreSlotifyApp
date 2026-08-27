@@ -4,7 +4,6 @@ from core.services.session_service import SessionService
 from core.services.channel_messenger import channel_messenger as ChannelMessenger
 from core.Sequence import Sequence
 from core.workflows.ExitWorkflow import ExitWorkflow
-from backend_app.core.database import db_session
 from core.services.message_logger import MessageLogger
 import asyncio
 import logging
@@ -93,7 +92,7 @@ class BaseConversationManager:
             try:
                 reply = Reply("text", session.translate("cancel_message", default="Your flow has been cancelled."))
                 await ChannelMessenger.send_reply(customer_phone, reply, session.state.BusinessPhoneNumber)
-                seq = SequenceFactory.Get(session.state.SequenceName, db_session, session.state.BusinessPhoneNumber)
+                seq = SequenceFactory.Get(session.state.SequenceName, session.state.BusinessPhoneNumber)
                 if ExitWorkflow in seq.GetAll():
                     session.state.WorkflowIndex = seq.IndexOf(ExitWorkflow)
                     session.current_workflow = "ExitWorkflow"
@@ -104,11 +103,11 @@ class BaseConversationManager:
                 pass
                 
         try:
-            self.Sequence = SequenceFactory.Get(session.state.SequenceName, db_session, session.state.BusinessPhoneNumber)
+            self.Sequence = SequenceFactory.Get(session.state.SequenceName, session.state.BusinessPhoneNumber)
         except ValueError:
             SessionService().reset_session(customer_phone, business_phone)
             session = SessionService.load_session(customer_phone, business_phone)
-            self.Sequence = SequenceFactory.Get(session.state.SequenceName, db_session, session.state.BusinessPhoneNumber)
+            self.Sequence = SequenceFactory.Get(session.state.SequenceName, session.state.BusinessPhoneNumber)
             
         self.Workflows = self.Sequence.GetAll()
         
@@ -118,7 +117,7 @@ class BaseConversationManager:
         
         # NLU Interception Gate
         # if message and message.Text and NLU_ENABLED and self._is_nlu_eligible(session):
-        #     handled = NLRouter(db_session).dispatch(
+        #     handled = NLRouter().dispatch(
         #         customer_phone,
         #         message={"type": "text", "text": {"body": message.Text}},
         #         session=session
@@ -127,7 +126,7 @@ class BaseConversationManager:
         #         return  # NLU fully handled this message, do not continue
 
         while True:
-            seq = SequenceFactory.Get(session.state.SequenceName, db_session, session.state.BusinessPhoneNumber)
+            seq = SequenceFactory.Get(session.state.SequenceName, session.state.BusinessPhoneNumber)
             workflow_class = seq.Current(session.state.WorkflowIndex)
             if not workflow_class:
                 break
@@ -214,7 +213,7 @@ class BaseConversationManager:
             break 
 
     def move_to_next_workflow(self, session) -> bool:
-        seq = SequenceFactory.Get(session.state.SequenceName, db_session, session.state.BusinessPhoneNumber)
+        seq = SequenceFactory.Get(session.state.SequenceName, session.state.BusinessPhoneNumber)
         next_workflow = seq.Next(session.state.WorkflowIndex)
         if next_workflow is None:
             return False  

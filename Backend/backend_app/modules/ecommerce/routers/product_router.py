@@ -8,28 +8,28 @@ from backend_app.modules.ecommerce.services.product_service import ProductServic
 
 router = APIRouter(prefix="/products", tags=["Ecommerce Products"])
 
-@router.get("", response_model=List[ProductOut])
-def list_products(category: Optional[str] = None, skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    svc = ProductService(db)
-    return svc.list_products(category=category, skip=skip, limit=limit)
+@router.get("/categories")
+def get_categories(store_id: str = "default", db: Session = Depends(get_db)):
+    return ProductService.get_all_categories(db, store_id)
 
-@router.get("/{product_id}", response_model=ProductOut)
+@router.get("/categories/{category_id}/products")
+def get_products_by_category(category_id: int, db: Session = Depends(get_db)):
+    return ProductService.get_products_by_category(db, category_id)
+
+@router.get("/{product_id}/variants")
+def get_product_variants(product_id: int, db: Session = Depends(get_db)):
+    return ProductService.get_variants_by_product_id(db, product_id)
+
+@router.get("/find/{identifier}")
+def find_product(identifier: str, db: Session = Depends(get_db)):
+    product = ProductService.get_product_by_name_or_id(db, identifier)
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+    return product
+
+@router.get("/{product_id}")
 def get_product(product_id: int, db: Session = Depends(get_db)):
-    svc = ProductService(db)
-    return svc.get_product(product_id)
-
-@router.post("", response_model=ProductOut, status_code=status.HTTP_201_CREATED)
-def create_product(data: ProductCreate, db: Session = Depends(get_db)):
-    svc = ProductService(db)
-    return svc.create_product(data)
-
-@router.put("/{product_id}", response_model=ProductOut)
-def update_product(product_id: int, data: ProductUpdate, db: Session = Depends(get_db)):
-    svc = ProductService(db)
-    return svc.update_product(product_id, data)
-
-@router.delete("/{product_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_product(product_id: int, db: Session = Depends(get_db)):
-    svc = ProductService(db)
-    svc.delete_product(product_id)
-    return None
+    product = ProductService.get_product_by_id(db, product_id)
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+    return product

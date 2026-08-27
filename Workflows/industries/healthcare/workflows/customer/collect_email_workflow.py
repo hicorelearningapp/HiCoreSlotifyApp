@@ -5,7 +5,7 @@ from core.models.workflow_models import (
     WorkflowResult,
     Reply,
 )
-from backend_app.modules.doctor_appointment.services.customer_service import CustomerService
+from core.api_client import api_client
 import re
 
 
@@ -15,7 +15,7 @@ class CollectEmailWorkflow(Workflow):
         if session.WorkflowData.get("ConsultationType") == "Clinic":
             return WorkflowResult.completed()
             
-        customer = CustomerService().get_customer_by_phone(session.PhoneNumber)
+        customer = api_client.get_customer_by_phone(session.PhoneNumber)
 
         # If the customer already has an email on file, ask for confirmation
         if customer and getattr(customer, "EmailAddress", None):
@@ -67,7 +67,7 @@ class CollectEmailWorkflow(Workflow):
                 # Save to database and complete
                 current_email = session.WorkflowData.get("current_email")
                 if current_email:
-                    CustomerService().update_customer_email(
+                    api_client.update_customer_email(
                         session.PhoneNumber, current_email
                     )
                 return WorkflowResult.completed()
