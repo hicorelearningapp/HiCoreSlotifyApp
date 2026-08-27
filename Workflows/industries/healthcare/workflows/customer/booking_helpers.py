@@ -17,7 +17,7 @@ class BookingHelpers:
         
         for i in range(max_lookahead):
             d = today + timedelta(days=i)
-            slots = AppointmentService(db).get_available_slots(target_date=d, doctor_id=doctor_id)
+            slots = AppointmentService().get_available_slots(target_date=d, doctor_id=doctor_id)
             if slots:
                 available_dates.append(d)
             if len(available_dates) == target_count:
@@ -132,11 +132,11 @@ class BookingHelpers:
             ConsultationType=consultation_type
         )
         try:
-            AppointmentService(db).book_appointment(app_create)
+            AppointmentService().book_appointment(app_create)
             whatsapp.send_text(phone, f"Success! Your appointment is confirmed for {start_datetime.strftime('%Y-%m-%d %I:%M %p')}.")
             
-            from core.services.customer_service import CustomerService
-            patient = CustomerService(db).get_customer(patient_id)
+            from backend_app.modules.doctor_appointment.services.customer_service import CustomerService
+            patient = CustomerService().get_customer(patient_id)
             patient_name = patient.patient_name if patient else "Unknown"
 
             doctor = db.query(models.Doctor).filter(models.Doctor.Id == doctor_id).first()
