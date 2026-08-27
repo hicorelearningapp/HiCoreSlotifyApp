@@ -1,7 +1,7 @@
 from core.workflows.BaseWorkflow import Workflow
 from core.workflows.workflow_models import ConversationSession, Message, WorkflowResult, Reply
 from core.channels.whatsapp.services.whatsapp_service import whatsapp as WhatsAppService
-from core.services.customer_service import CustomerService
+from backend_app.modules.doctor_appointment.services.customer_service import CustomerService
 from industries.healthcare.services.appointment_service import AppointmentService
 import time
 

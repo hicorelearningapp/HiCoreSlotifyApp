@@ -3,7 +3,6 @@ from core.workflows.workflow_models import Message, WorkflowStatus, WorkflowResu
 from core.services.session_service import SessionService
 from core.services.channel_messenger import channel_messenger as ChannelMessenger
 from core.sequence.Sequence import Sequence
-from core.services.nl_router import NLRouter
 from core.workflows.ExitWorkflow import ExitWorkflow
 from config import NLU_ENABLED
 from backend_app.core.database import db_session
@@ -172,14 +171,14 @@ class BaseConversationManager:
         self.CurrentWorkflowIndex = session.state.WorkflowIndex
         
         # NLU Interception Gate
-        if message and message.Text and NLU_ENABLED and self._is_nlu_eligible(session):
-            handled = NLRouter(db_session).dispatch(
-                customer_phone,
-                message={"type": "text", "text": {"body": message.Text}},
-                session=session
-            )
-            if handled:
-                return  # NLU fully handled this message, do not continue
+        # if message and message.Text and NLU_ENABLED and self._is_nlu_eligible(session):
+        #     handled = NLRouter(db_session).dispatch(
+        #         customer_phone,
+        #         message={"type": "text", "text": {"body": message.Text}},
+        #         session=session
+        #     )
+        #     if handled:
+        #         return  # NLU fully handled this message, do not continue
 
         while True:
             seq = SequenceFactory.Get(session.state.SequenceName, db_session, session.state.BusinessPhoneNumber)

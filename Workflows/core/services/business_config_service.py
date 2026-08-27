@@ -7,7 +7,7 @@ import os
 
 class BusinessConfigService:
     @staticmethod
-    def get_config(db_session: Session, business_number: str) -> dict:
+    def get_config(db_session: Session, business_number: str) -> Optional[dict]:
         """
         Retrieves the JSON configuration for a specific business number as a dict.
         Used internally by SequenceFactory.

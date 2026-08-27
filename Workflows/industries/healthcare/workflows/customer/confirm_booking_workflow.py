@@ -8,7 +8,7 @@ from core.workflows.workflow_models import (
 )
 from industries.healthcare.services.appointment_service import AppointmentService
 from industries.healthcare.services.doctor_service import DoctorService
-from core.services.customer_service import CustomerService
+from backend_app.modules.doctor_appointment.services.customer_service import CustomerService
 from industries.healthcare.services.payment_service import PaymentService
 import core.schemas as schemas
 from core.channels.whatsapp.services.whatsapp_service import whatsapp as WhatsAppService

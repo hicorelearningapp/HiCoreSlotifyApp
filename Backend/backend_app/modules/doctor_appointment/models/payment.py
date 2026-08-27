@@ -3,7 +3,7 @@ from sqlalchemy import Column, String, Float, DateTime, ForeignKey, CheckConstra
 from sqlalchemy.orm import relationship
 from backend_app.core.database import Base
 from backend_app.core.security import generate_uuid
-from sqlalchemy import Mapped, mapped[colu]
+from sqlalchemy.orm import Mapped, mapped_column
 class Payment(Base):
     __tablename__ = "payments"
 

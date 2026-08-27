@@ -1,6 +1,6 @@
 from core.workflows.BaseWorkflow import Workflow
 from core.workflows.workflow_models import ConversationSession, Message, WorkflowResult, Reply
-from core.services.customer_service import CustomerService
+from backend_app.modules.doctor_appointment.services.customer_service import CustomerService
 
 class CreatePatientWorkflow(Workflow):
     def Initialize(self, session: ConversationSession):

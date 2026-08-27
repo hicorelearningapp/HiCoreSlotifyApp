@@ -3,13 +3,18 @@ from sqlalchemy import Column, String, Integer, Float, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
 from backend_app.core.database import Base
 from sqlalchemy.orm import mapped_column, Mapped
+from typing import TYPE_CHECKING, List
+
+if TYPE_CHECKING:
+    from backend_app.modules.ecommerce.models.customer import EcommerceCustomer
+    from backend_app.modules.ecommerce.models.product import Product
 
 class Order(Base):
     __tablename__ = "orders"
     
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     order_number: Mapped[str] = mapped_column(String(50), index=True, nullable=True)
-    customer_id: Mapped[str] = mapped_column(String(36), ForeignKey("customers.PatientId"), nullable=True)
+    customer_id: Mapped[str] = mapped_column(String(36), ForeignKey("ecommerce_customers.CustomerId"), nullable=True)
     customer_name: Mapped[str] = mapped_column(String(150), nullable=True)
     customer_phone: Mapped[str] = mapped_column(String(50), nullable=True)
     customer_email: Mapped[str] = mapped_column(String(150), nullable=True)
@@ -31,8 +36,8 @@ class Order(Base):
     created_at: Mapped[datetime.datetime] = mapped_column(DateTime, default=datetime.datetime.utcnow)
     updated_at: Mapped[datetime.datetime] = mapped_column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
     
-    customer: Mapped["Customer"] = relationship("Customer")
-    items: Mapped["OrderItem"] = relationship("OrderItem", back_populates="order", cascade="all, delete-orphan")
+    customer: Mapped["EcommerceCustomer"] = relationship("EcommerceCustomer")
+    items: Mapped[List["OrderItem"]] = relationship("OrderItem", back_populates="order", cascade="all, delete-orphan")
 
 class OrderItem(Base):
     __tablename__ = "order_items"

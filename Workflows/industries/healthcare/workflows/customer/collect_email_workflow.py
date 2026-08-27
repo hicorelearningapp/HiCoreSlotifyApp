@@ -5,7 +5,7 @@ from core.workflows.workflow_models import (
     WorkflowResult,
     Reply,
 )
-from core.services.customer_service import CustomerService
+from backend_app.modules.doctor_appointment.services.customer_service import CustomerService
 import re
 
 
