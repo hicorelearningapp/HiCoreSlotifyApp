@@ -1,7 +1,6 @@
 from dataclasses import dataclass, field
 from config import ADMIN_PHONE_NUMBER
 from backend_app.core.database import db_session
-from core.channels.identity import is_instagram
 
 @dataclass
 class IdentityResult:
@@ -14,6 +13,12 @@ class IdentityResult:
     IsRegistered: bool = False
 
 class BaseIdentifyService:
+    _identity_resolvers = []
+
+    @classmethod
+    def register_resolver(cls, resolver_func):
+        cls._identity_resolvers.append(resolver_func)
+
     def identify_customer(self, phone_number: str, industry: str, mappings: dict) -> IdentityResult:
         raise NotImplementedError("Subclasses must implement identify_customer")
 
@@ -23,15 +28,11 @@ class BaseIdentifyService:
         industry = config.get("industry", "default")
         mappings = config.get("user_type_mappings", {})
         
-        # 0. Instagram check
-        if is_instagram(phone_number):
-            return IdentityResult(
-                UserType="INSTAGRAM_DM",
-                Sequence=mappings.get("INSTAGRAM_DM", "InstagramHandoffSequence"),
-                WorkflowIndex=0,
-                IsRegistered=True,
-                WorkflowData={"role": "customer", "industry": industry}
-            )
+        # 0. Check registered channel resolvers (e.g. Instagram)
+        for resolver in self._identity_resolvers:
+            result = resolver(phone_number, industry, mappings)
+            if result:
+                return result
 
         numbers = config.get("number", {})
         
@@ -78,3 +79,4 @@ class IdentifyServiceFactory:
             return service_class()
         except (ImportError, AttributeError) as e:
             raise ValueError(f"Could not dynamically load IdentifyService for industry '{industry}'. Ensure the industry is configured correctly. Error: {e}")
+

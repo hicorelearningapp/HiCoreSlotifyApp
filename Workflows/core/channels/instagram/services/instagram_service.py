@@ -222,3 +222,20 @@ class InstagramService:
 
 
 instagram = InstagramService()
+
+# Register Instagram Identity Resolver
+from core.IdentifyService import BaseIdentifyService, IdentityResult
+from core.channels.identity import is_instagram
+
+def instagram_identity_resolver(phone_number: str, industry: str, mappings: dict) -> IdentityResult | None:
+    if is_instagram(phone_number):
+        return IdentityResult(
+            UserType="INSTAGRAM_DM",
+            Sequence=mappings.get("INSTAGRAM_DM", "InstagramHandoffSequence"),
+            WorkflowIndex=0,
+            IsRegistered=True,
+            WorkflowData={"role": "customer", "industry": industry}
+        )
+    return None
+
+BaseIdentifyService.register_resolver(instagram_identity_resolver)

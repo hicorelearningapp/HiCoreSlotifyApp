@@ -1,4 +1,4 @@
-from core.identify.IdentifyService import BaseIdentifyService, IdentityResult
+from core.IdentifyService import BaseIdentifyService, IdentityResult
 from backend_app.modules.ecommerce.services.customer_service import CustomerService
 
 class EcommerceIdentifyService(BaseIdentifyService):
