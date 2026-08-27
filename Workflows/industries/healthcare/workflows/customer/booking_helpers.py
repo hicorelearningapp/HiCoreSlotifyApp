@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 import core.models as models
 import core.schemas as schemas
 from core.channels.whatsapp.services.whatsapp_service import whatsapp
-from industries.healthcare.services.appointment_service import AppointmentService
+from backend_app.modules.doctor_appointment.services.appointment_service import AppointmentService
 
 class BookingHelpers:
     @staticmethod

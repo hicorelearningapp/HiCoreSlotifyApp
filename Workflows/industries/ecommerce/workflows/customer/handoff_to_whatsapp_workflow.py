@@ -1,5 +1,5 @@
 from core.workflows.workflow_models import WorkflowResult, Reply, WorkflowStatus
-from industries.ecommerce.services.handoff_service import handoff_service
+from backend_app.modules.ecommerce.services.handoff_service import handoff_service
 from config import ADMIN_PHONE_NUMBER
 from core.channels.identity import strip_prefix
 

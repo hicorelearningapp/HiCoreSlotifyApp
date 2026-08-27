@@ -32,8 +32,8 @@ class BaseConversationManager:
         if not (message and message.Text and not session.workflow_initialized):
             return False
 
-        from industries.ecommerce.services.handoff_service import handoff_service
-        from industries.ecommerce.services.product_service import product_service
+        from backend_app.modules.ecommerce.services.handoff_service import handoff_service
+        from backend_app.modules.ecommerce.services.product_service import product_service
 
         handoff_data = handoff_service.parse_order_text(message.Text)
         if not (handoff_data and "product_name" in handoff_data):

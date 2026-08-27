@@ -39,7 +39,8 @@ class GreetingMessageWorkflow(Workflow):
                         reply=Reply(message_type="text", text=greeting)
                     )
                 from config import SERVER_BASE_URL
-                image_url = f"{SERVER_BASE_URL}/images/{urllib.parse.quote(image_filename)}"
+                industry = session.WorkflowData.get("industry", "healthcare")
+                image_url = f"{SERVER_BASE_URL}/industries/{industry}/images/{urllib.parse.quote(image_filename)}"
                 return WorkflowResult.completed(
                     reply=Reply(message_type="image", text=greeting, image_url=image_url)
                 )
@@ -58,7 +59,8 @@ class GreetingMessageWorkflow(Workflow):
             from config import SERVER_BASE_URL
             for idx, lang in enumerate(sorted_langs):
                 image_filename = lang_images.get(lang, lang_images["en"])
-                image_url = f"{SERVER_BASE_URL}/images/{urllib.parse.quote(image_filename)}"
+                industry = session.WorkflowData.get("industry", "healthcare")
+                image_url = f"{SERVER_BASE_URL}/industries/{industry}/images/{urllib.parse.quote(image_filename)}"
                 
                 cards.append({
                     "card_index": idx,

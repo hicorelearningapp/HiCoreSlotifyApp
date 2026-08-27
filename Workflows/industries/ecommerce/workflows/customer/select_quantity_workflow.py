@@ -28,7 +28,7 @@ class SelectQuantityWorkflow:
             quantity = int(message.Text)
             
         if quantity is not None and quantity > 0:
-            from industries.ecommerce.services.product_service import product_service
+            from backend_app.modules.ecommerce.services.product_service import product_service
             from backend_app.core.database import db_session
             
             product_id = session.WorkflowData.get("product_id")

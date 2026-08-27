@@ -1,8 +1,8 @@
 import json
 from sqlalchemy.orm import Session
 from typing import List, Optional
-from core.models.business_config import BusinessConfig
-from core.schemas.business_config import BusinessConfigCreate, BusinessConfigUpdate, BusinessConfigResponse
+from backend_app.modules.business_config.models.business_config import BusinessConfig
+from backend_app.modules.business_config.schemas.business_config import BusinessConfigCreate, BusinessConfigUpdate, BusinessConfigResponse
 import os
 
 class BusinessConfigService:

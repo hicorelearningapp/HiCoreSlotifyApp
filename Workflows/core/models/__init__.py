@@ -1,4 +1,4 @@
-from .business_config import *
+from backend_app.modules.business_config.models.business_config import *
 from .conversation_session import *
 
 # Re-export shared models from the Backend

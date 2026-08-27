@@ -3,8 +3,8 @@ from sqlalchemy.orm import Session
 from typing import List
 
 from backend_app.core.database import get_db
-from core.services.business_config_service import BusinessConfigService
-from core.schemas.business_config import BusinessConfigCreate, BusinessConfigResponse, BusinessConfigUpdate
+from backend_app.modules.business_config.services.business_config_service import BusinessConfigService
+from backend_app.modules.business_config.schemas.business_config import BusinessConfigCreate, BusinessConfigResponse, BusinessConfigUpdate
 
 class BusinessConfigRouter:
     def __init__(self):

@@ -77,7 +77,4 @@ class IdentifyServiceFactory:
             service_class = getattr(module, class_name)
             return service_class()
         except (ImportError, AttributeError) as e:
-            print(f"[WARNING] Could not dynamically load IdentifyService for industry '{industry}'. Error: {e}. Falling back to Healthcare.")
-            # Fallback to healthcare for default/legacy behavior
-            from industries.healthcare.services.HealthcareIdentifyService import HealthcareIdentifyService
-            return HealthcareIdentifyService()
+            raise ValueError(f"Could not dynamically load IdentifyService for industry '{industry}'. Ensure the industry is configured correctly. Error: {e}")

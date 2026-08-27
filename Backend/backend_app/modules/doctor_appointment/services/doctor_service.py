@@ -4,7 +4,7 @@ from datetime import date
 import os
 import core.models as models
 import core.schemas as schemas
-from industries.healthcare.services.appointment_service import AppointmentService
+from backend_app.modules.doctor_appointment.services.appointment_service import AppointmentService
 from backend_app.core.database import db_session
 import hashlib
 

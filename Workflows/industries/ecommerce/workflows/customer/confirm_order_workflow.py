@@ -1,7 +1,7 @@
 from core.workflows.workflow_models import WorkflowResult, Reply, WorkflowStatus
-from industries.ecommerce.services.order_service import order_service
-from industries.ecommerce.services.product_service import product_service
-from industries.ecommerce.services.notification_service import notification_service
+from backend_app.modules.ecommerce.services.order_service import order_service
+from backend_app.modules.ecommerce.services.product_service import product_service
+from backend_app.modules.ecommerce.services.notification_service import notification_service
 from backend_app.modules.ecommerce.services.customer_service import CustomerService
 import core.schemas as schemas
 from backend_app.core.database import db_session

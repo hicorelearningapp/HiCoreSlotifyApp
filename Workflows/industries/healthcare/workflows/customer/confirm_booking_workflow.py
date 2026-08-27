@@ -6,10 +6,10 @@ from core.workflows.workflow_models import (
     WorkflowResult,
     Reply,
 )
-from industries.healthcare.services.appointment_service import AppointmentService
-from industries.healthcare.services.doctor_service import DoctorService
+from backend_app.modules.doctor_appointment.services.appointment_service import AppointmentService
+from backend_app.modules.doctor_appointment.services.doctor_service import DoctorService
 from backend_app.modules.doctor_appointment.services.customer_service import CustomerService
-from industries.healthcare.services.payment_service import PaymentService
+from backend_app.modules.doctor_appointment.services.payment_service import PaymentService
 import core.schemas as schemas
 from core.channels.whatsapp.services.whatsapp_service import whatsapp as WhatsAppService
 # from core.services.language_manager import LanguageManager

@@ -1,7 +1,6 @@
 {
     "greeting_image_filename": "Welcome to HiCore Slotify.jpeg",
     "greeting_image_caption": "Welcome to the automated booking system!",
-    "greeting_admin": "Welcome back to the Admin Portal!",
     "greeting_staff": "Welcome back, {staff_name}!",
     "greeting_customer": "Welcome back, {user_name}!",
     "language_selection_prompt": "Please select your preferred language / தயவுசெய்து உங்கள் விருப்ப மொழியைத் தேர்ந்தெடுக்கவும்:",

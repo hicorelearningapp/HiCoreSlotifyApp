@@ -1,6 +1,6 @@
 from core.workflows.BaseWorkflow import Workflow
 from core.workflows.workflow_models import ConversationSession, Message, WorkflowResult, Reply
-from industries.healthcare.services.doctor_service import DoctorService
+from backend_app.modules.doctor_appointment.services.doctor_service import DoctorService
 
 UPI_ID = "hicore@upi"
 MERCHANT_NAME = "HiCore%20System"

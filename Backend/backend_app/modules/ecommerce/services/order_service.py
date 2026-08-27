@@ -1,89 +1,64 @@
-import uuid
-from typing import List, Optional
-from fastapi import HTTPException
+from backend_app.modules.ecommerce.models.order import Order, OrderItem
 from sqlalchemy.orm import Session
-
 from backend_app.core.database import db_session
-from backend_app.modules.ecommerce.models import Product, Order, OrderItem
-from backend_app.modules.ecommerce.schemas import OrderCreate
 
 class OrderService:
-    def __init__(self, db: Session = None):
-        self.db = db or db_session
-
-    def create_order(self, data: OrderCreate) -> Order:
-        subtotal = 0.0
-        order_items = []
-
-        for item_in in data.items:
-            product = self.db.query(Product).filter(Product.id == item_in.product_id).first()
-            if not product:
-                raise HTTPException(status_code=404, detail=f"Product ID {item_in.product_id} not found.")
-
-            if product.stock_quantity < item_in.quantity:
-                raise HTTPException(status_code=400, detail=f"Insufficient stock for product '{product.name}'.")
-
-            item_total = item_in.unit_price * item_in.quantity
-            subtotal += item_total
-
-            product.stock_quantity -= item_in.quantity
-
-            order_items.append(OrderItem(
-                product_id=product.id,
-                product_name=product.name,
-                sku=product.sku,
-                quantity=item_in.quantity,
-                unit_price=item_in.unit_price,
-                total_price=item_total
-            ))
-
-        order_num = f"ORD-{uuid.uuid4().hex[:8].upper()}"
-        total = subtotal
-
+    @staticmethod
+    def create_order(db: Session, customer_id: int, product_id: int, quantity: int, total: float, variant_id: int | None = None, source_channel: str = "whatsapp") -> Order:
         order = Order(
-            order_number=order_num,
-            customer_name=data.customer_name or "Guest Customer",
-            customer_phone=data.customer_phone,
-            customer_email=data.customer_email,
-            shipping_address=data.shipping_address,
-            city=data.city,
-            state=data.state,
-            pincode=data.pincode,
-            payment_method=data.payment_method or "COD",
-            status="Pending",
-            payment_status="Unpaid",
-            subtotal=subtotal,
+            customer_id=customer_id,
             total=total,
-            notes=data.notes,
-            store_id=data.store_id or "default",
-            items=order_items
+            source_channel=source_channel
         )
+        db.add(order)
+        db.flush() # flush to get order.id
 
-        self.db.add(order)
-        self.db.commit()
-        self.db.refresh(order)
+        order_item = OrderItem(
+            order_id=order.id,
+            product_id=product_id,
+            variant_id=variant_id,
+            quantity=quantity,
+            unit_price=total/quantity if quantity > 0 else 0
+        )
+        db.add(order_item)
+        
+        # Deduct stock if a variant was selected
+        if variant_id:
+            from backend_app.modules.ecommerce.models.product import ProductVariant
+            variant = db.query(ProductVariant).filter(ProductVariant.id == variant_id).first()
+            if variant and variant.stock_quantity >= quantity:
+                variant.stock_quantity -= quantity
+                
+        db.commit()
+        db.refresh(order)
         return order
 
-    def get_order(self, order_id: int) -> Order:
-        order = self.db.query(Order).filter(Order.id == order_id).first()
-        if not order:
-            raise HTTPException(status_code=404, detail="Order not found.")
+    @staticmethod
+    def update_order_details(db: Session, order_id: int, delivery_slot: str, payment_method: str):
+        order = db.query(Order).filter(Order.id == order_id).first()
+        if order:
+            order.delivery_slot = delivery_slot
+            order.payment_method = payment_method
+            order.status = "Confirmed"
+            db.commit()
+            db.refresh(order)
         return order
 
-    def list_orders(self, customer_phone: Optional[str] = None, skip: int = 0, limit: int = 100) -> List[Order]:
-        query = self.db.query(Order)
-        if customer_phone:
-            query = query.filter(Order.customer_phone == customer_phone)
-        return query.order_by(Order.created_at.desc()).offset(skip).limit(limit).all()
-
-    def update_status(self, order_id: int, status_str: str, payment_status: Optional[str] = None) -> Order:
-        order = self.db.query(Order).filter(Order.id == order_id).first()
-        if not order:
-            raise HTTPException(status_code=404, detail="Order not found.")
-        order.status = status_str
-        if payment_status:
-            order.payment_status = payment_status
-        self.db.commit()
-        self.db.refresh(order)
+    @staticmethod
+    def update_order_status(db: Session, order_id: int, status: str):
+        order = db.query(Order).filter(Order.id == order_id).first()
+        if order:
+            order.status = status
+            db.commit()
+            db.refresh(order)
         return order
 
+    @staticmethod
+    def get_order(db: Session, order_id: int):
+        return db.query(Order).filter(Order.id == order_id).first()
+
+    @staticmethod
+    def get_pending_orders(db: Session):
+        return db.query(Order).filter(Order.status.in_(["Confirmed", "Preparing"])).all()
+
+order_service = OrderService()

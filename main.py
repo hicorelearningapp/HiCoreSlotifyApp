@@ -25,8 +25,8 @@ Base.metadata.create_all(bind=engine)
 ensure_dynamic_schemas(engine)
 
 # Instagram schema migrator
-from core.database.migrate_instagram import ensure_instagram_schema  # type: ignore
-ensure_instagram_schema(engine)
+# from core.database.migrate_instagram import ensure_instagram_schema  # type: ignore
+# ensure_instagram_schema(engine)
 
 # Import factories to ensure workflows are registered
 import industries.healthcare.HealthcareWorkflowFactory 
@@ -50,9 +50,9 @@ app = FastAPI(
 )
 
 # Serve static images for the simulator (from Workflows)
-workflows_images_dir = os.path.join(os.path.dirname(__file__), "Workflows", "images")
-os.makedirs(workflows_images_dir, exist_ok=True)
-app.mount("/images", StaticFiles(directory=workflows_images_dir), name="images")
+workflows_industries_dir = os.path.join(os.path.dirname(__file__), "Workflows", "industries")
+os.makedirs(workflows_industries_dir, exist_ok=True)
+app.mount("/industries", StaticFiles(directory=workflows_industries_dir), name="industries")
 
 # Serve backend images
 backend_images_dir = os.path.join(os.path.dirname(__file__), "Backend", "backend_app", "images")
@@ -108,7 +108,7 @@ async def cleanup_sessions_task():
         except Exception as e:
             logging.getLogger("uvicorn").error(f"Error in session cleanup task: {e}")
 
-from industries.healthcare.services.reminder_service import ReminderService
+from backend_app.modules.doctor_appointment.services.reminder_service import ReminderService
 async def appointment_reminders_task():
     while True:
         try:
@@ -157,7 +157,7 @@ async def instagram_token_refresh_task():
         except Exception as e:
             logging.getLogger("uvicorn").error(f"Error refreshing instagram tokens: {e}")
 
-from industries.healthcare.services.review_service import ReviewService
+from backend_app.modules.doctor_appointment.services.review_service import ReviewService
 async def appointment_reviews_task():
     while True:
         try:

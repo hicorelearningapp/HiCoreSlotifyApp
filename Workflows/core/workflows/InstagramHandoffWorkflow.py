@@ -16,7 +16,7 @@ from config import INSTAGRAM_HANDOFF_PREFILL_TEXT, INSTAGRAM_HANDOFF_WA_NUMBER
 from core.channels.identity import strip_prefix
 from core.workflows.BaseWorkflow import Workflow
 from core.workflows.workflow_models import Reply, WorkflowResult
-from industries.ecommerce.services.handoff_service import handoff_service
+from backend_app.modules.ecommerce.services.handoff_service import handoff_service
 
 
 class InstagramHandoffWorkflow(Workflow):

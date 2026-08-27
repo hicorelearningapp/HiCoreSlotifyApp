@@ -1,4 +1,4 @@
-from .business_config import *
+from backend_app.modules.business_config.schemas.business_config import *
 from .session import *
 # Re-export shared schemas from the Backend
 from backend_app.modules.doctor_appointment.schemas.appointment import *
