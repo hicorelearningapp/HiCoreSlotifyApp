@@ -1,11 +1,11 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel
 from typing import Optional
 from datetime import date
 
 class EcommerceCustomerBase(BaseModel):
     PhoneNumber: str
     ProfileName: Optional[str] = None
-    Email: Optional[EmailStr] = None
+    Email: Optional[str] = None
     Gender: Optional[str] = None
     DOB: Optional[date] = None
     Address: Optional[str] = None
@@ -18,7 +18,7 @@ class EcommerceCustomerCreate(EcommerceCustomerBase):
 
 class EcommerceCustomerUpdate(BaseModel):
     ProfileName: Optional[str] = None
-    Email: Optional[EmailStr] = None
+    Email: Optional[str] = None
     Gender: Optional[str] = None
     DOB: Optional[date] = None
     Address: Optional[str] = None

@@ -1,5 +1,5 @@
 from core.identify.IdentifyService import BaseIdentifyService, IdentityResult
-from backend_app.modules.doctor_appointment.services.customer_service import CustomerService
+from backend_app.modules.ecommerce.services.customer_service import CustomerService
 
 class EcommerceIdentifyService(BaseIdentifyService):
     def __init__(self):
@@ -11,16 +11,16 @@ class EcommerceIdentifyService(BaseIdentifyService):
         sequence = mappings.get(fallback_role_key, "DefaultCustomerSequence")
         
         if customer:
-            has_name = bool(customer.PatientName and customer.PatientName != "Guest")
+            has_name = bool(customer.ProfileName and customer.ProfileName != "Guest")
             wf_data = {
                 "role": "customer",
-                "name": customer.PatientName if has_name else None,
+                "name": customer.ProfileName if has_name else None,
                 "industry": industry
             }
             return IdentityResult(
                 UserType=fallback_role_key,
                 AccountId=customer.CustomerId,
-                ProfileId=customer.PatientId,
+                ProfileId=customer.ProfileId,
                 Sequence=sequence,
                 WorkflowIndex=0,
                 WorkflowData=wf_data,
