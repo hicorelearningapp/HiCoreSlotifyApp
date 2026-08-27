@@ -1,12 +1,10 @@
 from sqlalchemy.orm import Session
-from sqlalchemy import func
 from typing import List, Optional
 from datetime import date
 import os
-import re
-import backend_app.modules.doctor_appointment.models as models
-import backend_app.modules.doctor_appointment.schemas as schemas
-from backend_app.modules.doctor_appointment.services.appointment_service import AppointmentService
+import core.models as models
+import core.schemas as schemas
+from industries.healthcare.services.appointment_service import AppointmentService
 from backend_app.core.database import db_session
 import hashlib
 
@@ -25,7 +23,7 @@ def hash_password(password: str) -> str:
     return f"pbkdf2:{salt}:{hashed}"
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    if not plain_password or not hashed_password:
+    if not hashed_password:
         return False
     pwd_bytes = plain_password.encode("utf-8")[:72]
     if hashed_password.startswith(("$2b$", "$2a$", "$2y$")):
@@ -33,12 +31,8 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
             try:
                 return bcrypt.checkpw(pwd_bytes, hashed_password.encode("utf-8"))
             except Exception:
-                pass
-        try:
-            from passlib.hash import bcrypt as passlib_bcrypt
-            return passlib_bcrypt.verify(plain_password, hashed_password)
-        except Exception:
-            return False
+                return False
+        return False
     if hashed_password.startswith("pbkdf2:"):
         try:
             _, salt, hash_val = hashed_password.split(":")
@@ -46,7 +40,7 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
             return check_hash == hash_val
         except Exception:
             return False
-    return False
+    return plain_password == hashed_password
 
 
 class DoctorService:
@@ -230,26 +224,11 @@ class DoctorService:
         return True
 
     def login_doctor(self, login_data: schemas.DoctorLogin) -> Optional[models.Doctor]:
-        username = (login_data.UserName or "").strip()
-        password = login_data.Password or ""
-        if not username or not password:
-            return None
-
-        clean_phone = re.sub(r"[^\d+]", "", username) if username else ""
-
-        query_filter = (
-            (func.lower(models.Doctor.UserName) == username.lower()) |
-            (func.lower(models.Doctor.EmailAddress) == username.lower())
-        )
-        if clean_phone:
-            query_filter = query_filter | (models.Doctor.MobileNumber == clean_phone) | (models.Doctor.WhatsAppNumber == clean_phone)
-
-        doctor = self.db.query(models.Doctor).filter(query_filter).first()
-
-        if doctor:
-            if verify_password(password.strip(), doctor.Password) or verify_password(password, doctor.Password):
-                return doctor
-
+        doctor = self.db.query(models.Doctor).filter(
+            models.Doctor.UserName == login_data.UserName
+        ).first()
+        if doctor and verify_password(login_data.Password, doctor.Password):
+            return doctor
         return None
 
     def approve_doctor(self, doctor_id: str) -> Optional[models.Doctor]:
@@ -339,7 +318,7 @@ class DoctorService:
         ).all()
         total_lifetime_appts = len(lifetime_appts)
 
-        unique_patients = set(a.PatientId for a in lifetime_appts if a.PatientId)
+        unique_patients = set(a.Id for a in lifetime_appts if a.Id)
         total_lifetime_patients = len(unique_patients)
 
         all_payments = self.db.query(models.Payment).filter(
@@ -352,8 +331,8 @@ class DoctorService:
         for a in today_appts:
             today_list.append({
                 "AppointmentId": a.Id,
-                "PatientId": a.PatientId,
-                "PatientName": a.PatientName or "Patient",
+                "PatientId": a.Id,
+                "PatientName": a.Name or "Patient",
                 "SlotTime": str(a.SlotTime),
                 "ConsultationType": a.ConsultationType,
                 "Status": a.Status,
@@ -423,8 +402,8 @@ class DoctorService:
 
         patient_appt_counts = {}
         for a in all_appts:
-            if a.PatientId:
-                patient_appt_counts[a.PatientId] = patient_appt_counts.get(a.PatientId, 0) + 1
+            if a.Id:
+                patient_appt_counts[a.Id] = patient_appt_counts.get(a.Id, 0) + 1
 
         total_patients = len(patient_appt_counts)
         returning_patients = sum(1 for count in patient_appt_counts.values() if count > 1)
@@ -470,7 +449,7 @@ class DoctorService:
             self.db.query(models.Appointment)
             .filter(
                 models.Appointment.DoctorId == doctor_id,
-                models.Appointment.PatientId.isnot(None),
+                models.Appointment.Id.isnot(None),
                 models.Appointment.Status != "Available"
             )
             .all()
@@ -478,9 +457,9 @@ class DoctorService:
 
         patient_appts = {}
         for appt in appointments:
-            if appt.PatientId not in patient_appts:
-                patient_appts[appt.PatientId] = []
-            patient_appts[appt.PatientId].append(appt)
+            if appt.Id not in patient_appts:
+                patient_appts[appt.Id] = []
+            patient_appts[appt.Id].append(appt)
 
         patient_items = []
         follow_up_due_count = 0
@@ -529,7 +508,7 @@ class DoctorService:
 
             patient_items.append(
                 schemas.DoctorPatientItem(
-                    PatientId=pid,
+                    Id=pid,
                     Name=name,
                     Age=age,
                     Gender=gender,
