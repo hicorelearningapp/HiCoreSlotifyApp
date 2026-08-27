@@ -4,7 +4,7 @@ from fastapi.responses import PlainTextResponse
 from config import VERIFY_TOKEN
 from core.conversation.ConversationManagerFactory import ConversationManagerFactory
 from core.services.whatsapp_service import whatsapp as WhatsAppService
-from core.channels.whatsapp.utils.whatsapp_parser import ParseManager
+from core.utils.whatsapp_parser import ParseManager
 from backend_app.core.database import db_session
 
 
