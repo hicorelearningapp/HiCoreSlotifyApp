@@ -215,8 +215,8 @@ class BaseConversationManager:
                 session.workflow_initialized = True
                 
             # STEP 2 : Process
-            result = workflow.Process(session=session, message=message)
             if message and not skip_process:
+                result = workflow.Process(session=session, message=message)
                 
                 print(f"[DEBUG] [{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Process {session.current_workflow} returned {result.status} with reply={bool(result.reply)}")
 
@@ -228,7 +228,11 @@ class BaseConversationManager:
                 if result.status == WorkflowStatus.WAITING:
                     SessionService.save_session(session)
                     break
+                elif result.status == WorkflowStatus.FINISHED:
+                    SessionService().reset_session(customer_phone, session.state.BusinessPhoneNumber)
+                    break
             elif skip_process:
+                result = WorkflowResult.completed()
                 print(f"[DEBUG] [{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Process skipped (Initialize returned COMPLETED)")
             else:
                 result = WorkflowResult.completed()

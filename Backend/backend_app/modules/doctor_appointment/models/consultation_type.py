@@ -1,4 +1,5 @@
 from sqlalchemy import Column, String, Boolean
+from sqlalchemy.orm import Mapped, mapped_column
 from backend_app.core.database import Base
 from backend_app.core.security import generate_uuid
 
