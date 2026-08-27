@@ -29,13 +29,13 @@ from core.database.migrate_instagram import ensure_instagram_schema  # type: ign
 ensure_instagram_schema(engine)
 
 # Import factories to ensure workflows are registered
-import industries.healthcare.workflow.HealthcareWorkflowFactory  # type: ignore
-import industries.ecommerce.workflow.EcommerceWorkflowFactory  # type: ignore
+import industries.healthcare.HealthcareWorkflowFactory 
+import industries.ecommerce.EcommerceWorkflowFactory  
 
 # --- ROUTERS ---
 # Workflows Webhook routers
-from core.channels.whatsapp.routers import whatsapp_webhook_router  # type: ignore
-from core.channels.instagram.routers import instagram_webhook_router  # type: ignore
+from core.channels.whatsapp.routers import whatsapp_webhook_router 
+from core.channels.instagram.routers import instagram_webhook_router 
 
 # Backend API routers
 from backend_app.common.router import router as common_router  # type: ignore

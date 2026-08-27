@@ -1,6 +1,6 @@
 from core.workflows.BaseWorkflow import Workflow
 from core.workflows.workflow_models import ConversationSession, Message, WorkflowResult, Reply
-from core.services.language_manager import LanguageManager
+# from core.services.language_manager import LanguageManager
 from backend_app.core.database import db_session
 import urllib.parse
 
@@ -25,7 +25,7 @@ class GreetingMessageWorkflow(Workflow):
         business_phone = session.state.BusinessPhoneNumber
         from core.sequence.Sequence import SequenceFactory
         welcome_message_override = SequenceFactory.get_setting(db_session, business_phone, "welcome_message_override")
-        if welcome_message_override:
+        if welcome_message_override and not user_name:
             greeting = welcome_message_override
 
         if role != "admin":
@@ -44,7 +44,7 @@ class GreetingMessageWorkflow(Workflow):
                     reply=Reply(message_type="image", text=greeting, image_url=image_url)
                 )
             
-            lang_images = LanguageManager().get_all_greeting_image_filenames(business_phone=business_phone)
+            # lang_images = LanguageManager().get_all_greeting_image_filenames(business_phone=business_phone)
             
             user_lang = session.WorkflowData.get("Language", "en")
             

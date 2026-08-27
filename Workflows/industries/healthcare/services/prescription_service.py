@@ -72,7 +72,7 @@ class PrescriptionService:
 
         update_dict = data.model_dump(exclude_unset=True)
         if "Medicines" in update_dict and update_dict["Medicines"] is not None:
-            update_dict["Medicines"] = json.dumps([m.model_dump() for m in data.Medicines])
+            update_dict["Medicines"] = json.dumps([m.model_dump() for m in (data.Medicines or [])])
 
         if "PrescriptionFile" in update_dict and update_dict["PrescriptionFile"] != prescription.PrescriptionFile:
             self._delete_file(prescription.PrescriptionFile)
@@ -132,6 +132,7 @@ class PrescriptionService:
         return schemas.PrescriptionOut(
             Id=prescription.Id,
             DoctorId=prescription.DoctorId,
+            PatientId=prescription.PatientId,
             Diagnosis=prescription.Diagnosis,
             Medicines=medicines_list,
             NextFollowUpDate=prescription.NextFollowUpDate,

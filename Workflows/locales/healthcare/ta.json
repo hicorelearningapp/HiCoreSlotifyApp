@@ -1,6 +1,9 @@
 {
     "greeting_image_filename": "Welcome to HiCore Image Tamil.png",
     "greeting_image_caption": "தானியங்கி முன்பதிவு முறைக்கு வரவேற்கிறோம்!",
+    "greeting_admin": "நிர்வாக போர்ட்டலுக்கு மீண்டும் வருக!",
+    "greeting_staff": "மீண்டும் வருக, {staff_name}!",
+    "greeting_customer": "மீண்டும் வருக, {user_name}!",
     "language_selection_prompt": "தயவுசெய்து உங்கள் விருப்ப மொழியைத் தேர்ந்தெடுக்கவும்:",
     "language_updated": "மொழி வெற்றிகரமாக புதுப்பிக்கப்பட்டது!",
     "main_menu_greeting": "இன்று நான் உங்களுக்கு எப்படி உதவ முடியும்?",

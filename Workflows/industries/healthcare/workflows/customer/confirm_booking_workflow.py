@@ -12,7 +12,7 @@ from backend_app.modules.doctor_appointment.services.customer_service import Cus
 from industries.healthcare.services.payment_service import PaymentService
 import core.schemas as schemas
 from core.channels.whatsapp.services.whatsapp_service import whatsapp as WhatsAppService
-from core.services.language_manager import LanguageManager
+# from core.services.language_manager import LanguageManager
 
 
 class ConfirmBookingWorkflow(Workflow):
@@ -112,7 +112,7 @@ class ConfirmBookingWorkflow(Workflow):
                 Date=start_datetime.date(),
                 SlotTime=start_datetime.time(),
                 Slot=0,
-                Id=session.WorkflowData.get("patient_id"),
+                PatientId=session.WorkflowData.get("patient_id"),
                 DoctorId=session.WorkflowData.get("DoctorId"),
                 ConsultationType=consultation_type,
                 MeetingLink=meeting_link,

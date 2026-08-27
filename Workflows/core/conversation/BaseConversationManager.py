@@ -5,7 +5,6 @@ from core.services.channel_messenger import channel_messenger as ChannelMessenge
 from core.sequence.Sequence import Sequence
 from core.workflows.ExitWorkflow import ExitWorkflow
 from backend_app.core.database import db_session
-from core.services.language_manager import LanguageManager
 from core.services.message_logger import MessageLogger
 import asyncio
 import logging
@@ -119,7 +118,7 @@ class BaseConversationManager:
             session.state.BusinessPhoneNumber = message.BusinessPhoneNumber
             
         # Load language context for this request
-        LanguageManager().load_for_session(session, customer_phone)
+        # LanguageManager().load_for_session(session, customer_phone)
             
         # --- GLOBAL RESET INTERCEPTION ---
         if message and message.Text and message.Text.strip().lower() in ["hi", "hello", "menu", "reset", "start", "0"]:
