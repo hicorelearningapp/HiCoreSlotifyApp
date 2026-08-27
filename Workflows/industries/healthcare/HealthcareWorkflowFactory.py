@@ -1,4 +1,4 @@
-from core.workflow.WorkflowFactory import WorkflowFactory
+from core.WorkflowFactory import WorkflowFactory
 
 from industries.healthcare.workflows.customer.main_menu_workflow import MainMenuWorkflow
 from industries.healthcare.workflows.customer.select_patient_workflow import SelectPatientWorkflow

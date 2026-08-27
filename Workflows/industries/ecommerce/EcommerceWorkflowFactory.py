@@ -1,4 +1,4 @@
-from core.workflow.WorkflowFactory import WorkflowFactory
+from core.WorkflowFactory import WorkflowFactory
 
 from industries.ecommerce.workflows.customer.main_menu_workflow import MainMenuWorkflow as EcommerceMainMenuWorkflow
 from industries.ecommerce.workflows.customer.select_category_workflow import SelectCategoryWorkflow

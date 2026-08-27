@@ -123,7 +123,7 @@ class ConfirmBookingWorkflow(Workflow):
             payment_status = "Pending"
             payment_create = schemas.PaymentCreate(
                 AppointmentId=appointment.Id,
-                AccountId=session.WorkflowData.get("patient_id"),
+                CustomerId=session.WorkflowData.get("patient_id"),
                 DoctorId=session.WorkflowData.get("DoctorId"),
                 Payment=doctor.ClinicConsultationFee,
                 Status=payment_status,

@@ -101,7 +101,7 @@ class Sequence:
         return self.Name
 
 from core.config.BusinessManager import BusinessManager
-from core.workflow.WorkflowFactory import WorkflowFactory
+from core.WorkflowFactory import WorkflowFactory
 
 class SequenceFactory:
     """

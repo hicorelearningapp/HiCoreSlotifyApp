@@ -13,7 +13,7 @@ from backend_app.core.database import db_session
 
 class SelectDateWorkflow(Workflow):
     def Initialize(self, session: ConversationSession):
-        from core.sequence.Sequence import SequenceFactory
+        from core.Sequence import SequenceFactory
         sections = [{"title": session.translate("section_upcoming_dates"), "rows": []}]
         doctor_id = session.WorkflowData.get("DoctorId")
         if not doctor_id and session.state.BusinessPhoneNumber:
@@ -128,3 +128,4 @@ class SelectDateWorkflow(Workflow):
 
     def Complete(self, session: ConversationSession):
         return WorkflowResult.success()
+

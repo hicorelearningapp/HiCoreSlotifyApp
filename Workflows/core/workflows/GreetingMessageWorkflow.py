@@ -23,7 +23,7 @@ class GreetingMessageWorkflow(Workflow):
             greeting = session.translate("greeting_image_caption")
             
         business_phone = session.state.BusinessPhoneNumber
-        from core.sequence.Sequence import SequenceFactory
+        from core.Sequence import SequenceFactory
         welcome_message_override = SequenceFactory.get_setting(db_session, business_phone, "welcome_message_override")
         if welcome_message_override and not user_name:
             greeting = welcome_message_override
@@ -103,3 +103,4 @@ class GreetingMessageWorkflow(Workflow):
 
     def Complete(self, session: ConversationSession) -> WorkflowResult:
         return WorkflowResult.success()
+

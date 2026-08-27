@@ -60,7 +60,7 @@ class SessionService:
         session = session_svc.get_session(phone_number, biz_key)
 
         if not session or not session.StateData:
-            from core.identify.IdentifyService import IdentifyServiceFactory
+            from core.IdentifyService import IdentifyServiceFactory
             from core.config.BusinessManager import BusinessManager
 
             config = (
@@ -73,7 +73,7 @@ class SessionService:
             biz_phone = business_phone_number or ""
             identify_svc = IdentifyServiceFactory.get_service(industry)
             user = identify_svc.identify_user(phone_number, biz_phone)
-            from core.sequence.Sequence import SequenceFactory
+            from core.Sequence import SequenceFactory
             sequence_name = SequenceFactory.GetSequenceName(user.UserType, db_session, biz_phone)
             if not sequence_name:
                 # The business config has no mapping for this user type. The
@@ -203,7 +203,7 @@ class SessionService:
 
             business_phone = data.get("BusinessPhoneNumber", "")
 
-            from core.sequence.Sequence import SequenceFactory
+            from core.Sequence import SequenceFactory
             time_out_enabled = SequenceFactory.get_setting(self.db, business_phone, "time_out_enabled", True)
             if not time_out_enabled:
                 continue
@@ -232,3 +232,4 @@ class SessionService:
         self.db.commit()
         print("Committed")
         return True
+
