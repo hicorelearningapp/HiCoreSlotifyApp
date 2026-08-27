@@ -1,4 +1,4 @@
-from core.services.whatsapp_service import whatsapp
+from backend_app.modules.doctor_appointment.services.whatsapp_service import whatsapp
 from config import ADMIN_PHONE_NUMBER
 from backend_app.modules.ecommerce.models.order import Order
 from backend_app.core.database import db_session

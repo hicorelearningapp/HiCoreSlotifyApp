@@ -5,6 +5,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
+from contextlib import asynccontextmanager
 
 from backend_app.core.config import settings
 from backend_app.core.database import engine, Base, db_session, request_context, ensure_dynamic_schemas
@@ -18,10 +19,58 @@ from backend_app.modules.doctor_appointment.services import StatusTypeService, C
 Base.metadata.create_all(bind=engine)
 ensure_dynamic_schemas(engine)
 
+def setup_logging():
+    formatter = logging.Formatter(
+        fmt="%(asctime)s - %(levelname)s - %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S"
+    )
+    for logger_name in ("uvicorn", "uvicorn.error", "uvicorn.access"):
+        logger = logging.getLogger(logger_name)
+        for handler in logger.handlers:
+            handler.setFormatter(formatter)
+
+from backend_app.modules.doctor_appointment.services.reminder_service import ReminderService
+async def appointment_reminders_task():
+    while True:
+        try:
+            await asyncio.sleep(5 * 60)
+            ReminderService().process_reminders()
+        except asyncio.CancelledError:
+            break
+        except Exception as e:
+            logging.getLogger("uvicorn").error(f"Error processing reminders: {e}")
+
+from backend_app.modules.doctor_appointment.services.review_service import ReviewService
+async def appointment_reviews_task():
+    while True:
+        try:
+            await asyncio.sleep(60 * 60)
+            ReviewService().process_reviews()
+        except asyncio.CancelledError:
+            break
+        except Exception as e:
+            logging.getLogger("uvicorn").error(f"Error processing reviews: {e}")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    setup_logging()
+    try:
+        StatusTypeService.seed_defaults(db_session)
+        ConsultationTypeService.seed_defaults(db_session)
+    except Exception as e:
+        logging.getLogger("uvicorn").error(f"Error seeding default types: {e}")
+
+    task1 = asyncio.create_task(appointment_reminders_task())
+    task2 = asyncio.create_task(appointment_reviews_task())
+    yield
+    task1.cancel()
+    task2.cancel()
+
 app = FastAPI(
     title=settings.PROJECT_NAME,
     openapi_url="/docs/openapi.json",
-    description="Modular Multi-Industry API Backend supporting Doctor Appointment & Ecommerce Systems."
+    description="Modular Multi-Industry API Backend supporting Doctor Appointment & Ecommerce Systems.",
+    lifespan=lifespan
 )
 
 # Static file serving for images
@@ -57,50 +106,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-def setup_logging():
-    formatter = logging.Formatter(
-        fmt="%(asctime)s - %(levelname)s - %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S"
-    )
-    for logger_name in ("uvicorn", "uvicorn.error", "uvicorn.access"):
-        logger = logging.getLogger(logger_name)
-        for handler in logger.handlers:
-            handler.setFormatter(formatter)
 
-# --- Background Tasks ---
-from backend_app.modules.doctor_appointment.services.reminder_service import ReminderService
-async def appointment_reminders_task():
-    while True:
-        try:
-            await asyncio.sleep(5 * 60)
-            ReminderService().process_reminders()
-        except asyncio.CancelledError:
-            break
-        except Exception as e:
-            logging.getLogger("uvicorn").error(f"Error processing reminders: {e}")
-
-from backend_app.modules.doctor_appointment.services.review_service import ReviewService
-async def appointment_reviews_task():
-    while True:
-        try:
-            await asyncio.sleep(60 * 60)
-            ReviewService().process_reviews()
-        except asyncio.CancelledError:
-            break
-        except Exception as e:
-            logging.getLogger("uvicorn").error(f"Error processing reviews: {e}")
-
-@app.on_event("startup")
-async def startup_event():
-    setup_logging()
-    try:
-        StatusTypeService.seed_defaults(db_session)
-        ConsultationTypeService.seed_defaults(db_session)
-    except Exception as e:
-        logging.getLogger("uvicorn").error(f"Error seeding default types: {e}")
-
-    asyncio.create_task(appointment_reminders_task())
-    asyncio.create_task(appointment_reviews_task())
 
 # Register Routers
 app.include_router(common_router)

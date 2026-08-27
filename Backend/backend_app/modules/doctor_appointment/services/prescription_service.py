@@ -4,8 +4,8 @@ import uuid
 import shutil
 from typing import List, Optional
 from backend_app.core.database import db_session
-import core.models as models
-import core.schemas as schemas
+import backend_app.modules.doctor_appointment.models as models
+import backend_app.modules.doctor_appointment.schemas as schemas
 
 class PrescriptionService:
     def __init__(self):

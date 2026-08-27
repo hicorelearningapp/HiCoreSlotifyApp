@@ -18,10 +18,10 @@ class CollectEmailWorkflow(Workflow):
         customer = api_client.get_customer_by_phone(session.PhoneNumber)
 
         # If the customer already has an email on file, ask for confirmation
-        if customer and getattr(customer, "EmailAddress", None):
+        if customer and customer.get("EmailAddress"):
             session.WorkflowData["email_step"] = "confirming_email"
-            session.WorkflowData["current_email"] = customer.EmailAddress
-            return self._send_confirmation_prompt(session, customer.EmailAddress)
+            session.WorkflowData["current_email"] = customer.get("EmailAddress")
+            return self._send_confirmation_prompt(session, customer.get("EmailAddress"))
 
         # Otherwise, ask for a new email
         session.WorkflowData["email_step"] = "asking_email"

@@ -7,13 +7,19 @@ import time
 class MainMenuWorkflow(Workflow):
     def Initialize(self, session: ConversationSession):
         
-        patients = api_client.get_profiles_by_phone(session.PhoneNumber)
-        patient_ids = [p.PatientId for p in patients]
+        patients = api_client.get_profiles_by_phone(session.PhoneNumber) or []
+        patient_ids = [p.get("PatientId") for p in patients]
         
         all_appointments = []
-        appt_service = AppointmentService()
         for pid in patient_ids:
-            all_appointments.extend(appt_service.get_customer_appointments(pid))
+            res = api_client.list_appointments(patient_id=pid)
+            if res and isinstance(res, dict) and "Appointments" in res:
+                all_appointments.extend(res["Appointments"])
+            elif res and isinstance(res, dict) and "items" in res:
+                all_appointments.extend(res["items"])
+            elif isinstance(res, list):
+                all_appointments.extend(res)
+        all_appointments.sort(key=lambda x: (x.get("Date", ""), x.get("SlotTime", "")))
             
         if not all_appointments:
             options = [{"id": "BOOK_APPOINTMENT", "title": session.translate("btn_book_appointment")}]

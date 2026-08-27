@@ -3,24 +3,24 @@ from core.api_client import api_client
 
 class HealthcareIdentifyService(BaseIdentifyService):
     def __init__(self):
-        self.customer_svc = CustomerService()
+        pass
 
     def identify_customer(self, phone_number: str, industry: str, mappings: dict) -> IdentityResult:
-        customer = self.customer_svc.get_customer_by_phone(phone_number)
+        customer = api_client.get_customer_by_phone(phone_number)
         fallback_role_key = "PATIENT"
         sequence = mappings.get(fallback_role_key, "DefaultCustomerSequence")
         
         if customer:
-            has_name = bool(customer.PatientName and customer.PatientName != "Guest")
+            has_name = bool(customer.get("PatientName") and customer.get("PatientName") != "Guest")
             wf_data = {
                 "role": "customer",
-                "name": customer.PatientName if has_name else None,
+                "name": customer.get("PatientName") if has_name else None,
                 "industry": industry
             }
             return IdentityResult(
                 UserType=fallback_role_key,
-                AccountId=customer.CustomerId,
-                ProfileId=customer.PatientId,
+                AccountId=customer.get("CustomerId"),
+                ProfileId=customer.get("PatientId"),
                 Sequence=sequence,
                 WorkflowIndex=0,
                 WorkflowData=wf_data,

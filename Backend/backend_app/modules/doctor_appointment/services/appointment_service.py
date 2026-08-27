@@ -2,12 +2,12 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from datetime import timedelta, datetime, date, time
 from typing import List, Optional
-import core.models as models
-import core.schemas as schemas
+import backend_app.modules.doctor_appointment.models as models
+import backend_app.modules.doctor_appointment.schemas as schemas
 
 from fastapi import HTTPException
 from backend_app.core.database import db_session
-from core.services.whatsapp_service import whatsapp
+from backend_app.modules.doctor_appointment.services.whatsapp_service import whatsapp
 from backend_app.modules.doctor_appointment.services.google_oauth_service import GoogleOAuthService
 
 class AppointmentService:
@@ -50,8 +50,9 @@ class AppointmentService:
             models.Appointment.Date == appointment.Date,
             models.Appointment.Status.notin_(['Cancelled', 'NotAvailable'])
         ).count()
-        from core.Sequence import SequenceFactory
-        max_bookings_per_day = SequenceFactory.get_setting(self.db, doctor.BusinessPhoneNumber, "max_bookings_per_day", None)
+        from backend_app.modules.business_config.services.business_config_service import BusinessConfigService
+        config = BusinessConfigService.get_config(self.db, doctor.BusinessPhoneNumber) or {}
+        max_bookings_per_day = config.get("settings", {}).get("max_bookings_per_day", None)
         if max_bookings_per_day is not None and customer_day_count >= max_bookings_per_day:
             raise HTTPException(
                 status_code=400,
@@ -60,7 +61,8 @@ class AppointmentService:
 
         # Check for overlapping appointments within the buffer
         requested_dt = datetime.combine(appointment.Date, appointment.SlotTime)
-        buffer_minutes = SequenceFactory.get_setting(self.db, doctor.BusinessPhoneNumber, "customer_appointment_buffer_minutes", 60)
+        config = BusinessConfigService.get_config(self.db, doctor.BusinessPhoneNumber) or {}
+        buffer_minutes = config.get("settings", {}).get("customer_appointment_buffer_minutes", 60)
         buffer_delta = timedelta(minutes=buffer_minutes)
         
         existing_appointments = self.db.query(models.Appointment).filter(
@@ -361,8 +363,9 @@ class AppointmentService:
 
         # Check for overlapping appointments within the buffer
         requested_dt = datetime.combine(target_date, slot_time)
-        from core.Sequence import SequenceFactory
-        buffer_minutes = SequenceFactory.get_setting(self.db, doctor.BusinessPhoneNumber, "customer_appointment_buffer_minutes", 60)
+        from backend_app.modules.business_config.services.business_config_service import BusinessConfigService
+        config = BusinessConfigService.get_config(self.db, doctor.BusinessPhoneNumber) or {}
+        buffer_minutes = config.get("settings", {}).get("customer_appointment_buffer_minutes", 60)
         buffer_delta = timedelta(minutes=buffer_minutes)
         
         existing_appointments = self.db.query(models.Appointment).filter(
@@ -692,7 +695,7 @@ class AppointmentService:
         customer = self.db.query(models.Customer).filter(models.Customer.PhoneNumber == phone).first()
         
         if not customer:
-            from core.models.utils import generate_uuid
+            from backend_app.core.security import generate_uuid
             patient_id = generate_uuid()
             customer = models.Customer(
                 Id=patient_id,

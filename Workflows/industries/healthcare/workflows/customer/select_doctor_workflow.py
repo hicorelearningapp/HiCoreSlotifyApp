@@ -17,12 +17,12 @@ class SelectDoctorWorkflow(Workflow):
             return WorkflowResult.finished(reply=Reply("text", session.translate("select_doctor_no_doctors")))
             
         if len(doctors) == 1:
-            session.WorkflowData["DoctorId"] = str(doctors[0].Id)
+            session.WorkflowData["DoctorId"] = str(doctors[0].get("Id"))
             return WorkflowResult.completed()
             
         sections = [{
             "title": session.translate("section_available_doctors"),
-            "rows": [{"id": str(d.Id), "title": "Dr. " + session.translate(d.FullName)[:20], "description": session.translate(d.Specialization)[:72] if d.Specialization else ""} for d in doctors]
+            "rows": [{"id": str(d.get("Id")), "title": "Dr. " + session.translate(d.get("FullName", ""))[:20], "description": session.translate(d.get("Specialization"))[:72] if d.get("Specialization") else ""} for d in doctors]
         }, {
             "title": session.translate("section_options"),
             "rows": [{"id": "CANCEL_FLOW", "title": session.translate("btn_cancel"), "description": session.translate("btn_cancel_desc")}]
@@ -36,7 +36,7 @@ class SelectDoctorWorkflow(Workflow):
             if not doctor_id: raise ValueError()
                 
             doctor = api_client.get_doctor(doctor_id)
-            if not doctor or doctor.Status != "Approved": raise ValueError()
+            if not doctor or doctor.get("Status") != "Approved": raise ValueError()
 
                 
             session.WorkflowData["DoctorId"] = doctor_id

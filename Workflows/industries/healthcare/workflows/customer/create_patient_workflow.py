@@ -12,13 +12,12 @@ class CreatePatientWorkflow(Workflow):
             
         patient_name = message.Text.strip()
         
-        customer_service = CustomerService()
-        new_patient = customer_service.add_patient_by_phone(
-            phone_number=session.PhoneNumber,
-            patient_name=patient_name
+        new_patient = api_client.add_patient_by_phone(
+            session.PhoneNumber,
+            {"PatientName": patient_name}
         )
         
-        session.WorkflowData["patient_id"] = new_patient.PatientId
+        session.WorkflowData["patient_id"] = new_patient.get("PatientId")
         session.current_workflow = "SelectDoctorWorkflow" # Bridge back into standard BookFlow
         
         return WorkflowResult.completed(reply=Reply("text", f"{patient_name} has been added! 🎉"))

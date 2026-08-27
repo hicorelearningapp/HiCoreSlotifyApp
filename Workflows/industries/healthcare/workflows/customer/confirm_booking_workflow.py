@@ -18,8 +18,8 @@ class ConfirmBookingWorkflow(Workflow):
 
         summary = session.translate(
             "booking_summary",
-            patient=patient.PatientName if patient else "Patient",
-            doctor=doctor.FullName if doctor else "Doctor",
+            patient=patient.get("PatientName") if patient else "Patient",
+            doctor=doctor.get("FullName") if doctor else "Doctor",
             type=session.WorkflowData.get("ConsultationType", "In-Person"),
             date=session.WorkflowData.get("date"),
             time=session.WorkflowData.get("time"),
@@ -73,7 +73,7 @@ class ConfirmBookingWorkflow(Workflow):
                             "PhoneNumber": session.PhoneNumber,
                         }
                     )
-                patient_id = patient.get("PatientId") if isinstance(patient, dict) else patient.PatientId
+                patient_id = patient.get("PatientId")
                 session.WorkflowData["patient_id"] = patient_id
             else:
                 patient = api_client.get_customer(patient_id)
@@ -88,15 +88,15 @@ class ConfirmBookingWorkflow(Workflow):
             }
             appointment = api_client.book_appointment(app_create)
             
-            meeting_link = appointment.get("MeetingLink") if isinstance(appointment, dict) else getattr(appointment, "MeetingLink", None)
+            meeting_link = appointment.get("MeetingLink")
 
             # Save the payment record
             payment_status = "Pending"
             payment_create = {
-                "AppointmentId": appointment.get("Id") if isinstance(appointment, dict) else appointment.Id,
+                "AppointmentId": appointment.get("Id"),
                 "CustomerId": session.WorkflowData.get("patient_id"),
                 "DoctorId": session.WorkflowData.get("DoctorId"),
-                "Payment": doctor.get("ClinicConsultationFee") if isinstance(doctor, dict) else doctor.ClinicConsultationFee,
+                "Payment": doctor.get("ClinicConsultationFee"),
                 "Status": payment_status,
             }
             # Need to implement create_payment in api_client if it doesn't exist yet, but for now we'll mock it if it's not there.
@@ -104,14 +104,14 @@ class ConfirmBookingWorkflow(Workflow):
                 api_client.create_payment(payment_create)
 
             # Send async notification directly to doctor bypassing manager loop
-            if doctor and doctor.MobileNumber:
+            if doctor and doctor.get("MobileNumber"):
                 patient = api_client.get_customer(
                     session.WorkflowData.get("patient_id")
                 )
-                doc_msg = f"New appointment booked for {patient.Name if patient else 'Unknown'} for {start_datetime.strftime('%Y-%m-%d %I:%M %p')}."
+                doc_msg = f"New appointment booked for {patient.get('Name') if patient else 'Unknown'} for {start_datetime.strftime('%Y-%m-%d %I:%M %p')}."
                 if meeting_link:
                     doc_msg += f"\n\nMeeting Link: {meeting_link}"
-                WhatsAppService.send_text(doctor.MobileNumber, doc_msg)
+                WhatsAppService.send_text(doctor.get("MobileNumber"), doc_msg)
 
             success_msg = session.translate(
                 "msg_booking_success",
@@ -125,22 +125,22 @@ class ConfirmBookingWorkflow(Workflow):
                 email_to_use = session.WorkflowData.get("current_email")
                 if not email_to_use:
                     email_to_use = (
-                        getattr(patient, "EmailAddress", None) if patient else None
+                        patient.get("EmailAddress") if patient else None
                     )
                 if not email_to_use:
                     primary_cust = api_client.get_customer_by_phone(
                         session.PhoneNumber
                     )
                     if primary_cust:
-                        email_to_use = getattr(primary_cust, "EmailAddress", None)
+                        email_to_use = primary_cust.get("EmailAddress")
 
                 if email_to_use:
                     success_msg += session.translate(
                         "view_video_join_email", email=email_to_use
                     )
-            elif doctor and doctor.ClinicAddress:
+            elif doctor and doctor.get("ClinicAddress"):
                 success_msg += session.translate(
-                    "msg_booking_clinic_address", clinic_address=doctor.ClinicAddress
+                    "msg_booking_clinic_address", clinic_address=doctor.get("ClinicAddress")
                 )
 
             success_msg += session.translate("msg_booking_thanks")

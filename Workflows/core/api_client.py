@@ -2,7 +2,7 @@ import os
 import requests
 from typing import Dict, Any, Optional
 
-BACKEND_API_URL = os.getenv("BACKEND_API_URL", "http://localhost:8000")
+BACKEND_API_URL = os.getenv("BACKEND_API_URL", "http://127.0.0.1:8000")
 
 class BackendAPIClient:
     def __init__(self, base_url: str = BACKEND_API_URL):
@@ -41,17 +41,41 @@ class BackendAPIClient:
         return self._request("POST", "/customers", json=data)
         
     def add_patient_by_phone(self, phone_number: str, data: Dict[str, Any]):
-        return self._request("POST", f"/customers/by-phone/{phone_number}/patients", json=data)
+        response = self.session.post(f"{self.base_url}/customers/by-phone/{phone_number}/patients", json=data)
+        if response.status_code >= 400:
+            try:
+                detail = response.json().get("detail", response.text)
+            except Exception:
+                detail = response.text
+            raise Exception(detail)
+        return response.json()
         
     def update_customer_email(self, phone_number: str, email: str):
         return self._request("PATCH", f"/customers/by-phone/{phone_number}/email", params={"email_address": email})
 
     # --- Appointment APIs ---
+    def list_appointments(self, doctor_id: str | None = None, patient_id: str | None = None, target_date: str | None = None):
+        params = {}
+        if doctor_id:
+            params['doctor_id'] = doctor_id
+        if patient_id:
+            params['patient_id'] = patient_id
+        if target_date:
+            params['target_date'] = target_date
+        return self._request("GET", "/appointments", params=params)
+
     def get_appointment(self, appointment_id: str):
         return self._request("GET", f"/appointments/{appointment_id}")
         
     def book_appointment(self, data: Dict[str, Any]):
-        return self._request("POST", "/appointments", json=data)
+        response = self.session.post(f"{self.base_url}/appointments", json=data)
+        if response.status_code >= 400:
+            try:
+                detail = response.json().get("detail", response.text)
+            except Exception:
+                detail = response.text
+            raise Exception(detail)
+        return response.json()
         
     def cancel_appointment(self, appointment_id: str):
         return self._request("PATCH", f"/appointments/{appointment_id}/cancel")

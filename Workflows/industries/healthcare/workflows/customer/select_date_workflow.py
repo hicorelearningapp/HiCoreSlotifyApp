@@ -20,7 +20,7 @@ class SelectDateWorkflow(Workflow):
                 session.state.BusinessPhoneNumber
             )
             if doctors:
-                doctor_id = str(doctors[0].Id)
+                doctor_id = str(doctors[0].get("Id"))
                 session.WorkflowData["DoctorId"] = doctor_id
         doctor = api_client.get_doctor(doctor_id)
 
@@ -42,7 +42,7 @@ class SelectDateWorkflow(Workflow):
                 "Sunday",
             ]
             day_name = days[day_of_week]
-            day_schedule_str = getattr(doctor, day_name) if doctor else None
+            day_schedule_str = doctor.get(day_name) if doctor else None
 
             if not day_schedule_str:
                 day_schedule_str = default_hours
@@ -112,7 +112,8 @@ class SelectDateWorkflow(Workflow):
 
             session.WorkflowData["date"] = target_date.strftime("%Y-%m-%d")
             session.WorkflowData["slots"] = [
-                s["SlotTime"].strftime("%H:%M") for s in slots_dt
+                s.get("SlotTime", "")[:5] if isinstance(s, dict) else getattr(s, "SlotTime").strftime("%H:%M")
+                for s in slots_dt
             ]
             session.WorkflowData["page"] = 0
 

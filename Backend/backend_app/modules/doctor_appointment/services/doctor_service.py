@@ -2,8 +2,8 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 from datetime import date
 import os
-import core.models as models
-import core.schemas as schemas
+import backend_app.modules.doctor_appointment.models as models
+import backend_app.modules.doctor_appointment.schemas as schemas
 from backend_app.modules.doctor_appointment.services.appointment_service import AppointmentService
 from backend_app.core.database import db_session
 import hashlib

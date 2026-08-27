@@ -22,7 +22,6 @@ class DoctorViewScheduleWorkflow(Workflow):
     def Process(self, session: ConversationSession, message: Message):
         step = session.WorkflowData.get("sched_step")
         doctor_id = session.WorkflowData.get("doctor_id")
-        appt_service = AppointmentService()
 
         # STEP 1: Handle Day Selection
         if step == "select_day":
@@ -32,17 +31,21 @@ class DoctorViewScheduleWorkflow(Workflow):
             elif message.InteractiveId == "SCHED_TOMORROW":
                 target_date = date.today() + timedelta(days=1)
             elif message.InteractiveId == "SCHED_OTHER":
-                appointments = appt_service.list_appointments(doctor_id=doctor_id, limit=100)
+                res = api_client.list_appointments(doctor_id=doctor_id)
+                appointments = res.get("Appointments", res.get("items", res)) if isinstance(res, dict) else res
+                appointments = appointments or []
                 # Only show dates after tomorrow
-                appointments = [a for a in appointments if a.Date > date.today() + timedelta(days=1)]
+                tomorrow = (date.today() + timedelta(days=1)).isoformat()
+                appointments = [a for a in appointments if a.get("Date", "") > tomorrow]
                 
-                unique_dates = sorted(list(set(appt.Date for appt in appointments)))
+                unique_dates = sorted(list(set(appt.get("Date") for appt in appointments)))
                 
                 if not unique_dates:
                     return WorkflowResult.finished(reply=Reply("text", "You have no upcoming appointments beyond tomorrow."))
                     
                 rows = []
-                for idx, dt in enumerate(unique_dates[:7]):
+                for idx, dt_str in enumerate(unique_dates[:7]):
+                    dt = datetime.strptime(dt_str, '%Y-%m-%d').date()
                     rows.append({
                         "id": f"SCHED_DATE_{dt.strftime('%Y-%m-%d')}",
                         "title": dt.strftime("%b %d, %Y"),
@@ -59,42 +62,49 @@ class DoctorViewScheduleWorkflow(Workflow):
                 )
             
             if target_date:
-                return self._show_schedule(session, doctor_id, target_date, appt_service)
+                return self._show_schedule(session, doctor_id, target_date)
 
         # STEP 2: Handle Date Selection from List
         elif step == "awaiting_date":
             if message.InteractiveId and message.InteractiveId.startswith("SCHED_DATE_"):
                 date_str = message.InteractiveId.replace("SCHED_DATE_", "")
                 target_date = datetime.strptime(date_str, "%Y-%m-%d").date()
-                return self._show_schedule(session, doctor_id, target_date, appt_service)
+                return self._show_schedule(session, doctor_id, target_date)
             else:
                 return WorkflowResult.waiting(reply=Reply("text", "Please select a date from the list menu."))
 
         # STEP 3: Handle Appointment Selection (for details)
         elif step == "viewing_list":
             if message.InteractiveId == "GET_EXCEL":
-                return self._send_excel(session, doctor_id, appt_service)
+                return self._send_excel(session, doctor_id)
             return WorkflowResult.finished(reply=Reply("text", "Exiting schedule view. Type 'hi' to start over."))
 
         return WorkflowResult.waiting()
 
-    def _show_schedule(self, session, doctor_id, target_date, appt_service):
-        appointments = appt_service.get_doctor_appointments_by_date(doctor_id, target_date)
+    def _show_schedule(self, session, doctor_id, target_date):
+        res = api_client.list_appointments(doctor_id=doctor_id, target_date=target_date.isoformat())
+        appointments = res.get("Appointments", res.get("items", res)) if isinstance(res, dict) else res
+        appointments = appointments or []
         
         if not appointments:
             return WorkflowResult.finished(reply=Reply("text", f"You have no appointments scheduled for {target_date.strftime('%b %d, %Y')}. 🎉\n\nType 'hi' to return to menu."))
 
         msg = f"📅 *Schedule for {target_date.strftime('%b %d, %Y')}*\n\n"
         for idx, appt in enumerate(appointments, 1):
-            cust_name = appt.patient.Name if appt.patient else "Unknown Patient"
-            phone = appt.patient.PhoneNumber if appt.patient else "N/A"
-            time_str = appt.SlotTime.strftime("%I:%M %p")
-            type_str = "💻 Video" if appt.ConsultationType == "Video" else "🏥 Clinic"
+            cust_name = appt.get("patient", {}).get("Name") if appt.get("patient") else "Unknown Patient"
+            phone = appt.get("patient", {}).get("PhoneNumber") if appt.get("patient") else "N/A"
+            try:
+                dt_time = datetime.strptime(appt.get("SlotTime", ""), "%H:%M:%S") if len(appt.get("SlotTime", "").split(':')) == 3 else datetime.strptime(appt.get("SlotTime", ""), "%H:%M")
+                time_str = dt_time.strftime("%I:%M %p")
+            except Exception:
+                time_str = appt.get("SlotTime", "N/A")
+            
+            type_str = "💻 Video" if appt.get("ConsultationType") == "Video" else "🏥 Clinic"
             msg += f"*{idx}. {time_str}* - {cust_name} ({phone}) [{type_str}]\n"
-            if appt.ConsultationType == "Video" and getattr(appt, 'MeetingLink', None):
-                msg += f"  🔗 Link: {appt.MeetingLink}\n"
-                if appt.doctor and getattr(appt.doctor, 'EmailAddress', None):
-                    msg += f"  📧 *(Join using this email: {appt.doctor.EmailAddress})*\n"
+            if appt.get("ConsultationType") == "Video" and appt.get("MeetingLink"):
+                msg += f"  🔗 Link: {appt.get('MeetingLink')}\n"
+                if appt.get("doctor") and appt.get("doctor", {}).get("EmailAddress"):
+                    msg += f"  📧 *(Join using this email: {appt.get('doctor').get('EmailAddress')})*\n"
             
         msg += "\nClick below to download this schedule as an Excel file, or type 'hi' to return to the main menu."
         
@@ -108,7 +118,7 @@ class DoctorViewScheduleWorkflow(Workflow):
         )
         return WorkflowResult.waiting(reply=reply)
 
-    def _send_excel(self, session, doctor_id, appt_service):
+    def _send_excel(self, session, doctor_id):
         try:
             import openpyxl
         except ImportError:
@@ -120,7 +130,9 @@ class DoctorViewScheduleWorkflow(Workflow):
             return WorkflowResult.finished(reply=Reply("text", "Error: Date not found."))
             
         target_date = datetime.fromisoformat(target_date_str).date()
-        appointments = appt_service.get_doctor_appointments_by_date(doctor_id, target_date)
+        res = api_client.list_appointments(doctor_id=doctor_id, target_date=target_date.isoformat())
+        appointments = res.get("Appointments", res.get("items", res)) if isinstance(res, dict) else res
+        appointments = appointments or []
         
         wb = openpyxl.Workbook()
         ws = wb.active
@@ -129,10 +141,14 @@ class DoctorViewScheduleWorkflow(Workflow):
         ws.append(["Time", "Patient Name", "Phone Number", "Type"])
         
         for appt in appointments:
-            cust_name = appt.patient.Name if appt.patient else "Unknown Patient"
-            phone = appt.patient.PhoneNumber if appt.patient else "N/A"
-            time_str = appt.SlotTime.strftime("%I:%M %p")
-            type_str = appt.ConsultationType or "Clinic"
+            cust_name = appt.get("patient", {}).get("Name") if appt.get("patient") else "Unknown Patient"
+            phone = appt.get("patient", {}).get("PhoneNumber") if appt.get("patient") else "N/A"
+            try:
+                dt_time = datetime.strptime(appt.get("SlotTime", ""), "%H:%M:%S") if len(appt.get("SlotTime", "").split(':')) == 3 else datetime.strptime(appt.get("SlotTime", ""), "%H:%M")
+                time_str = dt_time.strftime("%I:%M %p")
+            except Exception:
+                time_str = appt.get("SlotTime", "N/A")
+            type_str = appt.get("ConsultationType") or "Clinic"
             ws.append([time_str, cust_name, phone, type_str])
             
         excel_buffer = io.BytesIO()

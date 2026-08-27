@@ -6,25 +6,30 @@ from core.services.whatsapp_service import whatsapp as WhatsAppService
 
 class SelectAppointmentToCancelWorkflow(Workflow):
     def Initialize(self, session: ConversationSession):
-        patients = api_client.get_profiles_by_phone(session.PhoneNumber)
-        patient_ids = [p.PatientId for p in patients]
+        patients = api_client.get_profiles_by_phone(session.PhoneNumber) or []
+        patient_ids = [p.get("PatientId") for p in patients]
         
         all_appointments = []
-        appt_service = AppointmentService()
         for pid in patient_ids:
-            all_appointments.extend(appt_service.get_customer_appointments(pid))
+            res = api_client.list_appointments(patient_id=pid)
+            if res and isinstance(res, dict) and "Appointments" in res:
+                all_appointments.extend(res["Appointments"])
+            elif res and isinstance(res, dict) and "items" in res:
+                all_appointments.extend(res["items"])
+            elif isinstance(res, list):
+                all_appointments.extend(res)
             
-        all_appointments.sort(key=lambda x: (x.Date, x.SlotTime))
+        all_appointments.sort(key=lambda x: (x.get("Date", ""), x.get("SlotTime", "")))
         
         if not all_appointments:
             return WorkflowResult.finished(reply=Reply("text", session.translate("cancel_no_appointments")))
             
         rows = []
         for appt in all_appointments[:10]:
-            doc_name = appt.DoctorName or (appt.doctor.FullName if appt.doctor else 'Unknown')
-            pat_name = appt.patient.Name if appt.patient else 'Unknown'
-            date_str = appt.Date.strftime('%b %d, %Y') if appt.Date else 'N/A'
-            time_str = appt.SlotTime.strftime('%I:%M %p') if appt.SlotTime else 'N/A'
+            doc_name = appt.get("DoctorName") or (appt.get("doctor", {}).get("FullName") if appt.get("doctor") else 'Unknown')
+            pat_name = appt.get("patient", {}).get("Name") if appt.get("patient") else 'Unknown'
+            date_str = appt.get("Date") if appt.get("Date") else 'N/A'
+            time_str = appt.get("SlotTime") if appt.get("SlotTime") else 'N/A'
             
             title_str = f"{date_str} {time_str}"
             if len(title_str) > 24:
@@ -35,7 +40,7 @@ class SelectAppointmentToCancelWorkflow(Workflow):
                 desc_str = desc_str[:69] + "..."
 
             rows.append({
-                "id": f"CANCEL_APPT_{appt.Id}",
+                "id": f"CANCEL_APPT_{appt.get('Id')}",
                 "title": title_str,
                 "description": desc_str
             })

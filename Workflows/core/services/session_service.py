@@ -181,14 +181,14 @@ class SessionService:
         return deleted_count
 
     def delete_inactive_sessions(self, timeout_minutes: int) -> int:
-        threshold = datetime.now(timezone.utc) - timedelta(minutes=timeout_minutes)
+        threshold = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(minutes=timeout_minutes)
         deleted_count = self.db.query(models.ConversationSessionDB).filter(models.ConversationSessionDB.UpdatedAt < threshold).delete()  # type: ignore
         self.db.commit()
         return deleted_count
 
     def process_timeouts(self):
         sessions = self.list_sessions()
-        now = datetime.now(timezone.utc)
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
 
         for session in sessions:
             if not session.UpdatedAt:

@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-import core.models as models
+import backend_app.common.models as models
 
 class SystemService:
     @staticmethod

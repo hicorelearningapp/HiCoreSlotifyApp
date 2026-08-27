@@ -6,7 +6,7 @@ from core.api_client import api_client
 class RegisterPatientWorkflow(Workflow):
     def Initialize(self, session: ConversationSession):
         customer = api_client.get_customer_by_phone(session.PhoneNumber)
-        if customer and customer.PatientName and customer.PatientName != "Guest":
+        if customer and customer.get("PatientName") and customer.get("PatientName") != "Guest":
             return WorkflowResult.completed()
         return WorkflowResult.waiting(
             reply=Reply("text", session.translate("register_prompt_name"))

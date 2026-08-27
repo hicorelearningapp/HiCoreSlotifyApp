@@ -27,15 +27,9 @@ import industries.healthcare.HealthcareWorkflowFactory
 import industries.ecommerce.EcommerceWorkflowFactory
 
 # Webhook routers
-from core.routers.whatsapp_webhook_router import whatsapp_webhook_router
+from core.routers import whatsapp_webhook_router
 
-# Platform routers
-from core.routers import (
-    business_config_router,
-    google_auth_router,
-    session_router,
-    system_router,
-)
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -102,11 +96,7 @@ async def cleanup_sessions_task():
 # Channel webhooks
 app.include_router(whatsapp_webhook_router.router)
 
-# Platform management
-app.include_router(business_config_router.router)
-app.include_router(google_auth_router.router)
-app.include_router(session_router.router)
-app.include_router(system_router.router)
+
 
 @app.get("/")
 def read_root():

@@ -2,8 +2,8 @@ import logging
 from datetime import datetime, timedelta
 from backend_app.core.database import db_session
 from backend_app.modules.doctor_appointment.models.appointment import Appointment
-from core.services.whatsapp_service import whatsapp
-from config import REMINDER_TIMINGS_HOURS
+from backend_app.modules.doctor_appointment.services.whatsapp_service import whatsapp
+REMINDER_TIMINGS_HOURS = [24, 2, 1]
 
 logger = logging.getLogger("uvicorn")
 

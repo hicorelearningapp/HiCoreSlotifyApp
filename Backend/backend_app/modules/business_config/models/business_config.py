@@ -1,7 +1,7 @@
 from sqlalchemy import String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 from backend_app.core.database import Base
-from core.models.utils import generate_uuid
+from backend_app.core.security import generate_uuid
 
 class BusinessConfig(Base):
     __tablename__ = "business_configurations"

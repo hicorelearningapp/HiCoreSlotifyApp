@@ -14,12 +14,12 @@ class DoctorSelectAppointmentsToCancelWorkflow(Workflow):
         
         rows = []
         for appt in appointments[:10]:
-            pat_name = appt.patient.Name if appt.patient else "Unknown"
-            date_str = appt.Date.strftime('%b %d, %Y') if appt.Date else 'N/A'
-            time_str = appt.SlotTime.strftime('%I:%M %p') if appt.SlotTime else 'N/A'
+            pat_name = appt.get("patient", {}).get("Name") if appt.get("patient") else "Unknown"
+            date_str = appt.get("Date") if appt.get("Date") else 'N/A'
+            time_str = appt.get("SlotTime") if appt.get("SlotTime") else 'N/A'
             
             rows.append({
-                "id": f"DOC_CANCEL_{appt.Id}",
+                "id": f"DOC_CANCEL_{appt.get('Id')}",
                 "title": f"{pat_name}",
                 "description": f"{date_str} at {time_str}"
             })
@@ -80,17 +80,17 @@ class DoctorCancellationConfirmationWorkflow(Workflow):
         
         cancelled_count = 0
         for appt_id in target_cancel_ids:
-            appointment = api_client.get_appointment_by_id(appt_id)
-            if appointment and appointment.Status != "Cancelled":
+            appointment = api_client.get_appointment(appt_id)
+            if appointment and appointment.get("Status") != "Cancelled":
                 api_client.cancel_appointment(appt_id)
                 cancelled_count += 1
                 
                 # Notify Patient
-                if appointment.patient and appointment.patient.PhoneNumber:
-                    doc_name = appointment.doctor.FullName if appointment.doctor else "your doctor"
-                    time_str = f"{appointment.SlotTime.strftime('%I:%M %p')} on {appointment.Date.strftime('%b %d')}"
+                if appointment.get("patient") and appointment.get("patient", {}).get("PhoneNumber"):
+                    doc_name = appointment.get("doctor", {}).get("FullName") if appointment.get("doctor") else "your doctor"
+                    time_str = f"{appointment.get('SlotTime')} on {appointment.get('Date')}"
                     
-                    has_paid = any(p.Status == "Paid" for p in appointment.payments)
+                    has_paid = any(p.get("Status") == "Paid" for p in appointment.get("payments", []))
                     refund_text = "\n\nA refund for your payment is currently being processed by the clinic." if has_paid else ""
                     
                     patient_msg = (
@@ -98,7 +98,7 @@ class DoctorCancellationConfirmationWorkflow(Workflow):
                         f"We apologize, but Dr. {doc_name} had to cancel your appointment scheduled for {time_str} due to an unforeseen emergency.{refund_text}\n\n"
                         f"Please reply with 'hi' to book a new time slot."
                     )
-                    WhatsAppService.send_text(appointment.patient.PhoneNumber, patient_msg)
+                    WhatsAppService.send_text(appointment.get("patient", {}).get("PhoneNumber"), patient_msg)
                     
         # Since this is the final step, returning completed will end the flow.
         return WorkflowResult.completed(reply=Reply("text", f"✅ Successfully cancelled {cancelled_count} appointment(s). The patient(s) have been notified."))
