@@ -4,6 +4,9 @@ from backend_app.modules.ecommerce.schemas.product import (
 from backend_app.modules.ecommerce.schemas.order import (
     OrderItemCreate, OrderCreate, OrderStatusUpdate, OrderOut
 )
+from backend_app.modules.ecommerce.schemas.category import (
+    CategoryCreate, CategoryUpdate, CategoryOut
+)
 
 __all__ = [
     "ProductOut",
@@ -13,4 +16,7 @@ __all__ = [
     "OrderCreate",
     "OrderStatusUpdate",
     "OrderOut",
+    "CategoryCreate",
+    "CategoryUpdate",
+    "CategoryOut",
 ]

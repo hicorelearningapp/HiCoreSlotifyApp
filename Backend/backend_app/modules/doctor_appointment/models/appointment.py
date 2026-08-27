@@ -1,5 +1,7 @@
-from datetime import datetime
+from datetime import datetime, date, time
+from typing import Optional
 from sqlalchemy import Column, Integer, String, Date as SqlDate, Time, ForeignKey, UniqueConstraint, CheckConstraint, DateTime
+from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.orm import relationship
 from backend_app.core.database import Base
 from backend_app.core.security import generate_uuid
@@ -7,26 +9,26 @@ from backend_app.core.security import generate_uuid
 class Appointment(Base):
     __tablename__ = "appointments"
 
-    Id = Column(String(36), primary_key=True, default=generate_uuid, index=True)
-    DoctorId = Column(String(36), ForeignKey("doctors.Id", ondelete="CASCADE"), nullable=False)
-    DoctorName = Column(String(150), nullable=True)
-    PatientId = Column(String(36), ForeignKey("customers.PatientId", ondelete="CASCADE"), nullable=True)
-    PatientName = Column(String(150), nullable=True)
+    Id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid, index=True)
+    DoctorId: Mapped[str] = mapped_column(String(36), ForeignKey("doctors.Id", ondelete="CASCADE"), nullable=False)
+    DoctorName: Mapped[Optional[str]] = mapped_column(String(150), nullable=True)
+    PatientId: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey("customers.PatientId", ondelete="CASCADE"), nullable=True)
+    PatientName: Mapped[Optional[str]] = mapped_column(String(150), nullable=True)
     
-    Date = Column(SqlDate, nullable=False, index=True)
-    SlotTime = Column(Time, nullable=False)
-    Slot = Column(Integer, nullable=False)
+    Date: Mapped[date] = mapped_column(SqlDate, nullable=False, index=True)
+    SlotTime: Mapped[time] = mapped_column(Time, nullable=False)
+    Slot: Mapped[int] = mapped_column(Integer, nullable=False)
     
-    ConsultationType = Column(String, nullable=False, default="Clinic")
-    Status = Column(String, nullable=False, default="Booked")
-    MeetingLink = Column(String(255), nullable=True)
-    RemindersSent = Column(String(255), default="")
-    ReMarks = Column(String(255), nullable=True)
-    ReviewDate = Column(SqlDate, nullable=True)
-    CreatedAt = Column(DateTime, default=datetime.utcnow)
+    ConsultationType: Mapped[str] = mapped_column(String, nullable=False, default="Clinic")
+    Status: Mapped[str] = mapped_column(String, nullable=False, default="Booked")
+    MeetingLink: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    RemindersSent: Mapped[str] = mapped_column(String(255), default="")
+    ReMarks: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    ReviewDate: Mapped[Optional[date]] = mapped_column(SqlDate, nullable=True)
+    CreatedAt: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     
-    RefundStatus = Column(String(20), nullable=True)
-    RefundedAt = Column(DateTime, nullable=True)
+    RefundStatus: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
+    RefundedAt: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
 
     __table_args__ = (
         CheckConstraint("ConsultationType IN ('Clinic','VideoConsultation','SecondOpinion')", name="chk_consultation_type"),

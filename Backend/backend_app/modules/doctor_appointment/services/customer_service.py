@@ -10,7 +10,7 @@ class CustomerService:
     def __init__(self):
         self.db = db_session
 
-    def create_customer(self, customer: schemas.CustomerCreate, language: str = None) -> models.Customer:
+    def create_customer(self, customer: schemas.CustomerCreate, language: str | None= None) -> models.Customer:
         customer_id = str(uuid.uuid4())
         patient_id = str(uuid.uuid4())
         patient_name = customer.PatientName if customer.PatientName else customer.CustomerName

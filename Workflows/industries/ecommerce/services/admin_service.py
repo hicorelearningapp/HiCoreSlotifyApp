@@ -9,7 +9,7 @@ from config import (
     INSTAGRAM_HTTP_TIMEOUT,
 )
 from backend_app.modules.ecommerce.models.category import Category
-from backend_app.modules.doctor_appointment.schemas.admin_schemas import CategoryCreate, CategoryUpdate
+from backend_app.modules.ecommerce.schemas.category import CategoryCreate, CategoryUpdate
 
 class AdminService:
     @staticmethod

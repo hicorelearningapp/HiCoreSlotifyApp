@@ -4,7 +4,7 @@ from backend_app.core.database import db_session
 
 class OrderService:
     @staticmethod
-    def create_order(db: Session, customer_id: int, product_id: int, quantity: int, total: float, variant_id: int = None, source_channel: str = "whatsapp") -> Order:
+    def create_order(db: Session, customer_id: int, product_id: int, quantity: int, total: float, variant_id: int | None = None, source_channel: str = "whatsapp") -> Order:
         order = Order(
             customer_id=customer_id,
             total=total,

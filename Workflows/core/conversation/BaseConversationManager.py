@@ -75,7 +75,7 @@ class BaseConversationManager:
             db_session, session.state.BusinessPhoneNumber, "order_handoff_sequence", ""
         )
 
-    async def execute_industry_handoff_jump(self, session, message, customer_phone: str) -> Message:
+    async def execute_industry_handoff_jump(self, session, message, customer_phone: str) -> Message | None:
         """Jump into the order flow once the sequence has been loaded."""
         if not session.WorkflowData.pop("_handoff_pending", False):
             return message
@@ -117,9 +117,9 @@ class BaseConversationManager:
 
         return message
 
-    async def process(self, customer_phone: str, message: Message):
+    async def process(self, customer_phone: str, message: Message | None):
         logger = MessageLogger()
-        logger.log_received(customer_phone, message.Text or str(message.InteractiveId))
+        logger.log_received(customer_phone, message.Text or message.InteractiveId)
         business_phone = message.BusinessPhoneNumber if message else None
         session = SessionService.load_session(customer_phone, business_phone)
         if message and message.BusinessPhoneNumber:
@@ -215,8 +215,9 @@ class BaseConversationManager:
                 session.workflow_initialized = True
                 
             # STEP 2 : Process
+            result = workflow.Process(session=session, message=message)
             if message and not skip_process:
-                result = workflow.Process(session=session, message=message)
+                
                 print(f"[DEBUG] [{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Process {session.current_workflow} returned {result.status} with reply={bool(result.reply)}")
 
                 if result.reply:
