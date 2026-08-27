@@ -1,16 +1,3 @@
-"""
-Sends a workflow reply back on whichever channel the conversation arrived on.
-
-ConversationManager is channel-agnostic: it knows a customer by an opaque id.
-Instagram conversations carry an ``ig_`` prefix on both the customer id and the
-business id, added by the Instagram webhook router. Before this existed, every
-reply went out through WhatsAppService regardless, so an Instagram DM was
-answered by asking the WhatsApp Cloud API to message a recipient literally
-named ``ig_17841400000000000``.
-
-The prefix is stripped before the id reaches Instagram, which addresses people
-by their bare Instagram-scoped id.
-"""
 from __future__ import annotations
 
 import logging

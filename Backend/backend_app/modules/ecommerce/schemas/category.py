@@ -4,12 +4,13 @@ from typing import Optional
 class CategoryBase(BaseModel):
     name: str
     description: Optional[str] = None
-    image_url: Optional[str] = None
-    store_id: Optional[str] = "default"
-    is_active: bool = True
 
 class CategoryCreate(CategoryBase):
     pass
+
+class CategoryUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
 
 class CategoryOut(CategoryBase):
     id: int

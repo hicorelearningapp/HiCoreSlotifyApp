@@ -1,6 +1,5 @@
 from enum import Enum
 from typing import Optional, Any
-from core.services.language_manager import LanguageManager
 
 class Message:
     def __init__(self, phone_number: str, text: str = None, interactive_id: str = None, business_phone_number: str = None):
@@ -57,8 +56,24 @@ class ConversationSession:
     def workflow_initialized(self, value: bool):
         self.state.Initialized = value
 
-    def translate(self, key: str, **kwargs) -> str:
-        return LanguageManager().text(key, business_phone=self.state.BusinessPhoneNumber, **kwargs)
+    def translate(self, key: str, default: str = None, **kwargs) -> str:
+        import os, json
+        industry = self.WorkflowData.get("industry", "healthcare") if self.state else "healthcare"
+        locale_path = os.path.join(os.path.dirname(__file__), "..", "..", "industries", industry, "locales", "en.json")
+        template = default or key
+        if os.path.exists(locale_path):
+            try:
+                with open(locale_path, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                    template = data.get(key, default or key)
+            except Exception:
+                pass
+        if kwargs:
+            try:
+                return template.format(**kwargs)
+            except Exception:
+                return template
+        return str(template)
 
 class WorkflowStatus(Enum):
     WAITING = "WAITING"

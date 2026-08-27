@@ -16,7 +16,7 @@ hand off to their own WhatsApp numbers.
 """
 from __future__ import annotations
 
-from industries.ecommerce.services.handoff_service import handoff_service
+from backend_app.modules.ecommerce.services.handoff_service import handoff_service
 from core.channels.instagram.utils.instagram_comment_parser import CommentEvent
 from core.channels.instagram.utils.instagram_rules import render_reply
 
@@ -54,7 +54,7 @@ class InstagramHandoffService:
     def _ecommerce_link(event: CommentEvent, policy) -> tuple[str, str]:
         # Imported here so the healthcare path never touches the product tables.
         from backend_app.core.database import db_session
-        from industries.ecommerce.services.product_service import product_service
+        from backend_app.modules.ecommerce.services.product_service import product_service
 
         product = product_service.get_product_by_media_id(db_session, event.media_id)
         product_name = product["name"] if product else "CATALOG"

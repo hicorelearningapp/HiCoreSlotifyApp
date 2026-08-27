@@ -2,22 +2,17 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from datetime import timedelta, datetime, date, time
 from typing import List, Optional
-import backend_app.modules.doctor_appointment.models as models
-import backend_app.modules.doctor_appointment.schemas as schemas
+import core.models as models
+import core.schemas as schemas
 
 from fastapi import HTTPException
 from backend_app.core.database import db_session
-from backend_app.modules.doctor_appointment.services.whatsapp_service import whatsapp
+from core.channels.whatsapp.services.whatsapp_service import whatsapp
 from backend_app.modules.doctor_appointment.services.google_oauth_service import GoogleOAuthService
 
 class AppointmentService:
     def __init__(self):
         self.db = db_session
-
-    def _get_default_doctor_schedule(self, doctor) -> str:
-        if doctor and getattr(doctor, "DefaultSchedule", None):
-            return doctor.DefaultSchedule
-        return "09:00-17:00"
 
     def book_appointment(self, appointment: schemas.AppointmentCreate):
         # Verify doctor exists and is approved
@@ -33,9 +28,9 @@ class AppointmentService:
         days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
         day_name = days[day_of_week]
         
-        day_schedule_str = getattr(doctor, day_name, None)
+        day_schedule_str = getattr(doctor, day_name)
         if not day_schedule_str:
-            day_schedule_str = self._get_default_doctor_schedule(doctor)
+            raise HTTPException(status_code=400, detail="Doctor is not working on this day.")
 
         req_time = appointment.SlotTime
         
@@ -55,9 +50,17 @@ class AppointmentService:
             models.Appointment.Date == appointment.Date,
             models.Appointment.Status.notin_(['Cancelled', 'NotAvailable'])
         ).count()
+        from core.Sequence import SequenceFactory
+        max_bookings_per_day = SequenceFactory.get_setting(self.db, doctor.BusinessPhoneNumber, "max_bookings_per_day", None)
+        if max_bookings_per_day is not None and customer_day_count >= max_bookings_per_day:
+            raise HTTPException(
+                status_code=400,
+                detail=f"You already have {max_bookings_per_day} appointment(s) booked on this day.",
+            )
+
         # Check for overlapping appointments within the buffer
         requested_dt = datetime.combine(appointment.Date, appointment.SlotTime)
-        buffer_minutes = 60
+        buffer_minutes = SequenceFactory.get_setting(self.db, doctor.BusinessPhoneNumber, "customer_appointment_buffer_minutes", 60)
         buffer_delta = timedelta(minutes=buffer_minutes)
         
         existing_appointments = self.db.query(models.Appointment).filter(
@@ -194,7 +197,7 @@ class AppointmentService:
         
         upcoming_count = sum(
             1 for a in all_matching
-            if a.Status in ["Booked", "Rescheduled"] or (a.Date and a.Date >= today and a.Status not in ["Completed", "Cancelled", "NoShow", "NotAvailable"])
+            if a.Status in ["Booked", "Confirmed", "Rescheduled"] or (a.Date and a.Date >= today and a.Status not in ["Completed", "Cancelled", "NoShow", "NotAvailable"])
         )
 
         paged_appts = all_matching[skip : skip + limit]
@@ -268,7 +271,7 @@ class AppointmentService:
             except Exception as e:
                 print(f"Error sending WhatsApp notification: {e}")
                 
-        if status_str in ["Cancelled", "NotAvailable"] and appointment.ConsultationType == "VideoConsultation" and appointment.MeetingLink:
+        if status_str in ["Cancelled", "NotAvailable"] and appointment.ConsultationType == "Video" and appointment.MeetingLink:
             try:
                 GoogleOAuthService().delete_meet_event(appointment.MeetingLink)
             except Exception as e:
@@ -280,7 +283,7 @@ class AppointmentService:
         return appointment
 
     def update_multiple_appointments_status(self, appointment_ids: List[str], status_str: str, remarks: Optional[str] = None) -> List[models.Appointment]:
-        appointments = self.db.query(models.Appointment).filter(models.Appointment.Id.in_(appointment_ids)).all()
+        appointments = self.db.query(models.Appointment).filter(models.appointment.PatientId.in_(appointment_ids)).all()
         if not appointments:
             return []
                     
@@ -300,7 +303,7 @@ class AppointmentService:
                 except Exception as e:
                     print(f"Error sending WhatsApp notification: {e}")
                     
-            if status_str in ["Cancelled", "NotAvailable"] and appt.ConsultationType == "VideoConsultation" and appt.MeetingLink:
+            if status_str in ["Cancelled", "NotAvailable"] and appt.ConsultationType == "Video" and appt.MeetingLink:
                 try:
                     GoogleOAuthService().delete_meet_event(appt.MeetingLink)
                 except Exception as e:
@@ -327,9 +330,9 @@ class AppointmentService:
 
         day_of_week = target_date.weekday()
         days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
-        day_schedule_str = getattr(doctor, days[day_of_week], None)
+        day_schedule_str = getattr(doctor, days[day_of_week])
         if not day_schedule_str:
-            day_schedule_str = self._get_default_doctor_schedule(doctor)
+            raise HTTPException(status_code=400, detail="Doctor is not working on this rescheduled day.")
 
         all_slots = self._generate_all_slots_for_day(doctor, target_date, day_schedule_str)
         if not any(slot_dt.time() == slot_time for slot_dt in all_slots):
@@ -337,14 +340,15 @@ class AppointmentService:
 
         # Check for overlapping appointments within the buffer
         requested_dt = datetime.combine(target_date, slot_time)
-        buffer_minutes = 60
+        from core.Sequence import SequenceFactory
+        buffer_minutes = SequenceFactory.get_setting(self.db, doctor.BusinessPhoneNumber, "customer_appointment_buffer_minutes", 60)
         buffer_delta = timedelta(minutes=buffer_minutes)
         
         existing_appointments = self.db.query(models.Appointment).filter(
             models.Appointment.PatientId == appointment.PatientId,
             models.Appointment.Date == target_date,
             models.Appointment.Status.notin_(['Cancelled', 'NotAvailable']),
-            models.Appointment.Id != appointment_id
+            models.appointment.PatientId != appointment_id
         ).all()
         
         for existing in existing_appointments:
@@ -450,7 +454,7 @@ class AppointmentService:
             return False
         appointment.Status = "Cancelled"
         
-        if appointment.ConsultationType == "VideoConsultation" and appointment.MeetingLink:
+        if appointment.ConsultationType == "Video" and appointment.MeetingLink:
             try:
                 GoogleOAuthService().delete_meet_event(appointment.MeetingLink)
             except Exception as e:
@@ -464,7 +468,7 @@ class AppointmentService:
             # Notify doctor
             doctor = self.db.query(models.Doctor).filter(models.Doctor.Id == appointment.DoctorId).first()
             if doctor and doctor.BusinessPhoneNumber:
-                msg = f"⚠️ Patient {appointment.PatientName} has cancelled their appointment on {appointment.Date}. A refund is pending. Type 'refunds' to process it."
+                msg = f"⚠️ Patient {appointment.Name} has cancelled their appointment on {appointment.Date}. A refund is pending. Type 'refunds' to process it."
         
         self.db.commit()
         return True
@@ -525,7 +529,7 @@ class AppointmentService:
         if appointment:
             appointment.Status = "Cancelled"
             
-            if appointment.ConsultationType == "VideoConsultation" and appointment.MeetingLink:
+            if appointment.ConsultationType == "Video" and appointment.MeetingLink:
                 try:
                     GoogleOAuthService().delete_meet_event(appointment.MeetingLink)
                 except Exception as e:
@@ -549,10 +553,8 @@ class AppointmentService:
         days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
         day_name = days[day_of_week]
         
-        day_schedule_str = getattr(doctor, day_name, None)
-        if not day_schedule_str:
-            day_schedule_str = self._get_default_doctor_schedule(doctor)
-        if day_schedule_str.strip().lower() == 'closed':
+        day_schedule_str = getattr(doctor, day_name)
+        if not day_schedule_str or day_schedule_str.strip().lower() == 'closed':
             return []
 
         # Check if slots already exist for this doctor and date
@@ -635,14 +637,16 @@ class AppointmentService:
         # Normalize consultation type
         raw_type = (appointment_data.Type or "Clinic").strip()
         if "video" in raw_type.lower():
-            c_type = "VideoConsultation"
+            c_type = "Video"
             if not appointment_data.MailId or not appointment_data.MailId.strip():
                 raise HTTPException(
                     status_code=400,
                     detail="MailId is required for Video consultation."
                 )
-        elif "second" in raw_type.lower() or "opinion" in raw_type.lower():
-            c_type = "SecondOpinion"
+        elif "audio" in raw_type.lower():
+            c_type = "Audio"
+        elif "home" in raw_type.lower():
+            c_type = "HomeVisit"
         else:
             c_type = "Clinic"
 
@@ -651,13 +655,13 @@ class AppointmentService:
         customer = self.db.query(models.Customer).filter(models.Customer.PhoneNumber == phone).first()
         
         if not customer:
-            from backend_app.core.security import generate_uuid
+            from core.models.utils import generate_uuid
             patient_id = generate_uuid()
             customer = models.Customer(
-                PatientId=patient_id,
-                CustomerId=patient_id,
-                PatientName=appointment_data.PatientName.strip(),
-                CustomerName=appointment_data.PatientName.strip(),
+                Id=patient_id,
+                AccountId=patient_id,
+                Name=appointment_data.Name.strip(),
+                CustomerName=appointment_data.Name.strip(),
                 PhoneNumber=phone,
                 EmailAddress=appointment_data.MailId.strip() if appointment_data.MailId else None
             )
@@ -665,22 +669,22 @@ class AppointmentService:
             self.db.commit()
             self.db.refresh(customer)
         else:
-            if appointment_data.PatientName and not customer.PatientName:
-                customer.PatientName = appointment_data.PatientName.strip()
+            if appointment_data.Name and not customer.PatientName:
+                customer.PatientName = appointment_data.Name.strip()
             if appointment_data.MailId and not customer.EmailAddress:
                 customer.EmailAddress = appointment_data.MailId.strip()
             self.db.commit()
 
         # Meeting link for Video consultation
         meeting_link = None
-        if c_type == "VideoConsultation":
+        if c_type == "Video":
             try:
                 dt_start = datetime.combine(appointment_data.Date, appointment_data.Time)
                 dt_end = dt_start + timedelta(minutes=getattr(doctor, 'ConsultationDuration', 15) or 15)
                 g_oauth = GoogleOAuthService()
                 meet_link = g_oauth.create_event(
                     doctor_email=doctor.EmailAddress,
-                    summary=f"Video Consultation with {appointment_data.PatientName}",
+                    summary=f"Video Consultation with {appointment_data.Name}",
                     description=f"Reason: {appointment_data.Reason or 'Manual appointment'}",
                     start_time=dt_start.isoformat(),
                     end_time=dt_end.isoformat(),
@@ -700,7 +704,7 @@ class AppointmentService:
 
         if existing_slot:
             existing_slot.PatientId = customer.PatientId
-            existing_slot.PatientName = appointment_data.PatientName.strip()
+            existing_slot.PatientName = appointment_data.Name.strip()
             existing_slot.DoctorName = doctor.FullName
             existing_slot.ConsultationType = c_type
             existing_slot.Status = "Booked"
@@ -712,8 +716,8 @@ class AppointmentService:
             appointment_record = models.Appointment(
                 DoctorId=doctor.Id,
                 DoctorName=doctor.FullName,
-                PatientId=customer.PatientId,
-                PatientName=appointment_data.PatientName.strip(),
+                Id=customer.PatientId,
+                Name=appointment_data.Name.strip(),
                 Date=appointment_data.Date,
                 SlotTime=appointment_data.Time,
                 Slot=1,
@@ -730,13 +734,13 @@ class AppointmentService:
         # Payment handling if Fee is provided
         if appointment_data.Fee is not None and float(appointment_data.Fee) > 0:
             existing_payment = self.db.query(models.Payment).filter(
-                models.Payment.AppointmentId == appointment_record.Id
+                models.Payment.AppointmentId == appointment_record.PatientId
             ).first()
             if not existing_payment:
                 payment = models.Payment(
-                    AppointmentId=appointment_record.Id,
+                    AppointmentId=appointment_record.PatientId,
                     DoctorId=doctor.Id,
-                    CustomerId=customer.PatientId,
+                    AccountId=customer.PatientId,
                     Payment=float(appointment_data.Fee),
                     Status="Pending"
                 )
@@ -744,3 +748,4 @@ class AppointmentService:
                 self.db.commit()
 
         return appointment_record
+

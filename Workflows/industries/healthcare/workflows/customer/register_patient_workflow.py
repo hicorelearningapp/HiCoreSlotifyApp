@@ -1,8 +1,7 @@
 from core.workflows.BaseWorkflow import Workflow
 from core.workflows.workflow_models import ConversationSession, Message, WorkflowResult, Reply
-from core.services.customer_service import CustomerService
-import core.schemas as schemas
-from core.services.language_manager import LanguageManager
+from backend_app.modules.doctor_appointment.services.customer_service import CustomerService
+import backend_app.modules.doctor_appointment.schemas as schemas
 
 
 class RegisterPatientWorkflow(Workflow):

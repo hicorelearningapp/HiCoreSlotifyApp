@@ -10,7 +10,7 @@ class CustomerService:
     def __init__(self):
         self.db = db_session
 
-    def create_customer(self, customer: schemas.CustomerCreate, language: str = None) -> models.Customer:
+    def create_customer(self, customer: schemas.CustomerCreate, language: str | None= None) -> models.Customer:
         customer_id = str(uuid.uuid4())
         patient_id = str(uuid.uuid4())
         patient_name = customer.PatientName if customer.PatientName else customer.CustomerName
@@ -62,6 +62,10 @@ class CustomerService:
         if not primary_cust:
             return []
         return self.db.query(models.Customer).filter(models.Customer.CustomerId == primary_cust.CustomerId).all()
+
+    def get_profiles_by_phone(self, phone_number: str) -> List[models.Customer]:
+        """Alias for get_patients_by_phone used by some legacy workflows."""
+        return self.get_patients_by_phone(phone_number)
 
     def add_patient_by_phone(
         self,

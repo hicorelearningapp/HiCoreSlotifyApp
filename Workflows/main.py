@@ -107,7 +107,7 @@ async def cleanup_sessions_task():
         except Exception as e:
             logging.getLogger("uvicorn").error(f"Error in session cleanup task: {e}")
 
-from industries.healthcare.services.reminder_service import ReminderService
+from backend_app.modules.doctor_appointment.services.reminder_service import ReminderService
 async def appointment_reminders_task():
     while True:
         try:
@@ -156,7 +156,7 @@ async def instagram_token_refresh_task():
         except Exception as e:
             logging.getLogger("uvicorn").error(f"Error refreshing instagram tokens: {e}")
 
-from industries.healthcare.services.review_service import ReviewService
+from backend_app.modules.doctor_appointment.services.review_service import ReviewService
 async def appointment_reviews_task():
     while True:
         try:

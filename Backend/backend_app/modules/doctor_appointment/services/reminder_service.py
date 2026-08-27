@@ -2,9 +2,8 @@ import logging
 from datetime import datetime, timedelta
 from backend_app.core.database import db_session
 from backend_app.modules.doctor_appointment.models.appointment import Appointment
-from backend_app.modules.doctor_appointment.services.whatsapp_service import whatsapp
-from backend_app.core.config import settings
-REMINDER_TIMINGS_HOURS = getattr(settings, "REMINDER_TIMINGS_HOURS", [24, 2])
+from core.channels.whatsapp.services.whatsapp_service import whatsapp
+from config import REMINDER_TIMINGS_HOURS
 
 logger = logging.getLogger("uvicorn")
 
@@ -18,9 +17,9 @@ class ReminderService:
             
         now = datetime.now()
         
-        # Get all upcoming booked appointments
+        # Get all upcoming confirmed or booked appointments
         upcoming_appointments = self.db.query(Appointment).filter(
-            Appointment.Status.in_(["Booked"]),
+            Appointment.Status.in_(["Booked", "Confirmed"]),
             Appointment.Date >= now.date()
         ).all()
         
@@ -67,7 +66,7 @@ class ReminderService:
                                     patient_phone = appointment.patient.PhoneNumber if appointment.patient else None
                                     if patient_phone:
                                         msg = f"🔔 *Appointment Reminder*\n\nYou have an upcoming {appointment.ConsultationType} consultation with Dr. {appointment.DoctorName} in {time_str}.\n\nDate: {appointment.Date}\nTime: {appointment.SlotTime.strftime('%I:%M %p')}"
-                                        if appointment.ConsultationType == "VideoConsultation" and appointment.MeetingLink:
+                                        if appointment.ConsultationType == "Video" and appointment.MeetingLink:
                                             msg += f"\n\nMeeting Link: {appointment.MeetingLink}"
                                             
                                         whatsapp.send_text(patient_phone, msg)
@@ -75,9 +74,9 @@ class ReminderService:
                                         
                                     doctor_phone = appointment.doctor.MobileNumber if appointment.doctor else None
                                     if doctor_phone:
-                                        patient_name = appointment.PatientName or "a patient"
+                                        patient_name = appointment.Name or "a patient"
                                         doc_msg = f"🔔 *Appointment Reminder*\n\nYou have an upcoming {appointment.ConsultationType} consultation with {patient_name} in {time_str}.\n\nDate: {appointment.Date}\nTime: {appointment.SlotTime.strftime('%I:%M %p')}"
-                                        if appointment.ConsultationType == "VideoConsultation" and appointment.MeetingLink:
+                                        if appointment.ConsultationType == "Video" and appointment.MeetingLink:
                                             doc_msg += f"\n\nMeeting Link: {appointment.MeetingLink}"
                                             
                                         whatsapp.send_text(doctor_phone, doc_msg)
@@ -93,7 +92,7 @@ class ReminderService:
                         patient_phone = appointment.patient.PhoneNumber if appointment.patient else None
                         if patient_phone:
                             msg = f"🔔 *Appointment Reminder*\n\nYou have an upcoming {appointment.ConsultationType} consultation with Dr. {appointment.DoctorName} in {hours_before} hours.\n\nDate: {appointment.Date}\nTime: {appointment.SlotTime.strftime('%I:%M %p')}"
-                            if appointment.ConsultationType == "VideoConsultation" and appointment.MeetingLink:
+                            if appointment.ConsultationType == "Video" and appointment.MeetingLink:
                                 msg += f"\n\nMeeting Link: {appointment.MeetingLink}"
                                 
                             whatsapp.send_text(patient_phone, msg)
@@ -101,9 +100,9 @@ class ReminderService:
                             
                         doctor_phone = appointment.doctor.MobileNumber if appointment.doctor else None
                         if doctor_phone:
-                            patient_name = appointment.PatientName or "a patient"
+                            patient_name = appointment.Name or "a patient"
                             doc_msg = f"🔔 *Appointment Reminder*\n\nYou have an upcoming {appointment.ConsultationType} consultation with {patient_name} in {hours_before} hours.\n\nDate: {appointment.Date}\nTime: {appointment.SlotTime.strftime('%I:%M %p')}"
-                            if appointment.ConsultationType == "VideoConsultation" and appointment.MeetingLink:
+                            if appointment.ConsultationType == "Video" and appointment.MeetingLink:
                                 doc_msg += f"\n\nMeeting Link: {appointment.MeetingLink}"
                                 
                             whatsapp.send_text(doctor_phone, doc_msg)

@@ -1,4 +1,4 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, scoped_session
 from typing import List, Optional
 from backend_app.modules.doctor_appointment.models.consultation_type import ConsultationType
 from backend_app.modules.doctor_appointment.schemas.consultation_type import ConsultationTypeCreate, ConsultationTypeUpdate
@@ -12,7 +12,7 @@ DEFAULT_CONSULTATION_TYPES = [
 
 class ConsultationTypeService:
     @staticmethod
-    def get_all(db: Session = db_session, skip: int = 0, limit: int = 100) -> List[ConsultationType]:
+    def get_all(db: Session | scoped_session = db_session, skip: int = 0, limit: int = 100) -> List[ConsultationType]:
         return db.query(ConsultationType).offset(skip).limit(limit).all()
 
     @staticmethod

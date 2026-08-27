@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 from typing import List, Optional
-import backend_app.modules.doctor_appointment.models as models
-import backend_app.modules.doctor_appointment.schemas as schemas
+import core.models as models
+import core.schemas as schemas
 from backend_app.core.database import db_session
 
 class PaymentService:

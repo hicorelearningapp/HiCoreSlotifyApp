@@ -9,9 +9,9 @@ class ConversationManagerFactory:
         industry = BusinessManager.get_industry(db_session, business_phone)
         
         if industry == "ecommerce":
-            from industries.ecommerce.conversation.EcommerceConversationManager import EcommerceConversationManager
+            from industries.ecommerce.EcommerceConversationManager import EcommerceConversationManager
             return EcommerceConversationManager()
         else:
             # Default to healthcare
-            from industries.healthcare.conversation.HealthcareConversationManager import HealthcareConversationManager
+            from industries.healthcare.HealthcareConversationManager import HealthcareConversationManager
             return HealthcareConversationManager()

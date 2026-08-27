@@ -2,7 +2,7 @@ import logging
 from datetime import date
 from backend_app.core.database import db_session
 from backend_app.modules.doctor_appointment.models.appointment import Appointment
-from backend_app.modules.doctor_appointment.services.whatsapp_service import whatsapp
+from core.channels.whatsapp.services.whatsapp_service import whatsapp
 
 logger = logging.getLogger("uvicorn")
 
@@ -25,7 +25,7 @@ class ReviewService:
                     if patient_phone:
                         msg = (
                             f"🩺 *Follow-Up Review Reminder*\n\n"
-                            f"Dear {appt.PatientName or 'Patient'},\n"
+                            f"Dear {appt.Name or 'Patient'},\n"
                             f"This is a reminder for your scheduled follow-up review with Dr. {appt.DoctorName}.\n\n"
                             f"Review Date: {appt.ReviewDate}\n"
                             f"Please contact us if you need to schedule or reschedule your appointment."

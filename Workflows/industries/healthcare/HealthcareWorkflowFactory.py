@@ -1,0 +1,52 @@
+from core.WorkflowFactory import WorkflowFactory
+
+from industries.healthcare.workflows.customer.main_menu_workflow import MainMenuWorkflow
+from industries.healthcare.workflows.customer.select_patient_workflow import SelectPatientWorkflow
+from industries.healthcare.workflows.customer.select_doctor_workflow import SelectDoctorWorkflow
+from industries.healthcare.workflows.customer.select_consultation_workflow import SelectConsultationWorkflow
+from industries.healthcare.workflows.customer.select_date_workflow import SelectDateWorkflow
+from industries.healthcare.workflows.customer.select_time_slot_workflow import SelectTimeSlotWorkflow
+from industries.healthcare.workflows.customer.process_payment_workflow import ProcessPaymentWorkflow
+from industries.healthcare.workflows.customer.confirm_booking_workflow import ConfirmBookingWorkflow
+from industries.healthcare.workflows.customer.view_appointments_workflow import ViewAppointmentsWorkflow
+from industries.healthcare.workflows.customer.select_appointment_to_cancel_workflow import SelectAppointmentToCancelWorkflow
+from industries.healthcare.workflows.customer.confirm_cancellation_workflow import ConfirmCancellationWorkflow
+from industries.healthcare.workflows.customer.register_patient_workflow import RegisterPatientWorkflow
+from industries.healthcare.workflows.customer.collect_email_workflow import CollectEmailWorkflow
+from industries.healthcare.workflows.doctor.doctor_menu_workflow import DoctorMenuWorkflow
+from industries.healthcare.workflows.doctor.doctor_view_schedule_workflow import DoctorViewScheduleWorkflow
+from industries.healthcare.workflows.doctor.doctor_patient_details_workflow import DoctorPatientDetailsWorkflow
+from industries.healthcare.workflows.doctor.doctor_cancel_appointment_workflow import (
+    DoctorSelectAppointmentsToCancelWorkflow,
+    DoctorCancelAppointmentsWorkflow,
+    DoctorCancellationConfirmationWorkflow,
+)
+from industries.healthcare.workflows.doctor.doctor_refund_workflow import (
+    DoctorViewRefundsWorkflow,
+    DoctorProcessRefundWorkflow,
+)
+from industries.healthcare.workflows.admin.admin_menu_workflow import AdminMenuWorkflow
+
+# Self-register at import time
+WorkflowFactory.register("MainMenuWorkflow", MainMenuWorkflow)
+WorkflowFactory.register("SelectPatientWorkflow", SelectPatientWorkflow)
+WorkflowFactory.register("SelectDoctorWorkflow", SelectDoctorWorkflow)
+WorkflowFactory.register("SelectConsultationWorkflow", SelectConsultationWorkflow)
+WorkflowFactory.register("SelectDateWorkflow", SelectDateWorkflow)
+WorkflowFactory.register("SelectTimeSlotWorkflow", SelectTimeSlotWorkflow)
+WorkflowFactory.register("ProcessPaymentWorkflow", ProcessPaymentWorkflow)
+WorkflowFactory.register("ConfirmBookingWorkflow", ConfirmBookingWorkflow)
+WorkflowFactory.register("ViewAppointmentsWorkflow", ViewAppointmentsWorkflow)
+WorkflowFactory.register("SelectAppointmentToCancelWorkflow", SelectAppointmentToCancelWorkflow)
+WorkflowFactory.register("ConfirmCancellationWorkflow", ConfirmCancellationWorkflow)
+WorkflowFactory.register("RegisterPatientWorkflow", RegisterPatientWorkflow)
+WorkflowFactory.register("CollectEmailWorkflow", CollectEmailWorkflow)
+WorkflowFactory.register("DoctorMenuWorkflow", DoctorMenuWorkflow)
+WorkflowFactory.register("DoctorViewScheduleWorkflow", DoctorViewScheduleWorkflow)
+WorkflowFactory.register("DoctorPatientDetailsWorkflow", DoctorPatientDetailsWorkflow)
+WorkflowFactory.register("DoctorSelectAppointmentsToCancelWorkflow", DoctorSelectAppointmentsToCancelWorkflow)
+WorkflowFactory.register("DoctorCancelAppointmentsWorkflow", DoctorCancelAppointmentsWorkflow)
+WorkflowFactory.register("DoctorCancellationConfirmationWorkflow", DoctorCancellationConfirmationWorkflow)
+WorkflowFactory.register("DoctorViewRefundsWorkflow", DoctorViewRefundsWorkflow)
+WorkflowFactory.register("DoctorProcessRefundWorkflow", DoctorProcessRefundWorkflow)
+WorkflowFactory.register("AdminMenuWorkflow", AdminMenuWorkflow)

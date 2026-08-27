@@ -17,8 +17,6 @@ class ConversationSession(Base):
 
     Id = Column(String(36), primary_key=True, default=generate_uuid, index=True)
     PhoneNumber = Column(String, index=True, nullable=False)
-    # Empty string rather than NULL: SQLite treats NULLs as distinct in a
-    # unique constraint, so a nullable column would let duplicates through.
     BusinessPhoneNumber = Column(String(32), index=True, nullable=False, default="", server_default="")
     StateData = Column(JSON, nullable=True, default=dict) # dict stored as JSON # current sequence, current flow, index
     CreatedAt = Column(DateTime, nullable=False, default=datetime.utcnow)

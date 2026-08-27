@@ -6,13 +6,13 @@ from core.workflows.workflow_models import (
     WorkflowResult,
     Reply,
 )
-from industries.healthcare.services.appointment_service import AppointmentService
-from industries.healthcare.services.doctor_service import DoctorService
-from core.services.customer_service import CustomerService
-from industries.healthcare.services.payment_service import PaymentService
+from backend_app.modules.doctor_appointment.services.appointment_service import AppointmentService
+from backend_app.modules.doctor_appointment.services.doctor_service import DoctorService
+from backend_app.modules.doctor_appointment.services.customer_service import CustomerService
+from backend_app.modules.doctor_appointment.services.payment_service import PaymentService
 import core.schemas as schemas
 from core.channels.whatsapp.services.whatsapp_service import whatsapp as WhatsAppService
-from core.services.language_manager import LanguageManager
+# from core.services.language_manager import LanguageManager
 
 
 class ConfirmBookingWorkflow(Workflow):
@@ -22,7 +22,7 @@ class ConfirmBookingWorkflow(Workflow):
 
         summary = session.translate(
             "booking_summary",
-            patient=patient.Name if patient else "Patient",
+            patient=patient.PatientName if patient else "Patient",
             doctor=doctor.FullName if doctor else "Doctor",
             type=session.WorkflowData.get("ConsultationType", "In-Person"),
             date=session.WorkflowData.get("date"),
@@ -77,7 +77,7 @@ class ConfirmBookingWorkflow(Workflow):
                             PhoneNumber=session.PhoneNumber,
                         )
                     )
-                patient_id = patient.Id
+                patient_id = patient.PatientId
                 session.WorkflowData["patient_id"] = patient_id
             else:
                 patient = CustomerService().get_customer(patient_id)
@@ -112,7 +112,7 @@ class ConfirmBookingWorkflow(Workflow):
                 Date=start_datetime.date(),
                 SlotTime=start_datetime.time(),
                 Slot=0,
-                Id=session.WorkflowData.get("patient_id"),
+                PatientId=session.WorkflowData.get("patient_id"),
                 DoctorId=session.WorkflowData.get("DoctorId"),
                 ConsultationType=consultation_type,
                 MeetingLink=meeting_link,
@@ -123,7 +123,7 @@ class ConfirmBookingWorkflow(Workflow):
             payment_status = "Pending"
             payment_create = schemas.PaymentCreate(
                 AppointmentId=appointment.Id,
-                AccountId=session.WorkflowData.get("patient_id"),
+                CustomerId=session.WorkflowData.get("patient_id"),
                 DoctorId=session.WorkflowData.get("DoctorId"),
                 Payment=doctor.ClinicConsultationFee,
                 Status=payment_status,

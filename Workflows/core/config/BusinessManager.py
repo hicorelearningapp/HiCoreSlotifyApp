@@ -1,7 +1,7 @@
 import json
 import os
 from sqlalchemy.orm import Session
-from core.services.business_config_service import BusinessConfigService
+from backend_app.modules.business_config.services.business_config_service import BusinessConfigService
 import copy
 
 class BusinessManager:

@@ -1,60 +1,46 @@
-from core.sequence.Sequence import SequenceFactory
+from core.Sequence import SequenceFactory
 from core.workflows.workflow_models import Message, WorkflowStatus, WorkflowResult, Reply
 from core.services.session_service import SessionService
 from core.services.channel_messenger import channel_messenger as ChannelMessenger
-from core.sequence.Sequence import Sequence
-from core.services.nl_router import NLRouter
+from core.Sequence import Sequence
 from core.workflows.ExitWorkflow import ExitWorkflow
-from config import NLU_ENABLED
 from backend_app.core.database import db_session
-from core.services.language_manager import LanguageManager
 from core.services.message_logger import MessageLogger
 import asyncio
 import logging
 from datetime import datetime
 
 class BaseConversationManager:
+    _interceptors = []
+
+    @classmethod
+    def register_interceptor(cls, interceptor_func):
+        """Register a global interceptor (e.g. for e-commerce product deep links).
+        Interceptors run for all businesses, supporting multi-industry setups.
+        """
+        cls._interceptors.append(interceptor_func)
 
     def __init__(self):
         self.Sequence = None
         self.Workflows = []
         self.CurrentWorkflowIndex = 0
 
-    def _is_nlu_eligible(self, session) -> bool:
-        """NLU is only allowed when the session is fresh or in GreetingMessageWorkflow."""
-        is_uninitialized = not session.state.SequenceName
-        is_greeting = session.current_workflow == "GreetingMessageWorkflow"
-        return is_uninitialized or is_greeting
 
     async def apply_industry_interceptions(self, session, message, customer_phone: str):
         """Spot a product deep link arriving from Instagram or a QR code.
 
-        Instagram and QR codes both hand a conversation to WhatsApp with the
-        product encoded in the prefilled text. That is not specific to an
-        ecommerce-configured business -- a clinic sharing one WhatsApp number
-        with a shop receives exactly the same message -- so the detection lives
-        here rather than in one industry's manager.
+        Delegates to registered interceptors (like eCommerce) to ensure businesses
+        sharing one WhatsApp number across multiple industries can still handle
+        industry-specific interceptions gracefully.
 
-        Returns True to stop processing; subclasses may override.
+        Returns True to stop processing.
         """
         if not (message and message.Text and not session.workflow_initialized):
             return False
 
-        from industries.ecommerce.services.handoff_service import handoff_service
-        from industries.ecommerce.services.product_service import product_service
-
-        handoff_data = handoff_service.parse_order_text(message.Text)
-        if not (handoff_data and "product_name" in handoff_data):
-            return False
-
-        # An id in the deep link wins over the name -- names can collide
-        # across vendors, ids cannot.
-        identifier = handoff_data.get("product_id") or handoff_data["product_name"]
-        product = product_service.get_product_by_name_or_id(db_session, identifier)
-        if product:
-            session.WorkflowData["product_id"] = product.id
-            session.WorkflowData["category_id"] = product.category_id
-            session.WorkflowData["_handoff_pending"] = True
+        for interceptor in self._interceptors:
+            if await interceptor(self, session, message, customer_phone):
+                return True
 
         return False
 
@@ -75,58 +61,18 @@ class BaseConversationManager:
             db_session, session.state.BusinessPhoneNumber, "order_handoff_sequence", ""
         )
 
-    async def execute_industry_handoff_jump(self, session, message, customer_phone: str) -> Message:
-        """Jump into the order flow once the sequence has been loaded."""
-        if not session.WorkflowData.pop("_handoff_pending", False):
-            return message
+    # execute_industry_handoff_jump removed, logic migrated to ecommerce interceptor
 
-        sequence_name = self._resolve_order_sequence(
-            session, session.WorkflowData.get("product_id")
-        )
-        if not sequence_name:
-            logging.getLogger("uvicorn").warning(
-                "Product deep link received for business %s but no "
-                "order_handoff_sequence is configured; ignoring the jump.",
-                session.state.BusinessPhoneNumber or "<default>",
-            )
-            return message
-
-        try:
-            self.Sequence = SequenceFactory.Get(
-                sequence_name, db_session, session.state.BusinessPhoneNumber
-            )
-        except ValueError:
-            logging.getLogger("uvicorn").warning(
-                "order_handoff_sequence '%s' is not defined for business %s.",
-                sequence_name, session.state.BusinessPhoneNumber or "<default>",
-            )
-            return message
-
-        self.Workflows = self.Sequence.GetAll()
-        session.state.SequenceName = sequence_name
-
-        # Catalogues that carry variants start at the variant picker; the rest
-        # start at quantity.
-        target_idx = self.Sequence.IndexOfName("SelectVariantWorkflow")
-        if target_idx == -1:
-            target_idx = self.Sequence.IndexOfName("SelectQuantityWorkflow")
-
-        if target_idx != -1:
-            session.state.WorkflowIndex = target_idx
-            return None  # consumed: the deep link is not a reply to anything
-
-        return message
-
-    async def process(self, customer_phone: str, message: Message):
+    async def process(self, customer_phone: str, message: Message | None):
         logger = MessageLogger()
-        logger.log_received(customer_phone, message.Text or str(message.InteractiveId))
+        logger.log_received(customer_phone, message.Text or message.InteractiveId)
         business_phone = message.BusinessPhoneNumber if message else None
         session = SessionService.load_session(customer_phone, business_phone)
         if message and message.BusinessPhoneNumber:
             session.state.BusinessPhoneNumber = message.BusinessPhoneNumber
             
         # Load language context for this request
-        LanguageManager().load_for_session(session, customer_phone)
+        # LanguageManager().load_for_session(session, customer_phone)
             
         # --- GLOBAL RESET INTERCEPTION ---
         if message and message.Text and message.Text.strip().lower() in ["hi", "hello", "menu", "reset", "start", "0"]:
@@ -166,20 +112,19 @@ class BaseConversationManager:
             
         self.Workflows = self.Sequence.GetAll()
         
-        # --- EXECUTE INDUSTRY HANDOFF JUMP ---
-        message = await self.execute_industry_handoff_jump(session, message, customer_phone)
+        # --- EXECUTE INDUSTRY HANDOFF JUMP (Removed, handled by interceptors) ---
 
         self.CurrentWorkflowIndex = session.state.WorkflowIndex
         
         # NLU Interception Gate
-        if message and message.Text and NLU_ENABLED and self._is_nlu_eligible(session):
-            handled = NLRouter(db_session).dispatch(
-                customer_phone,
-                message={"type": "text", "text": {"body": message.Text}},
-                session=session
-            )
-            if handled:
-                return  # NLU fully handled this message, do not continue
+        # if message and message.Text and NLU_ENABLED and self._is_nlu_eligible(session):
+        #     handled = NLRouter(db_session).dispatch(
+        #         customer_phone,
+        #         message={"type": "text", "text": {"body": message.Text}},
+        #         session=session
+        #     )
+        #     if handled:
+        #         return  # NLU fully handled this message, do not continue
 
         while True:
             seq = SequenceFactory.Get(session.state.SequenceName, db_session, session.state.BusinessPhoneNumber)
@@ -217,6 +162,7 @@ class BaseConversationManager:
             # STEP 2 : Process
             if message and not skip_process:
                 result = workflow.Process(session=session, message=message)
+                
                 print(f"[DEBUG] [{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Process {session.current_workflow} returned {result.status} with reply={bool(result.reply)}")
 
                 if result.reply:
@@ -227,7 +173,11 @@ class BaseConversationManager:
                 if result.status == WorkflowStatus.WAITING:
                     SessionService.save_session(session)
                     break
+                elif result.status == WorkflowStatus.FINISHED:
+                    SessionService().reset_session(customer_phone, session.state.BusinessPhoneNumber)
+                    break
             elif skip_process:
+                result = WorkflowResult.completed()
                 print(f"[DEBUG] [{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Process skipped (Initialize returned COMPLETED)")
             else:
                 result = WorkflowResult.completed()

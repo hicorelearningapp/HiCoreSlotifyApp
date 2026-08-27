@@ -4,8 +4,8 @@ import uuid
 import shutil
 from typing import List, Optional
 from backend_app.core.database import db_session
-import backend_app.modules.doctor_appointment.models as models
-import backend_app.modules.doctor_appointment.schemas as schemas
+import core.models as models
+import core.schemas as schemas
 
 class PrescriptionService:
     def __init__(self):
@@ -50,7 +50,7 @@ class PrescriptionService:
         if doctor_id:
             query = query.filter(models.Prescription.DoctorId == doctor_id)
         if patient_id:
-            query = query.filter(models.Prescription.PatientId == patient_id)
+            query = query.filter(models.Prescription.Id == patient_id)
         return query.order_by(models.Prescription.CreatedAt.desc()).offset(skip).limit(limit).all()
 
     def _delete_file(self, file_path: Optional[str]):
@@ -72,7 +72,7 @@ class PrescriptionService:
 
         update_dict = data.model_dump(exclude_unset=True)
         if "Medicines" in update_dict and update_dict["Medicines"] is not None:
-            update_dict["Medicines"] = json.dumps([m.model_dump() for m in data.Medicines])
+            update_dict["Medicines"] = json.dumps([m.model_dump() for m in (data.Medicines or [])])
 
         if "PrescriptionFile" in update_dict and update_dict["PrescriptionFile"] != prescription.PrescriptionFile:
             self._delete_file(prescription.PrescriptionFile)
