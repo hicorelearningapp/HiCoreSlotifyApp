@@ -1,5 +1,5 @@
 from core.identify.IdentifyService import BaseIdentifyService, IdentityResult
-from core.services.customer_service import CustomerService
+from backend_app.modules.doctor_appointment.services.customer_service import CustomerService
 
 class EcommerceIdentifyService(BaseIdentifyService):
     def __init__(self):
