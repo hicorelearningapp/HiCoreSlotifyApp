@@ -27,7 +27,7 @@ import industries.healthcare.HealthcareWorkflowFactory
 import industries.ecommerce.EcommerceWorkflowFactory
 
 # Webhook routers
-from core.channels.whatsapp.routers import whatsapp_webhook_router
+from core.routers.whatsapp_webhook_router import whatsapp_webhook_router
 
 # Platform routers
 from core.routers import (
