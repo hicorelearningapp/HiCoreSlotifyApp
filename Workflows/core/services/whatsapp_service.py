@@ -51,7 +51,7 @@ class WhatsAppService:
             obj["filename"] = filename
         return obj
 
-    def upload_media(self, file_bytes: bytes, filename: str, mime_type: str) -> str:
+    def upload_media(self, file_bytes: bytes, filename: str, mime_type: str) -> str | None:
         url = f"https://graph.facebook.com/v23.0/{PHONE_NUMBER_ID}/media"
         headers = {
             "Authorization": f"Bearer {ACCESS_TOKEN}"

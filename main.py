@@ -29,7 +29,7 @@ import industries.ecommerce.EcommerceWorkflowFactory
 
 # --- ROUTERS ---
 # Workflows Webhook routers
-from core.routers.whatsapp_webhook_router import whatsapp_webhook_router 
+from core.routers import whatsapp_webhook_router 
 
 # Backend API routers
 from backend_app.common.router import router as common_router  # type: ignore

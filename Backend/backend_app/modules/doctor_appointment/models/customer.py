@@ -23,3 +23,8 @@ class Customer(Base):
 
     appointments = relationship("Appointment", back_populates="patient", cascade="all, delete")
     prescriptions = relationship("Prescription", back_populates="patient", cascade="all, delete")
+
+    @property
+    def Name(self) -> str:
+        return self.PatientName or self.CustomerName
+    
