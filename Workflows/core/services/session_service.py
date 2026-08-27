@@ -17,10 +17,11 @@ class SessionService:
     def __init__(self):
         self.db = db_session
 
-    def create_session(self, session: schemas.SessionCreate) -> models.ConversationSession:
-        db_obj = models.ConversationSession(
+    def create_session(self, session: schemas.SessionCreate) -> models.ConversationSessionDB:
+        db_obj = models.ConversationSessionDB(
             PhoneNumber=session.PhoneNumber,
             BusinessPhoneNumber=session.BusinessPhoneNumber or "",
+            
             StateData=session.StateData or {}  # dict, not a string
         )
         self.db.add(db_obj)
@@ -28,10 +29,10 @@ class SessionService:
         self.db.refresh(db_obj)
         return db_obj
 
-    def list_sessions(self, skip: int = 0, limit: int = 100) -> List[models.ConversationSession]:
-        return self.db.query(models.ConversationSession).offset(skip).limit(limit).all()
+    def list_sessions(self, skip: int = 0, limit: int = 100) -> List[models.ConversationSessionDB]:
+        return self.db.query(models.ConversationSessionDB).offset(skip).limit(limit).all()
 
-    def get_session(self, phone_number: str, business_phone_number: Optional[str] = None) -> Optional[models.ConversationSession]:
+    def get_session(self, phone_number: str, business_phone_number: Optional[str] = None) -> Optional[models.ConversationSessionDB]:
         """The conversation this person is having with this business.
 
         A phone number is unique only per business, so the engine must always
@@ -39,19 +40,19 @@ class SessionService:
         whichever conversation happens to be found first.
         """
         return (
-            self.db.query(models.ConversationSession)
+            self.db.query(models.ConversationSessionDB)
             .filter(
-                models.ConversationSession.PhoneNumber == phone_number,
-                models.ConversationSession.BusinessPhoneNumber == (business_phone_number or ""),
+                models.ConversationSessionDB.PhoneNumber == phone_number,
+                models.ConversationSessionDB.BusinessPhoneNumber == (business_phone_number or ""),
             )
             .first()
         )
 
-    def get_session_by_id_or_phone(self, identifier: str) -> Optional[models.ConversationSession]:
+    def get_session_by_id_or_phone(self, identifier: str) -> Optional[models.ConversationSessionDB]:
         """Unscoped lookup for the admin routes, which only have an identifier."""
-        session_obj = self.db.query(models.ConversationSession).filter(models.ConversationSession.Id == identifier).first()
+        session_obj = self.db.query(models.ConversationSessionDB).filter(models.ConversationSessionDB.Id == identifier).first()
         if not session_obj:
-            session_obj = self.db.query(models.ConversationSession).filter(models.ConversationSession.PhoneNumber == identifier).first()
+            session_obj = self.db.query(models.ConversationSessionDB).filter(models.ConversationSessionDB.PhoneNumber == identifier).first()
         return session_obj
 
     @staticmethod
@@ -129,7 +130,7 @@ class SessionService:
             state=state
         )
 
-    def update_session_by_id_or_phone(self, identifier: str, session_update: schemas.SessionUpdate) -> Optional[models.ConversationSession]:
+    def update_session_by_id_or_phone(self, identifier: str, session_update: schemas.SessionUpdate) -> Optional[models.ConversationSessionDB]:
         session_obj = self.get_session_by_id_or_phone(identifier)
         if not session_obj:
             return None
@@ -163,25 +164,25 @@ class SessionService:
         conversation for that phone is cleared, which is what the admin reset
         route wants and is harmless where only one business is in play.
         """
-        query = self.db.query(models.ConversationSession).filter(
-            models.ConversationSession.PhoneNumber == phone_number
+        query = self.db.query(models.ConversationSessionDB).filter(
+            models.ConversationSessionDB.PhoneNumber == phone_number
         )
         if business_phone_number is not None:
             query = query.filter(
-                models.ConversationSession.BusinessPhoneNumber == business_phone_number
+                models.ConversationSessionDB.BusinessPhoneNumber == business_phone_number
             )
         deleted = query.delete()
         self.db.commit()
         return deleted
 
     def reset_all_sessions(self) -> int:
-        deleted_count = self.db.query(models.ConversationSession).delete()
+        deleted_count = self.db.query(models.ConversationSessionDB).delete()
         self.db.commit()
         return deleted_count
 
     def delete_inactive_sessions(self, timeout_minutes: int) -> int:
         threshold = datetime.now(timezone.utc) - timedelta(minutes=timeout_minutes)
-        deleted_count = self.db.query(models.ConversationSession).filter(models.ConversationSession.UpdatedAt < threshold).delete()  # type: ignore
+        deleted_count = self.db.query(models.ConversationSessionDB).filter(models.ConversationSessionDB.UpdatedAt < threshold).delete()  # type: ignore
         self.db.commit()
         return deleted_count
 
@@ -205,11 +206,11 @@ class SessionService:
             business_phone = data.get("BusinessPhoneNumber", "")
 
             from core.Sequence import SequenceFactory
-            time_out_enabled = SequenceFactory.get_setting(self.db, business_phone, "time_out_enabled", True)
+            time_out_enabled = SequenceFactory.get_setting(business_phone, "time_out_enabled", True)
             if not time_out_enabled:
                 continue
 
-            session_timeout_minutes = SequenceFactory.get_setting(self.db, business_phone, "session_timeout_minutes", 10)
+            session_timeout_minutes = SequenceFactory.get_setting(business_phone, "session_timeout_minutes", 10)
             timeout_delta = timedelta(minutes=session_timeout_minutes)
 
             updated_at = cast(datetime, session.UpdatedAt)

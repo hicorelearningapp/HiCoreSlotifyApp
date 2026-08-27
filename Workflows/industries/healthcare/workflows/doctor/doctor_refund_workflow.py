@@ -9,35 +9,35 @@ class DoctorViewRefundsWorkflow(Workflow):
         doctor_id = session.WorkflowData.get("doctor_id")
         
         # Get pending refunds
-        db = db_session()
-        pending_refunds = db.query(Appointment).filter(
-            Appointment.DoctorId == doctor_id,
-            Appointment.RefundStatus == "Pending"
-        ).all()
+        pending_refunds = api_client.get_pending_refunds(doctor_id)
         
         if not pending_refunds:
-            db.close()
             return WorkflowResult.finished(reply=Reply("text", "You have no pending refunds to process!"))
             
         rows = []
         for appt in pending_refunds[:10]:
-            pat_name = appt.Name or "Unknown"
-            date_str = appt.Date.strftime('%b %d') if appt.Date else 'N/A'
+            pat_name = appt.get("Name") or "Unknown"
+            
+            date_str = "N/A"
+            if appt.get("Date"):
+                try:
+                    date_obj = datetime.fromisoformat(appt.get("Date"))
+                    date_str = date_obj.strftime('%b %d')
+                except:
+                    pass
             
             # Find the paid amount
             amount = 0
-            for payment in appt.payments:
-                if payment.Status == "Paid":
-                    amount = payment.Payment
+            for payment in appt.get("payments", []):
+                if payment.get("Status") == "Paid":
+                    amount = payment.get("Payment", 0)
                     break
                     
             rows.append({
-                "id": f"REFUND_{appt.Id}",
+                "id": f"REFUND_{appt.get('Id')}",
                 "title": f"₹{amount} - {pat_name}",
                 "description": f"Appt on {date_str}"
             })
-            
-        db.close()
             
         sections = [{"title": "Pending Refunds", "rows": rows}]
         
@@ -65,21 +65,19 @@ class DoctorProcessRefundWorkflow(Workflow):
     def Initialize(self, session: ConversationSession):
         appt_id = session.WorkflowData.get("refund_appt_id")
         
-        db = db_session()
-        appointment = db.query(Appointment).filter(Appointment.Id == appt_id).first()
-        if not appointment or appointment.RefundStatus != "Pending":
-            db.close()
+        appointment = api_client.get_appointment(appt_id)
+        if not appointment or appointment.get("RefundStatus") != "Pending":
             return WorkflowResult.finished(reply=Reply("text", "This refund has already been processed or is invalid."))
             
         amount = 0
-        for payment in appointment.payments:
-            if payment.Status == "Paid":
-                amount = payment.Payment
+        for payment in appointment.get("payments", []):
+            if payment.get("Status") == "Paid":
+                amount = payment.get("Payment", 0)
                 break
                 
-        phone = appointment.patient.PhoneNumber if appointment.patient else "Unknown"
-        pat_name = appointment.Name or "Unknown"
-        db.close()
+        patient = appointment.get("patient", {})
+        phone = patient.get("PhoneNumber") if patient else "Unknown"
+        pat_name = appointment.get("Name") or "Unknown"
         
         text = (
             f"💰 *Refund Details*\n\n"
@@ -104,40 +102,45 @@ class DoctorProcessRefundWorkflow(Workflow):
         if message.InteractiveId == "CONFIRM_REFUND_SENT":
             appt_id = session.WorkflowData.get("refund_appt_id")
             
-            db = db_session()
-            appointment = db.query(Appointment).filter(Appointment.Id == appt_id).first()
-            
-            if appointment:
-                appointment.RefundStatus = "Completed"
-                appointment.RefundedAt = datetime.utcnow()
-                db.commit()
+            # Process refund via API
+            try:
+                appointment = api_client.process_refund(appt_id)
                 
-                # Notify Patient
-                if appointment.patient and appointment.patient.PhoneNumber:
-                    doc_name = appointment.doctor.FullName if appointment.doctor else "your doctor"
-                    date_str = appointment.Date.strftime('%b %d') if appointment.Date else 'N/A'
-                    
-                    amount = 0
-                    for payment in appointment.payments:
-                        if payment.Status == "Paid":
-                            amount = payment.Payment
-                            break
-                            
-                    patient_phone = appointment.patient.PhoneNumber
-                    db.close()
-                    
-                    patient_msg = (
-                        f"✅ *Refund Processed*\n\n"
-                        f"Dr. {doc_name} has successfully processed your refund of ₹{amount} for your cancelled appointment on {date_str}.\n\n"
-                        f"Please check your UPI app or bank statement. It may take some time to reflect."
-                    )
-                    WhatsAppService.send_text(patient_phone, patient_msg)
+                if appointment:
+                    # Notify Patient
+                    patient = appointment.get("patient", {})
+                    if patient and patient.get("PhoneNumber"):
+                        doctor = appointment.get("doctor", {})
+                        doc_name = doctor.get("FullName") if doctor else "your doctor"
+                        
+                        date_str = "N/A"
+                        if appointment.get("Date"):
+                            try:
+                                date_obj = datetime.fromisoformat(appointment.get("Date"))
+                                date_str = date_obj.strftime('%b %d')
+                            except:
+                                pass
+                        
+                        amount = 0
+                        for payment in appointment.get("payments", []):
+                            if payment.get("Status") == "Paid":
+                                amount = payment.get("Payment", 0)
+                                break
+                                
+                        patient_phone = patient.get("PhoneNumber")
+                        
+                        patient_msg = (
+                            f"✅ *Refund Processed*\n\n"
+                            f"Dr. {doc_name} has successfully processed your refund of ₹{amount} for your cancelled appointment on {date_str}.\n\n"
+                            f"Please check your UPI app or bank statement. It may take some time to reflect."
+                        )
+                        WhatsAppService.send_text(patient_phone, patient_msg)
+                        
+                    return WorkflowResult.completed(reply=Reply("text", "✅ Refund marked as completed! The patient has been notified."))
                 else:
-                    db.close()
-                    
-                return WorkflowResult.completed(reply=Reply("text", "✅ Refund marked as completed! The patient has been notified."))
-            else:
-                db.close()
+                    return WorkflowResult.finished(reply=Reply("text", "Error processing refund."))
+            except Exception as e:
+                return WorkflowResult.finished(reply=Reply("text", f"Error processing refund: {str(e)}"))
                 
         elif message.InteractiveId == "CANCEL_REFUND_ACTION":
             return WorkflowResult.finished(reply=Reply("text", "Refund processing aborted for now."))

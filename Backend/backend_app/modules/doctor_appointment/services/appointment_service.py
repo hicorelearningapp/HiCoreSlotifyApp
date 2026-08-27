@@ -564,6 +564,22 @@ class AppointmentService:
             return True
         return False
 
+    def get_pending_refunds(self, doctor_id: str) -> List[models.Appointment]:
+        return self.db.query(models.Appointment).filter(
+            models.Appointment.DoctorId == doctor_id,
+            models.Appointment.RefundStatus == "Pending"
+        ).all()
+
+    def process_refund(self, appointment_id: str) -> Optional[models.Appointment]:
+        appointment = self.get_appointment(appointment_id)
+        if appointment and appointment.RefundStatus == "Pending":
+            appointment.RefundStatus = "Completed"
+            appointment.RefundedAt = datetime.utcnow()
+            self.db.commit()
+            self.db.refresh(appointment)
+            return appointment
+        return None
+
     def get_available_slots(self, target_date: date, doctor_id: str):
         doctor = self.db.query(models.Doctor).filter(models.Doctor.Id == doctor_id).first()
         if not doctor or doctor.Status != "Approved":

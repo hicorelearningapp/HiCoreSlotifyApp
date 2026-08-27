@@ -6,7 +6,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 from datetime import timezone
 
 
-class ConversationSession(Base):
+class ConversationSessionDB(Base):
     __tablename__ = "conversation_sessions"
 
     # A person can hold one conversation per business at a time. PhoneNumber

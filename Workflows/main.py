@@ -10,11 +10,12 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
+from contextlib import asynccontextmanager
 import logging
 import asyncio
 
 # Setup DB Connection
-from core.database import engine, Base
+from core.database import engine, Base, db_session
 
 # Import models so they are registered with Base.metadata before create_all is called
 import core.models
@@ -36,10 +37,18 @@ from core.routers import (
     system_router,
 )
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    setup_logging()
+    task = asyncio.create_task(cleanup_sessions_task())
+    yield
+    task.cancel()
+
 app = FastAPI(
     title="HiCore Slotify - Bot Engine",
     description="Bot workflows and conversation management (WhatsApp)",
-    openapi_url="/docs/openapi.json"
+    openapi_url="/docs/openapi.json",
+    lifespan=lifespan
 )
 
 # Serve static images for the simulator
@@ -90,11 +99,6 @@ async def cleanup_sessions_task():
 
 
 
-@app.on_event("startup")
-async def startup_event():
-    setup_logging()
-    asyncio.create_task(cleanup_sessions_task())
-
 # Channel webhooks
 app.include_router(whatsapp_webhook_router.router)
 
@@ -119,4 +123,4 @@ def get_test_ui():
 if __name__ == "__main__":
     import uvicorn
     # Run the bot engine on port 8001
-    uvicorn.run("main:app", host="127.0.0.1", port=8001, reload=True)
+    uvicorn.run("main:app", host="127.0.0.1", port=8080, reload=True)

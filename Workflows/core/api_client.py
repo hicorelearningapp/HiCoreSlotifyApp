@@ -119,4 +119,10 @@ class BackendAPIClient:
     def create_order(self, data: Dict[str, Any]):
         return self._request("POST", "/ecommerce/orders", json=data)
 
+    def get_pending_refunds(self, doctor_id: str):
+        return self._request("GET", f"/appointments/doctor/{doctor_id}/pending-refunds")
+
+    def process_refund(self, appointment_id: str):
+        return self._request("PATCH", f"/appointments/{appointment_id}/process-refund")
+
 api_client = BackendAPIClient()

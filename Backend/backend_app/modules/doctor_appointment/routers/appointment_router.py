@@ -18,6 +18,7 @@ class AppointmentRouter:
         self.router.add_api_route("", self.list_appointments, methods=["GET"], response_model=schemas.AppointmentListResponse)
         self.router.add_api_route("/doctor/{doctor_id}/past", self.get_past_doctor_appointments, methods=["GET"], response_model=List[schemas.AppointmentOut])
         self.router.add_api_route("/doctor/{doctor_id}/upcoming", self.get_upcoming_doctor_appointments, methods=["GET"], response_model=List[schemas.AppointmentOut])
+        self.router.add_api_route("/doctor/{doctor_id}/pending-refunds", self.get_pending_refunds, methods=["GET"], response_model=List[schemas.AppointmentOut])
         self.router.add_api_route("/past", self.get_past_appointments, methods=["GET"], response_model=List[schemas.AppointmentOut])
         self.router.add_api_route("/status/bulk", self.update_multiple_appointments_status, methods=["PATCH"], response_model=List[schemas.AppointmentOut])
         self.router.add_api_route("/{appointment_id}", self.get_appointment, methods=["GET"], response_model=schemas.AppointmentOut)
@@ -26,6 +27,7 @@ class AppointmentRouter:
         self.router.add_api_route("/{appointment_id}/review-date", self.update_review_date, methods=["PATCH"], response_model=schemas.AppointmentOut)
         self.router.add_api_route("/{appointment_id}/reschedule", self.reschedule_appointment, methods=["PUT"], response_model=schemas.AppointmentOut)
         self.router.add_api_route("/{appointment_id}/cancel", self.cancel_appointment, methods=["PATCH"])
+        self.router.add_api_route("/{appointment_id}/process-refund", self.process_refund, methods=["PATCH"], response_model=schemas.AppointmentOut)
         self.router.add_api_route("/{appointment_id}", self.delete_appointment, methods=["DELETE"])
 
 
@@ -111,6 +113,15 @@ class AppointmentRouter:
         if not success:
             raise HTTPException(status_code=404, detail="Appointment not found")
         return {"success": True, "message": "Appointment cancelled successfully"}
+
+    def get_pending_refunds(self, doctor_id: str):
+        return self.appt_svc.get_pending_refunds(doctor_id)
+
+    def process_refund(self, appointment_id: str):
+        appt = self.appt_svc.process_refund(appointment_id)
+        if not appt:
+            raise HTTPException(status_code=404, detail="Appointment not found or refund not pending")
+        return appt
 
 
 router = AppointmentRouter().router

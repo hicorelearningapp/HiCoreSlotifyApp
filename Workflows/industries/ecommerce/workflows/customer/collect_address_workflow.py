@@ -14,10 +14,9 @@ class CollectAddressWorkflow:
         if message.Text:
             session.WorkflowData["address"] = message.Text
             # Update customer if exists
-            customer_service = CustomerService()
-            customer = customer_service.get_customer_by_phone(session.PhoneNumber)
+            customer = api_client.get_ecommerce_customer(session.PhoneNumber)
             if customer:
-                customer_service.update_customer(customer.PatientId, schemas.CustomerUpdate(Address=message.Text))
+                api_client.update_ecommerce_customer(session.PhoneNumber, {"Address": message.Text})
             return WorkflowResult.completed()
             
         return WorkflowResult.waiting(Reply("text", "Please provide a valid address."))

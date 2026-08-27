@@ -1,10 +1,10 @@
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, status, HTTPException
 from sqlalchemy.orm import Session
 from typing import List, Optional
-
 from backend_app.core.database import get_db
 from backend_app.modules.ecommerce.schemas import ProductOut, ProductCreate, ProductUpdate
 from backend_app.modules.ecommerce.services.product_service import ProductService
+
 
 router = APIRouter(prefix="/products", tags=["Ecommerce Products"])
 

@@ -35,7 +35,7 @@ class BusinessManager:
         return merged
 
     @classmethod
-    def get_config(cls, business_phone: str = None=None) -> dict:
+    def get_config(cls, business_phone: str | None = None) -> dict:
         default_config = cls._load_default_config()
         if business_phone:
             custom_config = api_client.get_business_config(business_phone)
@@ -44,7 +44,7 @@ class BusinessManager:
         return default_config
 
     @classmethod
-    def get_industry(cls, business_phone: str = None=None) -> str:
+    def get_industry(cls, business_phone: str | None = None) -> str:
         """
         Determines the industry for the given business phone.
         Defaults to 'healthcare' if not found.
