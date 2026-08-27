@@ -63,6 +63,10 @@ class CustomerService:
             return []
         return self.db.query(models.Customer).filter(models.Customer.CustomerId == primary_cust.CustomerId).all()
 
+    def get_profiles_by_phone(self, phone_number: str) -> List[models.Customer]:
+        """Alias for get_patients_by_phone used by some legacy workflows."""
+        return self.get_patients_by_phone(phone_number)
+
     def add_patient_by_phone(
         self,
         phone_number: str,
