@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from backend_app.core.database import get_db
-from core.services.system_service import SystemService
+from backend_app.common.services.system_service import SystemService
 import core.models as models
 
 class SystemRouter:

@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from core.workflows.workflow_models import ConversationSession, Message, WorkflowResult
+from core.models.workflow_models import ConversationSession, Message, WorkflowResult
 
 from datetime import datetime
 

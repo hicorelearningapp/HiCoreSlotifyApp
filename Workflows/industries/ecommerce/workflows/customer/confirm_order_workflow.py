@@ -1,4 +1,4 @@
-from core.workflows.workflow_models import WorkflowResult, Reply, WorkflowStatus
+from core.models.workflow_models import WorkflowResult, Reply, WorkflowStatus
 from backend_app.modules.ecommerce.services.order_service import order_service
 from backend_app.modules.ecommerce.services.product_service import product_service
 from backend_app.modules.ecommerce.services.notification_service import notification_service

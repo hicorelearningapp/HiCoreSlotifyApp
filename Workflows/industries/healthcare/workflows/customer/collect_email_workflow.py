@@ -1,5 +1,5 @@
 from core.workflows.BaseWorkflow import Workflow
-from core.workflows.workflow_models import (
+from core.models.workflow_models import (
     ConversationSession,
     Message,
     WorkflowResult,

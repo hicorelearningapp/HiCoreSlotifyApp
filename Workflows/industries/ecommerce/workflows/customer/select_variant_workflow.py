@@ -1,4 +1,4 @@
-from core.workflows.workflow_models import WorkflowResult, Reply
+from core.models.workflow_models import WorkflowResult, Reply
 from backend_app.modules.ecommerce.services.product_service import product_service
 from backend_app.core.database import db_session
 

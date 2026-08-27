@@ -1,6 +1,7 @@
 from datetime import datetime, date, timedelta
+import time
 from core.workflows.BaseWorkflow import Workflow
-from core.workflows.workflow_models import (
+from core.models.workflow_models import (
     ConversationSession,
     Message,
     WorkflowResult,
@@ -8,7 +9,7 @@ from core.workflows.workflow_models import (
 )
 from backend_app.modules.doctor_appointment.services.appointment_service import AppointmentService
 from backend_app.modules.doctor_appointment.services.doctor_service import DoctorService
-from core.channels.whatsapp.services.whatsapp_service import whatsapp as WhatsAppService
+from core.services.whatsapp_service import whatsapp as WhatsAppService
 from backend_app.core.database import db_session
 
 class SelectDateWorkflow(Workflow):

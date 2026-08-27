@@ -1,8 +1,8 @@
 from core.workflows.BaseWorkflow import Workflow
-from core.workflows.workflow_models import ConversationSession, Message, WorkflowResult, Reply
+from core.models.workflow_models import ConversationSession, Message, WorkflowResult, Reply
 from backend_app.modules.doctor_appointment.services.appointment_service import AppointmentService
 import io
-from core.channels.whatsapp.services.whatsapp_service import whatsapp
+from core.services.whatsapp_service import whatsapp
 from datetime import date, datetime, timedelta
 
 class DoctorViewScheduleWorkflow(Workflow):

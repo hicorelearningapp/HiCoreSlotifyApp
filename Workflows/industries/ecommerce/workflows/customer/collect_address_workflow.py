@@ -1,4 +1,4 @@
-from core.workflows.workflow_models import WorkflowResult, Reply, WorkflowStatus
+from core.models.workflow_models import WorkflowResult, Reply, WorkflowStatus
 from backend_app.modules.ecommerce.services.customer_service import CustomerService
 import core.schemas as schemas
 

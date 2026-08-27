@@ -1,5 +1,5 @@
 from fastapi import Request
-from core.workflows.workflow_models import Message
+from core.models.workflow_models import Message
 
 
 class ParseManager:

@@ -2,7 +2,7 @@ from datetime import datetime, timedelta, date
 from sqlalchemy.orm import Session
 import core.models as models
 import core.schemas as schemas
-from core.channels.whatsapp.services.whatsapp_service import whatsapp
+from core.services.whatsapp_service import whatsapp
 from backend_app.modules.doctor_appointment.services.appointment_service import AppointmentService
 
 class BookingHelpers:

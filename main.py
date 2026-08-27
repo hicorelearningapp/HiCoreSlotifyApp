@@ -17,16 +17,11 @@ from backend_app.core.database import engine, Base, db_session, request_context,
 
 # Import models so they are registered with Base.metadata before create_all is called
 import core.models  # type: ignore
-import core.channels.instagram.models.instagram_connection  # type: ignore
 import backend_app.modules.doctor_appointment.models  # type: ignore
 import backend_app.modules.ecommerce.models  # type: ignore
 
 Base.metadata.create_all(bind=engine)
 ensure_dynamic_schemas(engine)
-
-# Instagram schema migrator
-# from core.database.migrate_instagram import ensure_instagram_schema  # type: ignore
-# ensure_instagram_schema(engine)
 
 # Import factories to ensure workflows are registered
 import industries.healthcare.HealthcareWorkflowFactory 
@@ -35,7 +30,6 @@ import industries.ecommerce.EcommerceWorkflowFactory
 # --- ROUTERS ---
 # Workflows Webhook routers
 from core.channels.whatsapp.routers import whatsapp_webhook_router 
-from core.channels.instagram.routers import instagram_webhook_router 
 
 # Backend API routers
 from backend_app.common.router import router as common_router  # type: ignore
@@ -45,7 +39,7 @@ from backend_app.modules.doctor_appointment.services import StatusTypeService, C
 
 app = FastAPI(
     title="HiCore Slotify - Unified Server",
-    description="Bot workflows (WhatsApp/Instagram) and modular API Backend supporting Doctor Appointment & Ecommerce.",
+    description="Bot workflows (WhatsApp) and modular API Backend supporting Doctor Appointment & Ecommerce.",
     openapi_url="/docs/openapi.json"
 )
 
@@ -119,44 +113,6 @@ async def appointment_reminders_task():
         except Exception as e:
             logging.getLogger("uvicorn").error(f"Error processing reminders: {e}")
 
-from core.channels.instagram.services.instagram_dedup import instagram_event_guard
-async def instagram_event_prune_task():
-    while True:
-        try:
-            await asyncio.sleep(6 * 60 * 60)
-            instagram_event_guard.prune(db_session)
-        except asyncio.CancelledError:
-            break
-        except Exception as e:
-            logging.getLogger("uvicorn").error(f"Error pruning instagram events: {e}")
-
-from core.channels.instagram.services.instagram_reply_queue import instagram_reply_queue
-async def instagram_reply_worker_task():
-    from config import INSTAGRAM_WORKER_POLL_SECONDS
-    try:
-        instagram_reply_queue.recover_stuck(db_session)
-    except Exception as e:
-        logging.getLogger("uvicorn").error(f"Error recovering instagram actions: {e}")
-    while True:
-        try:
-            await asyncio.sleep(INSTAGRAM_WORKER_POLL_SECONDS)
-            instagram_reply_queue.process_once(db_session)
-        except asyncio.CancelledError:
-            break
-        except Exception as e:
-            logging.getLogger("uvicorn").error(f"Error in instagram reply worker: {e}")
-
-from core.channels.instagram.services.instagram_onboarding_service import instagram_onboarding_service
-async def instagram_token_refresh_task():
-    while True:
-        try:
-            await asyncio.sleep(12 * 60 * 60)
-            instagram_onboarding_service.refresh_expiring_tokens(db_session)
-        except asyncio.CancelledError:
-            break
-        except Exception as e:
-            logging.getLogger("uvicorn").error(f"Error refreshing instagram tokens: {e}")
-
 from backend_app.modules.doctor_appointment.services.review_service import ReviewService
 async def appointment_reviews_task():
     while True:
@@ -183,13 +139,9 @@ async def startup_event():
     asyncio.create_task(cleanup_sessions_task())
     asyncio.create_task(appointment_reminders_task())
     asyncio.create_task(appointment_reviews_task())
-    asyncio.create_task(instagram_event_prune_task())
-    asyncio.create_task(instagram_reply_worker_task())
-    asyncio.create_task(instagram_token_refresh_task())
 
 # Include Webhooks for the Bot
 app.include_router(whatsapp_webhook_router.router)
-app.include_router(instagram_webhook_router.router)
 
 # Include Backend API Routers
 app.include_router(common_router)

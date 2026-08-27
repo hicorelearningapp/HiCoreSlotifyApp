@@ -1,6 +1,6 @@
 from core.workflows.BaseWorkflow import Workflow
-from core.workflows.workflow_models import ConversationSession, Message, WorkflowResult, Reply
-from core.channels.whatsapp.services.whatsapp_service import whatsapp as WhatsAppService
+from core.models.workflow_models import ConversationSession, Message, WorkflowResult, Reply
+from core.services.whatsapp_service import whatsapp as WhatsAppService
 import time
 
 class SelectTimeSlotWorkflow(Workflow):

@@ -18,8 +18,7 @@
     },
     "user_type_mappings": {
         "OWNER": "OwnerSequence",
-        "CUSTOMER": "CustomerOrderSequence",
-        "INSTAGRAM_DM": "InstagramHandoffSequence"
+        "CUSTOMER": "CustomerOrderSequence"
     },
     "number": {
         "owner": [
@@ -42,15 +41,6 @@
             "CollectPhoneWorkflow",
             "SelectPaymentWorkflow",
             "ConfirmOrderWorkflow",
-            "ExitWorkflow"
-        ],
-        "InstagramHandoffSequence": [
-            "GreetingMessageWorkflow",
-            "OrderingMainMenuWorkflow",
-            "SelectCategoryWorkflow",
-            "SelectProductWorkflow",
-            "SelectVariantWorkflow",
-            "HandoffToWhatsAppWorkflow",
             "ExitWorkflow"
         ],
         "WhatsAppResumeSequence": [

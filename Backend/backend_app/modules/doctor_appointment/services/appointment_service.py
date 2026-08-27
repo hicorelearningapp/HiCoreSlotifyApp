@@ -7,7 +7,7 @@ import core.schemas as schemas
 
 from fastapi import HTTPException
 from backend_app.core.database import db_session
-from core.channels.whatsapp.services.whatsapp_service import whatsapp
+from core.services.whatsapp_service import whatsapp
 from backend_app.modules.doctor_appointment.services.google_oauth_service import GoogleOAuthService
 
 class AppointmentService:

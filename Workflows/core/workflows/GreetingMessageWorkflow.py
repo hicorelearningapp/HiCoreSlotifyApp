@@ -1,5 +1,5 @@
 from core.workflows.BaseWorkflow import Workflow
-from core.workflows.workflow_models import ConversationSession, Message, WorkflowResult, Reply
+from core.models.workflow_models import ConversationSession, Message, WorkflowResult, Reply
 from backend_app.core.database import db_session
 from config import SERVER_BASE_URL
 import urllib.parse

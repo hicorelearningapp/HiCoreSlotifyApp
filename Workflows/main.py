@@ -17,31 +17,17 @@ from backend_app.core.database import engine, Base, db_session
 
 # Import models so they are registered with Base.metadata before create_all is called
 import core.models
-import core.channels.instagram.models.instagram_connection
 import backend_app.modules.doctor_appointment.models
 import backend_app.modules.ecommerce.models
 
-# Runs before create_all: an out-of-date conversation_sessions table is dropped
-# here so create_all can rebuild it with the per-business unique constraint.
-from core.database.migrate_sessions import ensure_session_schema
-ensure_session_schema(engine)
-
 Base.metadata.create_all(bind=engine)
 
-# Instagram schema migrator
-from core.database.migrate_instagram import ensure_instagram_schema
-ensure_instagram_schema(engine)
-
 # Import factories to ensure workflows are registered
-import industries.healthcare.workflow.HealthcareWorkflowFactory
-import industries.ecommerce.workflow.EcommerceWorkflowFactory
+import industries.healthcare.HealthcareWorkflowFactory
+import industries.ecommerce.EcommerceWorkflowFactory
 
 # Webhook routers
 from core.channels.whatsapp.routers import whatsapp_webhook_router
-from core.channels.instagram.routers import instagram_webhook_router
-
-# Instagram onboarding / management routers
-from core.channels.instagram.routers import instagram_oauth_router, instagram_connection_router
 
 # Platform routers
 from core.routers import (
@@ -53,7 +39,7 @@ from core.routers import (
 
 app = FastAPI(
     title="HiCore Slotify - Bot Engine",
-    description="Bot workflows and conversation management (WhatsApp/Instagram)",
+    description="Bot workflows and conversation management (WhatsApp)",
     openapi_url="/docs/openapi.json"
 )
 
@@ -118,44 +104,6 @@ async def appointment_reminders_task():
         except Exception as e:
             logging.getLogger("uvicorn").error(f"Error processing reminders: {e}")
 
-from core.channels.instagram.services.instagram_dedup import instagram_event_guard
-async def instagram_event_prune_task():
-    while True:
-        try:
-            await asyncio.sleep(6 * 60 * 60)
-            instagram_event_guard.prune(db_session)
-        except asyncio.CancelledError:
-            break
-        except Exception as e:
-            logging.getLogger("uvicorn").error(f"Error pruning instagram events: {e}")
-
-from core.channels.instagram.services.instagram_reply_queue import instagram_reply_queue
-async def instagram_reply_worker_task():
-    from config import INSTAGRAM_WORKER_POLL_SECONDS
-    try:
-        instagram_reply_queue.recover_stuck(db_session)
-    except Exception as e:
-        logging.getLogger("uvicorn").error(f"Error recovering instagram actions: {e}")
-    while True:
-        try:
-            await asyncio.sleep(INSTAGRAM_WORKER_POLL_SECONDS)
-            instagram_reply_queue.process_once(db_session)
-        except asyncio.CancelledError:
-            break
-        except Exception as e:
-            logging.getLogger("uvicorn").error(f"Error in instagram reply worker: {e}")
-
-from core.channels.instagram.services.instagram_onboarding_service import instagram_onboarding_service
-async def instagram_token_refresh_task():
-    while True:
-        try:
-            await asyncio.sleep(12 * 60 * 60)
-            instagram_onboarding_service.refresh_expiring_tokens(db_session)
-        except asyncio.CancelledError:
-            break
-        except Exception as e:
-            logging.getLogger("uvicorn").error(f"Error refreshing instagram tokens: {e}")
-
 from backend_app.modules.doctor_appointment.services.review_service import ReviewService
 async def appointment_reviews_task():
     while True:
@@ -167,58 +115,15 @@ async def appointment_reviews_task():
         except Exception as e:
             logging.getLogger("uvicorn").error(f"Error processing reviews: {e}")
 
-def check_public_base_url():
-    """Warn when the origin Meta is told to call back on can't reach this app.
-
-    A wrong PUBLIC_BASE_URL fails silently and late: OAuth only breaks once a
-    vendor clicks Connect, and Meta App Review only fails once someone opens
-    /privacy. Comparing the configured redirect against the routes this app
-    actually serves catches it at boot instead.
-    """
-    from urllib.parse import urlparse
-    from config import INSTAGRAM_OAUTH_REDIRECT_URI, PUBLIC_BASE_URL, SERVER_BASE_URL
-
-    log = logging.getLogger("uvicorn")
-    path = urlparse(INSTAGRAM_OAUTH_REDIRECT_URI).path or "/"
-    served = {getattr(r, "path", None) for r in app.routes}
-
-    if path not in served:
-        log.warning(
-            "INSTAGRAM_OAUTH_REDIRECT_URI points at %s, which this app does not "
-            "serve. Meta will get a 404 on the OAuth callback.",
-            path,
-        )
-    elif PUBLIC_BASE_URL == SERVER_BASE_URL:
-        log.warning(
-            "PUBLIC_BASE_URL is unset, so Meta callbacks are addressed to %s -- "
-            "the Backend API. That only works behind a reverse proxy forwarding "
-            "%s to this app. Set PUBLIC_BASE_URL to this app's own origin if "
-            "ports are exposed directly.",
-            SERVER_BASE_URL, path,
-        )
-    else:
-        log.info("Meta callbacks addressed to %s", PUBLIC_BASE_URL)
-
-
 @app.on_event("startup")
 async def startup_event():
     setup_logging()
-    check_public_base_url()
     asyncio.create_task(cleanup_sessions_task())
     asyncio.create_task(appointment_reminders_task())
     asyncio.create_task(appointment_reviews_task())
-    asyncio.create_task(instagram_event_prune_task())
-    asyncio.create_task(instagram_reply_worker_task())
-    asyncio.create_task(instagram_token_refresh_task())
 
 # Channel webhooks
 app.include_router(whatsapp_webhook_router.router)
-app.include_router(instagram_webhook_router.router)
-
-# Instagram onboarding: /integrations/instagram/*, plus the /privacy and
-# /data-deletion pages Meta App Review requires.
-app.include_router(instagram_oauth_router.router)
-app.include_router(instagram_connection_router.router)
 
 # Platform management
 app.include_router(business_config_router.router)

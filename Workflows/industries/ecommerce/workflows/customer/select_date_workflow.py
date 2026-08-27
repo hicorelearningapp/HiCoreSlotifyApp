@@ -1,6 +1,6 @@
 from datetime import datetime, date, timedelta
 from core.workflows.BaseWorkflow import Workflow
-from core.workflows.workflow_models import (
+from core.models.workflow_models import (
     ConversationSession,
     Message,
     WorkflowResult,
@@ -32,15 +32,12 @@ class SelectDateWorkflow(Workflow):
             }
         )
 
-        interactive_data = {
-            "type": "list",
-            "header": {"type": "text", "text": "Select Booking Date"},
-            "body": {"text": "Please select a date for your vehicle booking:"},
-            "footer": {"text": "Select from the list"},
-            "action": {"button": "Dates", "sections": sections},
-        }
-
-        reply = Reply(message_type="interactive", text="", interactive_data=interactive_data)
+        reply = Reply(
+            message_type="list",
+            text="Please select a date for your vehicle booking:",
+            button_text="Dates",
+            sections=sections,
+        )
         return WorkflowResult.waiting(reply)
 
     def Process(self, session: ConversationSession, message: Message):

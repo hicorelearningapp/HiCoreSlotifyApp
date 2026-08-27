@@ -1,5 +1,5 @@
 from core.Sequence import SequenceFactory
-from core.workflows.workflow_models import Message, WorkflowStatus, WorkflowResult, Reply
+from core.models.workflow_models import Message, WorkflowStatus, WorkflowResult, Reply
 from core.services.session_service import SessionService
 from core.services.channel_messenger import channel_messenger as ChannelMessenger
 from core.Sequence import Sequence

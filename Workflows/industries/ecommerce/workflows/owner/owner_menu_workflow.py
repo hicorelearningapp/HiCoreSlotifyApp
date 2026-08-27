@@ -1,4 +1,4 @@
-from core.workflows.workflow_models import WorkflowResult, Reply, WorkflowStatus
+from core.models.workflow_models import WorkflowResult, Reply, WorkflowStatus
 
 class OwnerMenuWorkflow:
     def Initialize(self, session):

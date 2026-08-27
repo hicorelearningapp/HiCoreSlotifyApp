@@ -1,5 +1,5 @@
 from core.workflows.BaseWorkflow import Workflow
-from core.workflows.workflow_models import ConversationSession, Message, WorkflowResult, Reply
+from core.models.workflow_models import ConversationSession, Message, WorkflowResult, Reply
 from backend_app.modules.doctor_appointment.services.doctor_service import DoctorService
 
 UPI_ID = "hicore@upi"

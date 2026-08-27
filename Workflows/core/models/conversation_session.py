@@ -2,6 +2,9 @@ from sqlalchemy import Column, String, DateTime, JSON, UniqueConstraint
 from backend_app.core.database import Base
 from datetime import datetime
 from core.models.utils import generate_uuid
+from sqlalchemy.orm import Mapped, mapped_column
+from datetime import timezone
+
 
 class ConversationSession(Base):
     __tablename__ = "conversation_sessions"
@@ -15,13 +18,10 @@ class ConversationSession(Base):
         ),
     )
 
-    Id = Column(String(36), primary_key=True, default=generate_uuid, index=True)
-    PhoneNumber = Column(String, index=True, nullable=False)
-    BusinessPhoneNumber = Column(String(32), index=True, nullable=False, default="", server_default="")
-    StateData = Column(JSON, nullable=True, default=dict) # dict stored as JSON # current sequence, current flow, index
-    CreatedAt = Column(DateTime, nullable=False, default=datetime.utcnow)
-    UpdatedAt = Column(DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+    Id : Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid, index=True)
+    PhoneNumber : Mapped[str] = mapped_column(String, index=True, nullable=False)
+    BusinessPhoneNumber : Mapped[str] = mapped_column(String(32), index=True, nullable=False, default="", server_default="")
+    StateData : Mapped[dict] = mapped_column(JSON, nullable=True, default=dict) # dict stored as JSON # current sequence, current flow, index
+    CreatedAt : Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.now(timezone.utc))
+    UpdatedAt : Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
 
-    def translate(self, key: str, **kwargs) -> str:
-        from core.services.language_manager import LanguageManager
-        return LanguageManager().text(key, **kwargs)

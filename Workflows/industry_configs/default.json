@@ -18,8 +18,7 @@
     "user_type_mappings": {
         "ADMIN": "AdminFlow",
         "DOCTOR": "DoctorFlow",
-        "PATIENT": "PatientMainWorkSequence",
-        "INSTAGRAM_DM": "InstagramHandoffSequence"
+        "PATIENT": "PatientMainWorkSequence"
     },
     "number": {
         "doctor": [],
@@ -27,7 +26,6 @@
     },
     "sequences": {
         "PatientMainWorkSequence": [
-            "LanguageSelectionWorkflow",
             "GreetingMessageWorkflow",
             "MainMenuWorkflow"
         ],
@@ -52,7 +50,6 @@
             "ExitWorkflow"
         ],
         "DoctorFlow": [
-            "LanguageSelectionWorkflow",
             "GreetingMessageWorkflow",
             "DoctorMenuWorkflow"
         ],
@@ -72,14 +69,8 @@
             "ExitWorkflow"
         ],
         "AdminFlow": [
-            "LanguageSelectionWorkflow",
             "GreetingMessageWorkflow",
             "AdminMenuWorkflow"
-        ],
-        "InstagramHandoffSequence": [
-            "GreetingMessageWorkflow",
-            "InstagramHandoffWorkflow",
-            "ExitWorkflow"
         ]
     }
 }

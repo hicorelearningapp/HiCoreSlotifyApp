@@ -31,7 +31,6 @@
     },
     "sequences": {
         "PatientMainWorkSequence": [
-            "LanguageSelectionWorkflow",
             "GreetingMessageWorkflow",
             "MainMenuWorkflow"
         ],
@@ -55,7 +54,6 @@
             "ExitWorkflow"
         ],
         "DoctorFlow": [
-            "LanguageSelectionWorkflow",
             "GreetingMessageWorkflow",
             "DoctorMenuWorkflow"
         ],
@@ -75,7 +73,6 @@
             "ExitWorkflow"
         ],
         "AdminFlow": [
-            "LanguageSelectionWorkflow",
             "GreetingMessageWorkflow",
             "AdminMenuWorkflow"
         ]

@@ -2,13 +2,14 @@ from typing import List, Optional, cast
 import json
 import logging
 from datetime import datetime, timedelta
+from datetime import timezone
 
 import core.models as models
 import core.schemas as schemas
-from core.workflows.workflow_models import ConversationSession as DomainConversationSession
-from core.workflows.workflow_models import SessionState
+from core.models.workflow_models import ConversationSession as DomainConversationSession
+from core.models.workflow_models import SessionState
 from backend_app.core.database import db_session
-from core.channels.whatsapp.services.whatsapp_service import whatsapp
+from core.services.whatsapp_service import whatsapp
 from core.services.message_logger import MessageLogger
 
 
@@ -179,14 +180,14 @@ class SessionService:
         return deleted_count
 
     def delete_inactive_sessions(self, timeout_minutes: int) -> int:
-        threshold = datetime.utcnow() - timedelta(minutes=timeout_minutes)
+        threshold = datetime.now(timezone.utc) - timedelta(minutes=timeout_minutes)
         deleted_count = self.db.query(models.ConversationSession).filter(models.ConversationSession.UpdatedAt < threshold).delete()  # type: ignore
         self.db.commit()
         return deleted_count
 
     def process_timeouts(self):
         sessions = self.list_sessions()
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
 
         for session in sessions:
             if not session.UpdatedAt:

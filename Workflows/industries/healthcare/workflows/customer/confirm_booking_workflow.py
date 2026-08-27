@@ -1,6 +1,6 @@
 from datetime import datetime
 from core.workflows.BaseWorkflow import Workflow
-from core.workflows.workflow_models import (
+from core.models.workflow_models import (
     ConversationSession,
     Message,
     WorkflowResult,
@@ -11,7 +11,7 @@ from backend_app.modules.doctor_appointment.services.doctor_service import Docto
 from backend_app.modules.doctor_appointment.services.customer_service import CustomerService
 from backend_app.modules.doctor_appointment.services.payment_service import PaymentService
 import core.schemas as schemas
-from core.channels.whatsapp.services.whatsapp_service import whatsapp as WhatsAppService
+from core.services.whatsapp_service import whatsapp as WhatsAppService
 # from core.services.language_manager import LanguageManager
 
 
