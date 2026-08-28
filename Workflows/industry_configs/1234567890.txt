@@ -35,6 +35,7 @@
       "OrderingMainMenuWorkflow",
       "SelectCategoryWorkflow",
       "SelectProductWorkflow",
+      "SelectVariantWorkflow",
       "SelectQuantityWorkflow",
       "CollectNameWorkflow",
       "CollectPhoneWorkflow",
@@ -45,6 +46,7 @@
       "ExitWorkflow"
     ],
     "WhatsAppResumeSequence": [
+      "SelectVariantWorkflow",
       "SelectQuantityWorkflow",
       "CollectNameWorkflow",
       "CollectPhoneWorkflow",

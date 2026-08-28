@@ -1,7 +1,6 @@
 import json
 import os
 import copy
-from core.api_client import api_client
 
 class BusinessManager:
     DEFAULT_CONFIG = None
@@ -38,24 +37,20 @@ class BusinessManager:
     def get_config(cls, business_phone: str | None = None) -> dict:
         default_config = cls._load_default_config()
         if business_phone:
-            custom_config = api_client.get_business_config(business_phone)
-            if custom_config:
-                return cls._deep_merge(default_config, custom_config)
-            
-            # Local fallback for development
-            local_fallback_path = os.path.join(
+            base_dir = os.path.join(
                 os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
-                "industry_configs",
-                f"{business_phone}.txt"
+                "industry_configs"
             )
-            if os.path.exists(local_fallback_path):
-                try:
-                    with open(local_fallback_path, "r", encoding="utf-8") as f:
-                        local_config = json.load(f)
-                    return cls._deep_merge(default_config, local_config)
-                except Exception as e:
-                    print(f"Failed to load local fallback config {business_phone}.txt: {e}")
-                    
+            for ext in (".txt", ".json"):
+                file_path = os.path.join(base_dir, f"{business_phone}{ext}")
+                if os.path.exists(file_path):
+                    try:
+                        with open(file_path, "r", encoding="utf-8") as f:
+                            local_config = json.load(f)
+                        return cls._deep_merge(default_config, local_config)
+                    except Exception as e:
+                        print(f"Failed to load config {file_path}: {e}")
+                        
         return default_config or {}
 
     @classmethod

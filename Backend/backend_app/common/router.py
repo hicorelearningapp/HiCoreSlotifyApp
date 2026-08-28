@@ -3,7 +3,6 @@ from backend_app.common.routers.business_router import BusinessRouter
 from fastapi import Depends
 from backend_app.core.database import get_db
 from sqlalchemy.orm import Session
-from backend_app.modules.business_config.services.business_config_service import BusinessConfigService
 
 class CommonRouter:
     def __init__(self):
@@ -27,16 +26,6 @@ class CommonRouter:
             tags=["Infrastructure"],
             summary="System Information & Supported Industries"
         )
-        self.router.add_api_route(
-            "/business-config/{business_phone}",
-            self.get_business_config,
-            methods=["GET"],
-            tags=["Configuration"],
-            summary="Get Configuration for a Business Phone"
-        )
-
-    def get_business_config(self, business_phone: str, db: Session = Depends(get_db)):
-        return BusinessConfigService.get_config(db, business_phone)
 
     def health_check(self):
         return {

@@ -73,6 +73,7 @@ class SessionService:
             biz_phone = business_phone_number or ""
             identify_svc = IdentifyServiceFactory.get_service(industry)
             user = identify_svc.identify_user(phone_number, biz_phone)
+            from core.Sequence import SequenceFactory
             sequence_name = SequenceFactory.GetSequenceName(user.UserType, biz_phone)
             if not sequence_name:
                 # The business config has no mapping for this user type. The
@@ -104,11 +105,11 @@ class SessionService:
                     BusinessPhoneNumber=biz_key,
                     StateData=initial_state,
                 )
-                session = session_svc.create_session(session_create)
+                session = self.create_session(session_create)
             else:
                 session.StateData = initial_state
-                session_svc.db.commit()
-                session_svc.db.refresh(session)
+                self.db.commit()
+                self.db.refresh(session)
 
         assert session is not None, "Session must exist at this point"
         data = session.StateData or {}
@@ -201,6 +202,7 @@ class SessionService:
 
             business_phone = data.get("BusinessPhoneNumber", "")
 
+            from core.Sequence import SequenceFactory
             time_out_enabled = SequenceFactory.get_setting(business_phone, "time_out_enabled", True)
             if not time_out_enabled:
                 continue

@@ -23,10 +23,6 @@ class BackendAPIClient:
                 print(f"Response Body: {e.response.text}")
             return None
 
-    # --- Business Config APIs ---
-    def get_business_config(self, business_phone: str):
-        return self._request("GET", f"/business-config/{business_phone}")
-
     # --- Customer APIs ---
     def get_customer(self, patient_id: str):
         return self._request("GET", f"/customers/{patient_id}")

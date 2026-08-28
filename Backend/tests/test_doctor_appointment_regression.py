@@ -27,6 +27,13 @@ def create_test_doctor():
         "ClinicConsultationFee": 500.0,
         "ConsultationDuration": 15,
         "MaximumPatientsPerDay": 30,
+        "Monday": "09:00-17:00",
+        "Tuesday": "09:00-17:00",
+        "Wednesday": "09:00-17:00",
+        "Thursday": "09:00-17:00",
+        "Friday": "09:00-17:00",
+        "Saturday": "09:00-17:00",
+        "Sunday": "09:00-17:00",
         "Password": "password123",
         "UserName": f"dr_ramesh_{unique_id}"
     }

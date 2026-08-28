@@ -40,9 +40,14 @@ def seed_data():
         store_id=store_id, 
         active=True,
         product_data={
+            "options": [
+                {"name": "Color", "values": ["Red", "Blue"]},
+                {"name": "Size", "values": ["Small", "Large"]}
+            ],
             "variants": [
-                {"id": 1, "variant_name": "Small / Red", "price": 19.99, "stock_quantity": 20, "active": True},
-                {"id": 2, "variant_name": "Large / Red", "price": 24.99, "stock_quantity": 10, "active": True}
+                {"id": 1, "options": {"Color": "Red", "Size": "Small"}, "price": 19.99, "stock_quantity": 20, "active": True},
+                {"id": 2, "options": {"Color": "Red", "Size": "Large"}, "price": 24.99, "stock_quantity": 10, "active": True},
+                {"id": 3, "options": {"Color": "Blue", "Size": "Small"}, "price": 19.99, "stock_quantity": 5, "active": True}
             ]
         }
     )

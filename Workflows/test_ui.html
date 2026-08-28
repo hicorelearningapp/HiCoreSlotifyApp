@@ -654,7 +654,12 @@
                             const bodyText = reply.interactive.body ? reply.interactive.body.text : (reply.interactive.type === 'carousel' ? '[Carousel Message: Check WhatsApp to view]' : '');
                             addMessageBubble(bodyText, false, reply.interactive);
                         } else if (reply.type === 'image') {
-                            addMessageBubble(reply.image.caption || '[Image Message]', false, null, reply.image.link);
+                            let imgLink = reply.image.link;
+                            if (imgLink && (imgLink.includes('/industries/') || imgLink.includes('/images/'))) {
+                                const idx = imgLink.includes('/industries/') ? imgLink.indexOf('/industries/') : imgLink.indexOf('/images/');
+                                imgLink = window.location.origin + imgLink.substring(idx);
+                            }
+                            addMessageBubble(reply.image.caption || '[Image Message]', false, null, imgLink);
                         }
                     }
                 });

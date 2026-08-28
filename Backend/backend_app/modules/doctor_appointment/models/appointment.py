@@ -21,7 +21,7 @@ class Appointment(Base):
     
     ConsultationType: Mapped[str] = mapped_column(String, nullable=False, default="Clinic")
     Status: Mapped[str] = mapped_column(String, nullable=False, default="Booked")
-    MeetingLink: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    MeetingLink: Mapped[str | None] = mapped_column(String, nullable=True)
     RemindersSent: Mapped[str] = mapped_column(String(255), default="")
     ReMarks: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     ReviewDate: Mapped[Optional[date]] = mapped_column(SqlDate, nullable=True)

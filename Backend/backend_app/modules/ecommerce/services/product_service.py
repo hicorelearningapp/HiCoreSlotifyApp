@@ -123,4 +123,58 @@ class ProductService:
         variants = product.product_data.get("variants", [])
         return [v for v in variants if v.get("active", True) and v.get("stock_quantity", 0) > 0]
 
+    @staticmethod
+    def create_product(db: Session, data):
+        product = Product(
+            name=data.name,
+            category=data.category,
+            product_type=data.product_type,
+            price=data.price,
+            compare_at_price=data.compare_at_price,
+            sku=data.sku,
+            stock_quantity=data.stock_quantity,
+            unit=data.unit,
+            description=data.description,
+            image_url=data.image_url,
+            images=data.images,
+            reel_id=data.reel_id,
+            active=data.active,
+            store_id=data.store_id or "default",
+            product_data=data.product_data or {},
+        )
+        db.add(product)
+        db.commit()
+        db.refresh(product)
+        return product
+
+    @staticmethod
+    def list_products(db: Session, store_id: str = "default", category: str | None = None):
+        q = db.query(Product)
+        if store_id:
+            q = q.filter(Product.store_id == store_id)
+        if category:
+            q = q.filter(Product.category == category)
+        return q.all()
+
+    @staticmethod
+    def update_product(db: Session, product_id: int, data):
+        product = db.query(Product).filter(Product.id == product_id).first()
+        if not product:
+            return None
+        update_data = data.model_dump(exclude_unset=True) if hasattr(data, "model_dump") else data.dict(exclude_unset=True)
+        for key, val in update_data.items():
+            setattr(product, key, val)
+        db.commit()
+        db.refresh(product)
+        return product
+
+    @staticmethod
+    def delete_product(db: Session, product_id: int):
+        product = db.query(Product).filter(Product.id == product_id).first()
+        if not product:
+            return False
+        db.delete(product)
+        db.commit()
+        return True
+
 product_service = ProductService()

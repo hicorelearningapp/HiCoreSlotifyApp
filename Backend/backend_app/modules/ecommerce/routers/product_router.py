@@ -27,9 +27,31 @@ def find_product(identifier: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Product not found")
     return product
 
-@router.get("/{product_id}")
+@router.post("", response_model=ProductOut, status_code=status.HTTP_201_CREATED)
+def create_product(product_in: ProductCreate, db: Session = Depends(get_db)):
+    return ProductService.create_product(db, product_in)
+
+@router.get("", response_model=List[ProductOut])
+def list_products(store_id: Optional[str] = "default", category: Optional[str] = None, db: Session = Depends(get_db)):
+    return ProductService.list_products(db, store_id=store_id, category=category)
+
+@router.get("/{product_id}", response_model=ProductOut)
 def get_product(product_id: int, db: Session = Depends(get_db)):
     product = ProductService.get_product_by_id(db, product_id)
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
     return product
+
+@router.put("/{product_id}", response_model=ProductOut)
+def update_product(product_id: int, product_in: ProductUpdate, db: Session = Depends(get_db)):
+    product = ProductService.update_product(db, product_id, product_in)
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+    return product
+
+@router.delete("/{product_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_product(product_id: int, db: Session = Depends(get_db)):
+    success = ProductService.delete_product(db, product_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Product not found")
+    return None

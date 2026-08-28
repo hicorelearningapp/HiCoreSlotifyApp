@@ -50,9 +50,7 @@ class AppointmentService:
             models.Appointment.Date == appointment.Date,
             models.Appointment.Status.notin_(['Cancelled', 'NotAvailable'])
         ).count()
-        from backend_app.modules.business_config.services.business_config_service import BusinessConfigService
-        config = BusinessConfigService.get_config(self.db, doctor.BusinessPhoneNumber) or {}
-        max_bookings_per_day = config.get("settings", {}).get("max_bookings_per_day", None)
+        max_bookings_per_day = None
         if max_bookings_per_day is not None and customer_day_count >= max_bookings_per_day:
             raise HTTPException(
                 status_code=400,
@@ -61,8 +59,7 @@ class AppointmentService:
 
         # Check for overlapping appointments within the buffer
         requested_dt = datetime.combine(appointment.Date, appointment.SlotTime)
-        config = BusinessConfigService.get_config(self.db, doctor.BusinessPhoneNumber) or {}
-        buffer_minutes = config.get("settings", {}).get("customer_appointment_buffer_minutes", 60)
+        buffer_minutes = 60
         buffer_delta = timedelta(minutes=buffer_minutes)
         
         existing_appointments = self.db.query(models.Appointment).filter(
@@ -299,7 +296,7 @@ class AppointmentService:
                 GoogleOAuthService().delete_meet_event(appointment.MeetingLink)
             except Exception as e:
                 print(f"Failed to delete Google Meet event: {e}")
-            appointment.MeetingLink = None
+            appointment.MeetingLink = None #type: ignore
             
         self.db.commit()
         self.db.refresh(appointment)
@@ -331,7 +328,7 @@ class AppointmentService:
                     GoogleOAuthService().delete_meet_event(appt.MeetingLink)
                 except Exception as e:
                     print(f"Failed to delete Google Meet event: {e}")
-                appt.MeetingLink = None
+                appt.MeetingLink = None #type: ignore
                 
         self.db.commit()
         for appt in appointments:
@@ -363,16 +360,14 @@ class AppointmentService:
 
         # Check for overlapping appointments within the buffer
         requested_dt = datetime.combine(target_date, slot_time)
-        from backend_app.modules.business_config.services.business_config_service import BusinessConfigService
-        config = BusinessConfigService.get_config(self.db, doctor.BusinessPhoneNumber) or {}
-        buffer_minutes = config.get("settings", {}).get("customer_appointment_buffer_minutes", 60)
+        buffer_minutes = 60
         buffer_delta = timedelta(minutes=buffer_minutes)
         
         existing_appointments = self.db.query(models.Appointment).filter(
             models.Appointment.PatientId == appointment.PatientId,
             models.Appointment.Date == target_date,
             models.Appointment.Status.notin_(['Cancelled', 'NotAvailable']),
-            models.appointment.PatientId != appointment_id
+            models.Appointment.Id != appointment_id
         ).all()
         
         for existing in existing_appointments:
@@ -483,7 +478,7 @@ class AppointmentService:
                 GoogleOAuthService().delete_meet_event(appointment.MeetingLink)
             except Exception as e:
                 print(f"Failed to delete Google Meet event: {e}")
-            appointment.MeetingLink = None
+            appointment.MeetingLink = None #type: ignore
         
         # Check if refund is needed
         has_paid = any(p.Status == "Paid" for p in appointment.payments)
@@ -558,7 +553,7 @@ class AppointmentService:
                     GoogleOAuthService().delete_meet_event(appointment.MeetingLink)
                 except Exception as e:
                     print(f"Failed to delete Google Meet event: {e}")
-                appointment.MeetingLink = None
+                appointment.MeetingLink = None #type: ignore
                 
             has_paid = any(p.Status == "Paid" for p in appointment.payments)
             if has_paid:
@@ -576,8 +571,8 @@ class AppointmentService:
     def process_refund(self, appointment_id: str) -> Optional[models.Appointment]:
         appointment = self.get_appointment(appointment_id)
         if appointment and appointment.RefundStatus == "Pending":
-            appointment.RefundStatus = "Completed"
-            appointment.RefundedAt = datetime.utcnow()
+            appointment.RefundStatus = "Completed" #type: ignore
+            appointment.RefundedAt = datetime.utcnow() #type: ignore
             self.db.commit()
             self.db.refresh(appointment)
             return appointment
@@ -698,10 +693,10 @@ class AppointmentService:
             from backend_app.core.security import generate_uuid
             patient_id = generate_uuid()
             customer = models.Customer(
-                Id=patient_id,
-                AccountId=patient_id,
-                Name=appointment_data.Name.strip(),
-                CustomerName=appointment_data.Name.strip(),
+                PatientId=patient_id,
+                CustomerId=patient_id,
+                PatientName=appointment_data.PatientName.strip(),
+                CustomerName=appointment_data.PatientName.strip(),
                 PhoneNumber=phone,
                 EmailAddress=appointment_data.MailId.strip() if appointment_data.MailId else None
             )
@@ -709,8 +704,8 @@ class AppointmentService:
             self.db.commit()
             self.db.refresh(customer)
         else:
-            if appointment_data.Name and not customer.PatientName:
-                customer.PatientName = appointment_data.Name.strip()
+            if appointment_data.PatientName and not customer.PatientName:
+                customer.PatientName = appointment_data.PatientName.strip()
             if appointment_data.MailId and not customer.EmailAddress:
                 customer.EmailAddress = appointment_data.MailId.strip()
             self.db.commit()
@@ -744,26 +739,28 @@ class AppointmentService:
 
         if existing_slot:
             existing_slot.PatientId = customer.PatientId
-            existing_slot.PatientName = appointment_data.Name.strip()
+            existing_slot.PatientName = appointment_data.PatientName.strip()
             existing_slot.DoctorName = doctor.FullName
             existing_slot.ConsultationType = c_type
             existing_slot.Status = "Booked"
-            existing_slot.ReMarks = appointment_data.Reason
+            existing_slot.ReMarks = appointment_data.Remarks or appointment_data.Reason
             if meeting_link:
                 existing_slot.MeetingLink = meeting_link
             appointment_record = existing_slot
         else:
+            from backend_app.core.security import generate_uuid
             appointment_record = models.Appointment(
+                Id=generate_uuid(),
                 DoctorId=doctor.Id,
                 DoctorName=doctor.FullName,
-                Id=customer.PatientId,
-                Name=appointment_data.Name.strip(),
+                PatientId=customer.PatientId,
+                PatientName=appointment_data.PatientName.strip(),
                 Date=appointment_data.Date,
-                SlotTime=appointment_data.Time,
+                SlotTime=appointment_data.SlotTime or appointment_data.Time,
                 Slot=1,
                 ConsultationType=c_type,
                 Status="Booked",
-                ReMarks=appointment_data.Reason,
+                ReMarks=appointment_data.Remarks or appointment_data.Reason,
                 MeetingLink=meeting_link
             )
             self.db.add(appointment_record)

@@ -50,6 +50,10 @@ images_dir = os.path.join(os.path.dirname(__file__), "images")
 os.makedirs(images_dir, exist_ok=True)
 app.mount("/images", StaticFiles(directory=images_dir), name="images")
 
+industries_dir = os.path.join(os.path.dirname(__file__), "industries")
+if os.path.exists(industries_dir):
+    app.mount("/industries", StaticFiles(directory=industries_dir), name="industries")
+
 @app.middleware("http")
 async def db_session_middleware(request: Request, call_next):
     try:
@@ -96,7 +100,15 @@ async def cleanup_sessions_task():
 # Channel webhooks
 app.include_router(whatsapp_webhook_router.router)
 
+@app.post("/sessions/{phone_number}/reset")
+def reset_session(phone_number: str):
+    deleted = SessionService().reset_session(phone_number)
+    return {"status": "success", "deleted": deleted}
 
+@app.post("/sessions/reset-all")
+def reset_all_sessions():
+    deleted = SessionService().reset_all_sessions()
+    return {"status": "success", "count": deleted}
 
 @app.get("/")
 def read_root():
