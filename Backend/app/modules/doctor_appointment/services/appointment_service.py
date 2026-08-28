@@ -1,7 +1,9 @@
+import re
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from datetime import timedelta, datetime, date, time
 from typing import List, Optional
+from app.core.security import generate_uuid
 import app.modules.doctor_appointment.models as models
 import app.modules.doctor_appointment.schemas as schemas
 
@@ -486,7 +488,8 @@ class AppointmentService:
             # Notify doctor
             doctor = self.db.query(models.Doctor).filter(models.Doctor.Id == appointment.DoctorId).first()
             if doctor and doctor.BusinessPhoneNumber:
-                msg = f"⚠️ Patient {appointment.Name} has cancelled their appointment on {appointment.Date}. A refund is pending. Type 'refunds' to process it."
+                patient_name = appointment.PatientName or (appointment.patient.PatientName if appointment.patient else "Patient")
+                msg = f"⚠️ Patient {patient_name} has cancelled their appointment on {appointment.Date}. A refund is pending. Type 'refunds' to process it."
         
         self.db.commit()
         return True
@@ -577,90 +580,130 @@ class AppointmentService:
             return appointment
         return None
 
-    def get_available_slots(self, target_date: date, doctor_id: str):
-        doctor = self.db.query(models.Doctor).filter(models.Doctor.Id == doctor_id).first()
-        if not doctor or doctor.Status != "Approved":
+    def get_available_slots(self, target_date: Optional[date], doctor_id: str):
+        if not doctor_id:
             return []
 
+        doctor = self.db.query(models.Doctor).filter(models.Doctor.Id == doctor_id).first()
+        if not doctor or doctor.Status in ["Rejected", "Suspended"]:
+            return []
+
+        if target_date is None:
+            target_date = date.today()
+        elif isinstance(target_date, str):
+            try:
+                target_date = datetime.strptime(target_date, "%Y-%m-%d").date()
+            except ValueError:
+                target_date = date.today()
 
         day_of_week = target_date.weekday()
         days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
         day_name = days[day_of_week]
         
-        day_schedule_str = getattr(doctor, day_name)
-        if not day_schedule_str or day_schedule_str.strip().lower() == 'closed':
+        day_schedule_str = getattr(doctor, day_name, None)
+        if not day_schedule_str or day_schedule_str.strip().lower() in ['closed', 'off', 'none', '']:
             return []
 
-        # Check if slots already exist for this doctor and date
+        generated_slots = self._generate_all_slots_for_day(doctor, target_date, day_schedule_str)
+        if not generated_slots:
+            return []
+
+        # Check existing slots for this doctor and date
         existing_slots = self.db.query(models.Appointment).filter(
             models.Appointment.DoctorId == doctor_id,
             models.Appointment.Date == target_date
         ).all()
 
-        # If no slots exist, create them
-        if not existing_slots:
-            generated_slots = self._generate_all_slots_for_day(doctor, target_date, day_schedule_str)
-            slot_number = 1
-            for slot_dt in generated_slots:
+        existing_by_time = {slot.SlotTime: slot for slot in existing_slots}
+
+        # Create any missing slots in database
+        added_new = False
+        for idx, slot_dt in enumerate(generated_slots, start=1):
+            s_time = slot_dt.time()
+            if s_time not in existing_by_time:
                 new_slot = models.Appointment(
+                    Id=generate_uuid(),
                     DoctorId=doctor_id,
                     PatientId=None,
                     Date=target_date,
-                    SlotTime=slot_dt.time(),
-                    Slot=slot_number,
+                    SlotTime=s_time,
+                    Slot=idx,
                     ConsultationType="Clinic",
                     Status="Available",
                     DoctorName=doctor.FullName,
                     PatientName=None
                 )
                 self.db.add(new_slot)
-                slot_number += 1
-            self.db.commit()
+                existing_by_time[s_time] = new_slot
+                added_new = True
 
-            # Re-query to get the created slots
-            existing_slots = self.db.query(models.Appointment).filter(
-                models.Appointment.DoctorId == doctor_id,
-                models.Appointment.Date == target_date
-            ).all()
+        if added_new:
+            try:
+                self.db.commit()
+            except Exception:
+                self.db.rollback()
 
-        # Return only available slots with slot number and timing
+        # Re-query all slots to ensure accurate state
+        all_day_slots = self.db.query(models.Appointment).filter(
+            models.Appointment.DoctorId == doctor_id,
+            models.Appointment.Date == target_date
+        ).all()
+
         available_slots = []
         now = datetime.now()
-        for slot in existing_slots:
+        for slot in all_day_slots:
             if slot.Status in ["Available", "Cancelled"]:
                 slot_dt = datetime.combine(target_date, slot.SlotTime)
-                if slot_dt > now:
+                if target_date > now.date() or (target_date == now.date() and slot_dt > now):
                     available_slots.append({
                         "Slot": slot.Slot,
                         "SlotTime": slot.SlotTime
                     })
 
-        available_slots.sort(key=lambda x: x["Slot"])
+        available_slots.sort(key=lambda x: (x["SlotTime"], x["Slot"]))
         return available_slots
 
     def _generate_all_slots_for_day(self, doctor, target_date: date, schedule_str: str):
+        if not schedule_str or schedule_str.strip().lower() in ['closed', 'off', 'none', '']:
+            return []
+
+        def _parse_time(t_str: str) -> Optional[time]:
+            t_str = t_str.strip()
+            for fmt in ("%H:%M:%S", "%H:%M", "%I:%M:%S %p", "%I:%M %p", "%I:%M%p", "%I %p"):
+                try:
+                    return datetime.strptime(t_str, fmt).time()
+                except ValueError:
+                    pass
+            try:
+                parts = t_str.split(":")
+                h = int(parts[0])
+                m = int(parts[1]) if len(parts) > 1 else 0
+                s = int(parts[2]) if len(parts) > 2 else 0
+                return time(h, m, s)
+            except Exception:
+                return None
+
         slots = []
         shifts = [s.strip() for s in schedule_str.replace(',', ';').split(';') if s.strip()]
+        duration = getattr(doctor, 'ConsultationDuration', 15) or 15
+
         for shift in shifts:
-            try:
-                start_str, end_str = shift.split('-')
-                start_parts = start_str.strip().split(":")
-                start_h, start_m = int(start_parts[0]), int(start_parts[1])
-                start_s = int(start_parts[2]) if len(start_parts) > 2 else 0
-
-                end_parts = end_str.strip().split(":")
-                end_h, end_m = int(end_parts[0]), int(end_parts[1])
-                end_s = int(end_parts[2]) if len(end_parts) > 2 else 0
-
-                dt_current = datetime.combine(target_date, time(start_h, start_m, start_s))
-                dt_end = datetime.combine(target_date, time(end_h, end_m, end_s))
-
-                duration = doctor.ConsultationDuration if doctor.ConsultationDuration else 15
-                while dt_current < dt_end:
-                    slots.append(dt_current)
-                    dt_current += timedelta(minutes=duration)
-            except Exception:
+            if shift.lower() in ['closed', 'off', 'none']:
                 continue
+            parts = re.split(r'\s*(?:-|–|—|\bto\b)\s*', shift, flags=re.IGNORECASE)
+            if len(parts) != 2:
+                continue
+            start_t = _parse_time(parts[0])
+            end_t = _parse_time(parts[1])
+            if not start_t or not end_t:
+                continue
+
+            dt_current = datetime.combine(target_date, start_t)
+            dt_end = datetime.combine(target_date, end_t)
+
+            while dt_current < dt_end:
+                slots.append(dt_current)
+                dt_current += timedelta(minutes=duration)
         return slots
 
     def create_manual_appointment(self, appointment_data: schemas.ManualAppointmentCreate) -> models.Appointment:
@@ -718,7 +761,7 @@ class AppointmentService:
                 g_oauth = GoogleOAuthService()
                 meet_link = g_oauth.create_event(
                     doctor_email=doctor.EmailAddress,
-                    summary=f"Video Consultation with {appointment_data.Name}",
+                    summary=f"Video Consultation with {appointment_data.PatientName}",
                     description=f"Reason: {appointment_data.Reason or 'Manual appointment'}",
                     start_time=dt_start.isoformat(),
                     end_time=dt_end.isoformat(),

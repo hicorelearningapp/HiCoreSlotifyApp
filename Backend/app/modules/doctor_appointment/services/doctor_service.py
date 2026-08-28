@@ -318,7 +318,7 @@ class DoctorService:
         ).all()
         total_lifetime_appts = len(lifetime_appts)
 
-        unique_patients = set(a.Id for a in lifetime_appts if a.Id)
+        unique_patients = set(a.PatientId for a in lifetime_appts if a.PatientId)
         total_lifetime_patients = len(unique_patients)
 
         all_payments = self.db.query(models.Payment).filter(
@@ -331,8 +331,8 @@ class DoctorService:
         for a in today_appts:
             today_list.append({
                 "AppointmentId": a.Id,
-                "PatientId": a.Id,
-                "PatientName": a.Name or "Patient",
+                "PatientId": a.PatientId or a.Id,
+                "PatientName": a.PatientName or (a.patient.PatientName if a.patient else "Patient"),
                 "SlotTime": str(a.SlotTime),
                 "ConsultationType": a.ConsultationType,
                 "Status": a.Status,
@@ -402,8 +402,9 @@ class DoctorService:
 
         patient_appt_counts = {}
         for a in all_appts:
-            if a.Id:
-                patient_appt_counts[a.Id] = patient_appt_counts.get(a.Id, 0) + 1
+            pid = a.PatientId or a.Id
+            if pid:
+                patient_appt_counts[pid] = patient_appt_counts.get(pid, 0) + 1
 
         total_patients = len(patient_appt_counts)
         returning_patients = sum(1 for count in patient_appt_counts.values() if count > 1)
@@ -449,7 +450,7 @@ class DoctorService:
             self.db.query(models.Appointment)
             .filter(
                 models.Appointment.DoctorId == doctor_id,
-                models.Appointment.Id.isnot(None),
+                models.Appointment.PatientId.isnot(None),
                 models.Appointment.Status != "Available"
             )
             .all()
@@ -457,9 +458,11 @@ class DoctorService:
 
         patient_appts = {}
         for appt in appointments:
-            if appt.Id not in patient_appts:
-                patient_appts[appt.Id] = []
-            patient_appts[appt.Id].append(appt)
+            pid = appt.PatientId
+            if pid:
+                if pid not in patient_appts:
+                    patient_appts[pid] = []
+                patient_appts[pid].append(appt)
 
         patient_items = []
         follow_up_due_count = 0

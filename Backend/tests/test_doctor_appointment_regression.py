@@ -89,7 +89,7 @@ def test_available_slots_and_manual_appointment():
 
 
 def test_admin_login():
-    response = client.post("/admin/login", json={"username": "admin", "password": "admin123"})
+    response = client.post("/admin/login", json={"username": "hicore", "password": "hicore"})
     assert response.status_code == 200
     assert response.json()["status"] == "success"
 
@@ -171,4 +171,26 @@ def test_appointment_booking_buffer_and_reschedule():
         resched_out = resched_resp.json()
         assert resched_out["Status"] == "Rescheduled"
         assert resched_out["SlotTime"] == reschedule_slot["SlotTime"]
+
+    # 7. Verify doctor dashboard endpoint works without errors
+    dash_resp = client.get(f"/doctors/{doctor_id}/dashboard")
+    assert dash_resp.status_code == 200
+    dash_data = dash_resp.json()
+    assert dash_data["DoctorId"] == doctor_id
+    assert "TodayAppointmentsList" in dash_data
+    assert "Weekly" in dash_data
+    assert "Monthly" in dash_data
+
+    # 8. Verify doctor analytics endpoint
+    analytics_resp = client.get(f"/doctors/{doctor_id}/analytics")
+    assert analytics_resp.status_code == 200
+    analytics_data = analytics_resp.json()
+    assert "CancellationRate" in analytics_data
+
+    # 9. Verify doctor patients endpoint
+    patients_resp = client.get(f"/doctors/{doctor_id}/patients")
+    assert patients_resp.status_code == 200
+    patients_data = patients_resp.json()
+    assert "Patients" in patients_data
+
 
