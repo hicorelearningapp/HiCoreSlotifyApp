@@ -13,8 +13,8 @@ class SelectVariantWorkflow:
         rows = []
         for variant in variants:
             rows.append({
-                "id": f"VAR_{variant.id}",
-                "title": variant.variant_name[:24]
+                "id": f"VAR_{variant.get('id')}",
+                "title": variant.get('variant_name', '')[:24]
             })
             
         sections = [
@@ -34,13 +34,13 @@ class SelectVariantWorkflow:
             
             # Fetch to get the price override
             variants = product_service.get_variants_by_product_id(product_id)
-            selected_variant = next((v for v in variants if v.id == variant_id), None)
+            selected_variant = next((v for v in variants if v.get('id') == variant_id), None)
             
             if selected_variant:
-                session.WorkflowData["variant_id"] = selected_variant.id
-                session.WorkflowData["variant_name"] = selected_variant.variant_name
-                if selected_variant.price:
-                    session.WorkflowData["product_price"] = selected_variant.price # Override price
+                session.WorkflowData["variant_id"] = selected_variant.get('id')
+                session.WorkflowData["variant_name"] = selected_variant.get('variant_name')
+                if selected_variant.get('price'):
+                    session.WorkflowData["product_price"] = selected_variant.get('price') # Override price
                 return WorkflowResult.completed()
                 
         return WorkflowResult.waiting(Reply("text", "Please select a variation from the list."))

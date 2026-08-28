@@ -35,9 +35,9 @@ class SelectQuantityWorkflow:
             
             if variant_id:
                 variants = product_service.get_variants_by_product_id(product_id)
-                selected_variant = next((v for v in variants if v.id == variant_id), None)
-                if selected_variant and quantity > selected_variant.stock_quantity:
-                    return WorkflowResult.waiting(Reply("text", f"Sorry, only {selected_variant.stock_quantity} units of this variation are currently in stock. Please enter a lower quantity."))
+                selected_variant = next((v for v in variants if v.get('id') == variant_id), None)
+                if selected_variant and quantity > selected_variant.get('stock_quantity', 0):
+                    return WorkflowResult.waiting(Reply("text", f"Sorry, only {selected_variant.get('stock_quantity')} units of this variation are currently in stock. Please enter a lower quantity."))
                     
             session.WorkflowData["quantity"] = quantity
             return WorkflowResult.completed()

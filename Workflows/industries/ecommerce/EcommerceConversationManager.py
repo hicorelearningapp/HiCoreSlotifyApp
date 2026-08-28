@@ -26,7 +26,7 @@ async def ecommerce_deep_link_interceptor(manager: BaseConversationManager, sess
         return False
 
     # Deep link matched a product! Find the sequence to jump to.
-    sequence_name = manager._resolve_order_sequence(session, product.id)
+    sequence_name = manager._resolve_order_sequence(session, product.get("id"))
     if not sequence_name:
         logging.getLogger("uvicorn").warning(
             "Product deep link received for business %s but no "
@@ -49,8 +49,8 @@ async def ecommerce_deep_link_interceptor(manager: BaseConversationManager, sess
     manager.Workflows = manager.Sequence.GetAll()
     session.state.SequenceName = sequence_name
     
-    session.WorkflowData["product_id"] = product.id
-    session.WorkflowData["category_id"] = product.category_id
+    session.WorkflowData["product_id"] = product.get("id")
+    session.WorkflowData["category"] = product.get("category")
 
     # Catalogues that carry variants start at the variant picker; the rest at quantity
     target_idx = manager.Sequence.IndexOfName("SelectVariantWorkflow")

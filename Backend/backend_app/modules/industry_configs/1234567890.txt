@@ -1,0 +1,58 @@
+{
+  "industry": "ecommerce",
+  "settings": {
+    "welcome_message_override": "Welcome to our E-commerce store! \ud83d\udecd\ufe0f",
+    "welcome_image_filename": null,
+    "business_hours": {
+      "open": "09:00",
+      "close": "17:00"
+    },
+    "appointment_interval_minutes": 10,
+    "max_bookings_per_slot": 1,
+    "customer_appointment_buffer_minutes": 60,
+    "language_selection_enabled": false,
+    "time_out_enabled": true,
+    "session_timeout_minutes": 10,
+    "nlu_enabled": false,
+    "order_handoff_sequence": "WhatsAppResumeSequence"
+  },
+  "user_type_mappings": {
+    "OWNER": "OwnerSequence",
+    "CUSTOMER": "CustomerOrderSequence"
+  },
+  "number": {
+    "owner": [
+      "9876543210"
+    ]
+  },
+  "sequences": {
+    "OrderingMainMenuWorkflow": [
+      "OrderingMainMenuWorkflow",
+      "ExitWorkflow"
+    ],
+    "CustomerOrderSequence": [
+      "GreetingMessageWorkflow",
+      "OrderingMainMenuWorkflow",
+      "SelectCategoryWorkflow",
+      "SelectProductWorkflow",
+      "SelectQuantityWorkflow",
+      "CollectNameWorkflow",
+      "CollectPhoneWorkflow",
+      "CollectAddressWorkflow",
+      "SelectDeliverySlotWorkflow",
+      "SelectPaymentWorkflow",
+      "ConfirmOrderWorkflow",
+      "ExitWorkflow"
+    ],
+    "WhatsAppResumeSequence": [
+      "SelectQuantityWorkflow",
+      "CollectNameWorkflow",
+      "CollectPhoneWorkflow",
+      "CollectAddressWorkflow",
+      "SelectDeliverySlotWorkflow",
+      "SelectPaymentWorkflow",
+      "ConfirmOrderWorkflow",
+      "ExitWorkflow"
+    ]
+  }
+}

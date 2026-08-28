@@ -23,7 +23,7 @@ class SelectProductWorkflow:
             
         options = []
         for p in paginated_products:
-            options.append({"id": f"PROD_{p.id}", "title": p.name[:24], "description": f"₹{p.price}"})
+            options.append({"id": f"PROD_{p.get('id')}", "title": p.get('name', '')[:24], "description": f"₹{p.get('price', 0)}"})
             
         if has_more:
             options.append({"id": "SHOW_MORE_PRODUCTS", "title": "Show more items ➡️", "description": "Tap to see more"})

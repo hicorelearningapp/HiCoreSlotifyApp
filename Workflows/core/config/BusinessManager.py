@@ -41,7 +41,22 @@ class BusinessManager:
             custom_config = api_client.get_business_config(business_phone)
             if custom_config:
                 return cls._deep_merge(default_config, custom_config)
-        return default_config
+            
+            # Local fallback for development
+            local_fallback_path = os.path.join(
+                os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+                "industry_configs",
+                f"{business_phone}.txt"
+            )
+            if os.path.exists(local_fallback_path):
+                try:
+                    with open(local_fallback_path, "r", encoding="utf-8") as f:
+                        local_config = json.load(f)
+                    return cls._deep_merge(default_config, local_config)
+                except Exception as e:
+                    print(f"Failed to load local fallback config {business_phone}.txt: {e}")
+                    
+        return default_config or {}
 
     @classmethod
     def get_industry(cls, business_phone: str | None = None) -> str:

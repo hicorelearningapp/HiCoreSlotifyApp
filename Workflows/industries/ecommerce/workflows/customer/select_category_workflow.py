@@ -7,7 +7,7 @@ class SelectCategoryWorkflow:
         categories = product_service.get_all_categories(store_id)
         options = []
         for cat in categories:
-            options.append({"id": f"CAT_{cat.id}", "title": cat.name[:24], "description": cat.description or ""})
+            options.append({"id": f"CAT_{cat.get('id')}", "title": cat.get('name', '')[:24], "description": cat.get('description') or ""})
             
         if not options:
             session.state.WorkflowIndex = 0
