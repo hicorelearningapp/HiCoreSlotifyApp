@@ -1,64 +1,83 @@
-from backend_app.modules.ecommerce.models.order import Order, OrderItem
+import datetime
+import uuid
+from typing import List, Optional
 from sqlalchemy.orm import Session
-from backend_app.core.database import db_session
+from backend_app.modules.ecommerce.models.order import Order, OrderItem
+from backend_app.modules.ecommerce.schemas.order import OrderCreate
+from backend_app.modules.ecommerce.models.customer import EcommerceCustomer
+from backend_app.modules.ecommerce.models.product import Product
 
 class OrderService:
-    @staticmethod
-    def create_order(db: Session, customer_id: int, product_id: int, quantity: int, total: float, variant_id: int | None = None, source_channel: str = "whatsapp") -> Order:
+    def __init__(self, db: Session):
+        self.db = db
+
+    def create_order(self, data: OrderCreate) -> Order:
+        # Find customer by phone
+        customer = self.db.query(EcommerceCustomer).filter(EcommerceCustomer.PhoneNumber == data.customer_phone).first()
+        customer_id = customer.CustomerId if customer else None
+
+        subtotal = sum(item.quantity * item.unit_price for item in data.items)
+        shipping_fee = 0.0
+        discount = 0.0
+        total = subtotal + shipping_fee - discount
+
+        order_number = f"ORD-{datetime.datetime.utcnow().strftime('%Y%m%d%H%M%S')}-{str(uuid.uuid4())[:4]}"
+
         order = Order(
+            order_number=order_number,
             customer_id=customer_id,
+            customer_name=data.customer_name,
+            customer_phone=data.customer_phone,
+            customer_email=data.customer_email,
+            shipping_address=data.shipping_address,
+            city=data.city,
+            state=data.state,
+            pincode=data.pincode,
+            payment_method=data.payment_method,
+            subtotal=subtotal,
+            shipping_fee=shipping_fee,
+            discount=discount,
             total=total,
-            source_channel=source_channel
+            notes=data.notes,
+            store_id=data.store_id
         )
-        db.add(order)
-        db.flush() # flush to get order.id
+        self.db.add(order)
+        self.db.flush()
 
-        order_item = OrderItem(
-            order_id=order.id,
-            product_id=product_id,
-            variant_id=variant_id,
-            quantity=quantity,
-            unit_price=total/quantity if quantity > 0 else 0
-        )
-        db.add(order_item)
-        
-        # Deduct stock if a variant was selected
-        if variant_id:
-            from backend_app.modules.ecommerce.models.product import ProductVariant
-            variant = db.query(ProductVariant).filter(ProductVariant.id == variant_id).first()
-            if variant and variant.stock_quantity >= quantity:
-                variant.stock_quantity -= quantity
-                
-        db.commit()
-        db.refresh(order)
+        for item_data in data.items:
+            order_item = OrderItem(
+                order_id=order.id,
+                product_id=item_data.product_id,
+                quantity=item_data.quantity,
+                unit_price=item_data.unit_price,
+                total_price=item_data.quantity * item_data.unit_price
+            )
+            self.db.add(order_item)
+            
+            # Deduct stock
+            product = self.db.query(Product).filter(Product.id == item_data.product_id).first()
+            if product and product.stock_quantity >= item_data.quantity:
+                product.stock_quantity -= item_data.quantity
+
+        self.db.commit()
+        self.db.refresh(order)
         return order
 
-    @staticmethod
-    def update_order_details(db: Session, order_id: int, delivery_slot: str, payment_method: str):
-        order = db.query(Order).filter(Order.id == order_id).first()
-        if order:
-            order.delivery_slot = delivery_slot
-            order.payment_method = payment_method
-            order.status = "Confirmed"
-            db.commit()
-            db.refresh(order)
-        return order
+    def list_orders(self, customer_phone: Optional[str] = None, skip: int = 0, limit: int = 100) -> List[Order]:
+        query = self.db.query(Order)
+        if customer_phone:
+            query = query.filter(Order.customer_phone == customer_phone)
+        return query.offset(skip).limit(limit).all()
 
-    @staticmethod
-    def update_order_status(db: Session, order_id: int, status: str):
-        order = db.query(Order).filter(Order.id == order_id).first()
+    def get_order(self, order_id: int) -> Order:
+        return self.db.query(Order).filter(Order.id == order_id).first()
+
+    def update_status(self, order_id: int, status: str, payment_status: Optional[str] = None) -> Order:
+        order = self.db.query(Order).filter(Order.id == order_id).first()
         if order:
             order.status = status
-            db.commit()
-            db.refresh(order)
+            if payment_status:
+                order.payment_status = payment_status
+            self.db.commit()
+            self.db.refresh(order)
         return order
-
-    @staticmethod
-    def get_order(db: Session, order_id: int):
-        return db.query(Order).filter(Order.id == order_id).first()
-
-    @staticmethod
-    def get_pending_orders(db: Session):
-        return db.query(Order).filter(Order.status.in_(["Confirmed", "Preparing"])).all()
-
-order_service = OrderService()

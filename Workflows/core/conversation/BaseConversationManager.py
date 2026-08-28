@@ -5,6 +5,7 @@ from core.services.channel_messenger import channel_messenger as ChannelMessenge
 from core.Sequence import Sequence
 from core.workflows.ExitWorkflow import ExitWorkflow
 from core.services.message_logger import MessageLogger
+from core.database import db_session
 import asyncio
 import logging
 from datetime import datetime
@@ -50,23 +51,24 @@ class BaseConversationManager:
           product_order_sequences -- optional {product id: sequence} overrides
           order_handoff_sequence  -- the fallback for everything else
         """
+
         per_product = SequenceFactory.get_setting(
-            db_session, session.state.BusinessPhoneNumber, "product_order_sequences", {}
+            session.state.BusinessPhoneNumber, "product_order_sequences", {}
         ) or {}
+
         mapped = per_product.get(str(product_id))
         if mapped:
             return mapped
         return SequenceFactory.get_setting(
-            db_session, session.state.BusinessPhoneNumber, "order_handoff_sequence", ""
+            session.state.BusinessPhoneNumber, "order_handoff_sequence", ""
         )
-
     # execute_industry_handoff_jump removed, logic migrated to ecommerce interceptor
 
     async def process(self, customer_phone: str, message: Message | None):
         logger = MessageLogger()
         logger.log_received(customer_phone, message.Text or message.InteractiveId)
         business_phone = message.BusinessPhoneNumber if message else None
-        session = SessionService.load_session(customer_phone, business_phone)
+        session = SessionService().load_session(customer_phone, business_phone)
         if message and message.BusinessPhoneNumber:
             session.state.BusinessPhoneNumber = message.BusinessPhoneNumber
             
@@ -77,7 +79,7 @@ class BaseConversationManager:
         if message and message.Text and message.Text.strip().lower() in ["hi", "hello", "menu", "reset", "start", "0"]:
             SessionService().reset_session(customer_phone, business_phone)
             business_phone = message.BusinessPhoneNumber if message else None
-            session = SessionService.load_session(customer_phone, business_phone)
+            session = SessionService().load_session(customer_phone, business_phone)
             if message and message.BusinessPhoneNumber:
                 session.state.BusinessPhoneNumber = message.BusinessPhoneNumber
             message = None # Clear message to start fresh at index 0
@@ -98,7 +100,7 @@ class BaseConversationManager:
                     session.current_workflow = "ExitWorkflow"
                     session.workflow_initialized = False
                     message = None
-                    SessionService.save_session(session)
+                    SessionService().save_session(session)
             except ValueError:
                 pass
                 
@@ -106,7 +108,7 @@ class BaseConversationManager:
             self.Sequence = SequenceFactory.Get(session.state.SequenceName, session.state.BusinessPhoneNumber)
         except ValueError:
             SessionService().reset_session(customer_phone, business_phone)
-            session = SessionService.load_session(customer_phone, business_phone)
+            session = SessionService().load_session(customer_phone, business_phone)
             self.Sequence = SequenceFactory.Get(session.state.SequenceName, session.state.BusinessPhoneNumber)
             
         self.Workflows = self.Sequence.GetAll()
@@ -115,15 +117,6 @@ class BaseConversationManager:
 
         self.CurrentWorkflowIndex = session.state.WorkflowIndex
         
-        # NLU Interception Gate
-        # if message and message.Text and NLU_ENABLED and self._is_nlu_eligible(session):
-        #     handled = NLRouter().dispatch(
-        #         customer_phone,
-        #         message={"type": "text", "text": {"body": message.Text}},
-        #         session=session
-        #     )
-        #     if handled:
-        #         return  # NLU fully handled this message, do not continue
 
         while True:
             seq = SequenceFactory.Get(session.state.SequenceName, session.state.BusinessPhoneNumber)
@@ -148,7 +141,7 @@ class BaseConversationManager:
 
                 if result.status == WorkflowStatus.WAITING:
                     session.workflow_initialized = True
-                    SessionService.save_session(session)
+                    SessionService().save_session(session)
                     break
                 elif result.status == WorkflowStatus.FINISHED:
                     SessionService().reset_session(customer_phone, session.state.BusinessPhoneNumber)
@@ -170,7 +163,7 @@ class BaseConversationManager:
                         await asyncio.sleep(1.5)
 
                 if result.status == WorkflowStatus.WAITING:
-                    SessionService.save_session(session)
+                    SessionService().save_session(session)
                     break
                 elif result.status == WorkflowStatus.FINISHED:
                     SessionService().reset_session(customer_phone, session.state.BusinessPhoneNumber)
@@ -201,7 +194,7 @@ class BaseConversationManager:
 
                 session.workflow_initialized = False
                 message = None
-                SessionService.save_session(session)
+                SessionService().save_session(session)
                 print(f"[DEBUG] [{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Looping to next workflow: {session.current_workflow}")
                 continue
 
@@ -209,7 +202,7 @@ class BaseConversationManager:
                 SessionService().reset_session(customer_phone, session.state.BusinessPhoneNumber)
                 break
 
-            SessionService.save_session(session)
+            SessionService().save_session(session)
             break 
 
     def move_to_next_workflow(self, session) -> bool:

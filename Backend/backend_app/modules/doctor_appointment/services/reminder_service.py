@@ -74,7 +74,7 @@ class ReminderService:
                                         
                                     doctor_phone = appointment.doctor.MobileNumber if appointment.doctor else None
                                     if doctor_phone:
-                                        patient_name = appointment.Name or "a patient"
+                                        patient_name = appointment.PatientName or "a patient"
                                         doc_msg = f"🔔 *Appointment Reminder*\n\nYou have an upcoming {appointment.ConsultationType} consultation with {patient_name} in {time_str}.\n\nDate: {appointment.Date}\nTime: {appointment.SlotTime.strftime('%I:%M %p')}"
                                         if appointment.ConsultationType == "Video" and appointment.MeetingLink:
                                             doc_msg += f"\n\nMeeting Link: {appointment.MeetingLink}"
@@ -100,7 +100,7 @@ class ReminderService:
                             
                         doctor_phone = appointment.doctor.MobileNumber if appointment.doctor else None
                         if doctor_phone:
-                            patient_name = appointment.Name or "a patient"
+                            patient_name = appointment.PatientName or "a patient"
                             doc_msg = f"🔔 *Appointment Reminder*\n\nYou have an upcoming {appointment.ConsultationType} consultation with {patient_name} in {hours_before} hours.\n\nDate: {appointment.Date}\nTime: {appointment.SlotTime.strftime('%I:%M %p')}"
                             if appointment.ConsultationType == "Video" and appointment.MeetingLink:
                                 doc_msg += f"\n\nMeeting Link: {appointment.MeetingLink}"

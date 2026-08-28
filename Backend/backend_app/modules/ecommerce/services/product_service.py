@@ -30,7 +30,14 @@ class ProductService:
         
     @staticmethod
     def get_products_by_category(db: Session, category_id: int):
-        return db.query(Product).filter(Product.category_id == category_id, Product.active == True).all()
+        category = db.query(ProductCategory).filter(ProductCategory.id == category_id).first()
+        if not category:
+            return []
+        return db.query(Product).filter(
+            Product.category == category.name,
+            Product.store_id == category.store_id,
+            Product.active == True
+        ).all()
 
     @staticmethod
     def get_product_by_id(db: Session, product_id: int):
@@ -109,11 +116,11 @@ class ProductService:
 
     @staticmethod
     def get_variants_by_product_id(db: Session, product_id: int):
-        from backend_app.modules.ecommerce.models.product import ProductVariant
-        return db.query(ProductVariant).filter(
-            ProductVariant.product_id == product_id,
-            ProductVariant.active == True,
-            ProductVariant.stock_quantity > 0
-        ).all()
+        product = db.query(Product).filter(Product.id == product_id).first()
+        if not product or not product.product_data:
+            return []
+            
+        variants = product.product_data.get("variants", [])
+        return [v for v in variants if v.get("active", True) and v.get("stock_quantity", 0) > 0]
 
 product_service = ProductService()

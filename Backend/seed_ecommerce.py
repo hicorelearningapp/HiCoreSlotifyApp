@@ -38,7 +38,13 @@ def seed_data():
         price=19.99, 
         stock_quantity=100, 
         store_id=store_id, 
-        active=True
+        active=True,
+        product_data={
+            "variants": [
+                {"id": 1, "variant_name": "Small / Red", "price": 19.99, "stock_quantity": 20, "active": True},
+                {"id": 2, "variant_name": "Large / Red", "price": 24.99, "stock_quantity": 10, "active": True}
+            ]
+        }
     )
     
     db.add(prod1)

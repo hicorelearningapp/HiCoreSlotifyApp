@@ -13,10 +13,23 @@ async def ecommerce_deep_link_interceptor(manager: BaseConversationManager, sess
     if not (message and message.Text and not session.workflow_initialized):
         return False
 
-    from core.api_client import api_client as handoff_service
     from core.api_client import api_client as product_service
+    import re
+    
+    def parse_order_text(text: str) -> dict | None:
+        if not text: return None
+        text = text.strip()
+        match = re.match(r"Hi!\s*I'd like to order\s+(.+?)\s*\(id:(\d+),\s*ref:IG(\d+)\)", text, re.IGNORECASE)
+        if match: return {"source": "instagram", "product_name": match.group(1).strip(), "product_id": match.group(2), "ig_user_id": match.group(3)}
+        match = re.match(r"Hi!\s*I'd like to order\s+(.+?)\s*\(ref:IG(\d+)\)", text, re.IGNORECASE)
+        if match: return {"source": "instagram", "product_name": match.group(1).strip(), "ig_user_id": match.group(2)}
+        match = re.match(r"Hi!\s*I'd like to order\s+(.+?)\s*\(ref:QR(\d+)\)", text, re.IGNORECASE)
+        if match: return {"source": "qr_code", "product_name": match.group(1).strip(), "product_id": match.group(2)}
+        match = re.match(r"ORDER:(.+?):FROM_IG:(.+)", text, re.IGNORECASE)
+        if match: return {"source": "instagram", "product_name": match.group(1).strip(), "ig_user_id": match.group(2).strip()}
+        return None
 
-    handoff_data = handoff_service.parse_order_text(message.Text)
+    handoff_data = parse_order_text(message.Text)
     if not (handoff_data and "product_name" in handoff_data):
         return False
 

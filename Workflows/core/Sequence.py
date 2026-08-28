@@ -1,4 +1,5 @@
 from typing import List, Type
+from core.database import db_session
 
 class Sequence:
     def __init__(

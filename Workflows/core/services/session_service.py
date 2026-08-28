@@ -11,6 +11,8 @@ from core.models.workflow_models import SessionState
 from core.database import db_session
 from core.services.whatsapp_service import whatsapp
 from core.services.message_logger import MessageLogger
+from core.config.BusinessManager import BusinessManager
+from core.IdentifyService import IdentifyServiceFactory
 
 
 class SessionService:
@@ -55,15 +57,11 @@ class SessionService:
             session_obj = self.db.query(models.ConversationSessionDB).filter(models.ConversationSessionDB.PhoneNumber == identifier).first()
         return session_obj
 
-    @staticmethod
-    def load_session(phone_number: str, business_phone_number: Optional[str] = None) -> DomainConversationSession:
-        session_svc = SessionService()
+    def load_session(self, phone_number: str, business_phone_number: Optional[str] = None) -> DomainConversationSession:
         biz_key = business_phone_number or ""
-        session = session_svc.get_session(phone_number, biz_key)
+        session = self.get_session(phone_number, biz_key)
 
         if not session or not session.StateData:
-            from core.IdentifyService import IdentifyServiceFactory
-            from core.config.BusinessManager import BusinessManager
 
             config = (
                 BusinessManager.get_config(business_phone_number)
@@ -75,7 +73,6 @@ class SessionService:
             biz_phone = business_phone_number or ""
             identify_svc = IdentifyServiceFactory.get_service(industry)
             user = identify_svc.identify_user(phone_number, biz_phone)
-            from core.Sequence import SequenceFactory
             sequence_name = SequenceFactory.GetSequenceName(user.UserType, biz_phone)
             if not sequence_name:
                 # The business config has no mapping for this user type. The
@@ -143,18 +140,17 @@ class SessionService:
         self.db.refresh(session_obj)
         return session_obj
 
-    @staticmethod
-    def save_session(domain_session: DomainConversationSession):
+    def save_session(self, domain_session: DomainConversationSession):
         """Serialises SessionState back to a dict and saves to DB."""
-        session_svc = SessionService()
-        session_obj = session_svc.get_session(
+        from core.Sequence import SequenceFactory
+        session_obj = self.get_session(
             domain_session.PhoneNumber, domain_session.state.BusinessPhoneNumber
         )
         if not session_obj:
             return None
         session_obj.StateData = domain_session.state.model_dump()
-        session_svc.db.commit()
-        session_svc.db.refresh(session_obj)
+        self.db.commit()
+        self.db.refresh(session_obj)
         return session_obj
 
     def reset_session(self, phone_number: str, business_phone_number: Optional[str] = None) -> int:
@@ -205,7 +201,6 @@ class SessionService:
 
             business_phone = data.get("BusinessPhoneNumber", "")
 
-            from core.Sequence import SequenceFactory
             time_out_enabled = SequenceFactory.get_setting(business_phone, "time_out_enabled", True)
             if not time_out_enabled:
                 continue
