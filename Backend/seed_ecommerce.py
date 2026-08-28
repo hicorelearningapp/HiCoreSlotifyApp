@@ -2,11 +2,11 @@ import sys
 import os
 
 # Add Backend to path so we can import modules
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "backend_app")))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "app")))
 
-from backend_app.core.database import SessionLocal
-from backend_app.modules.ecommerce.models.category import Category
-from backend_app.modules.ecommerce.models.product import Product
+from app.core.database import SessionLocal
+from app.modules.ecommerce.models.category import Category
+from app.modules.ecommerce.models.product import Product
 
 def seed_data():
     db = SessionLocal()

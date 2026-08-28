@@ -2,7 +2,7 @@ import pytest
 import uuid
 from fastapi.testclient import TestClient
 from datetime import date, timedelta
-from backend_app.main import app
+from app.main import app
 
 client = TestClient(app)
 

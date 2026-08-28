@@ -1,10 +1,10 @@
 import sys
 import os
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "backend_app")))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "app")))
 
-from backend_app.core.database import SessionLocal
-from backend_app.modules.ecommerce.models.product import Product
+from app.core.database import SessionLocal
+from app.modules.ecommerce.models.product import Product
 
 def update_product_variants():
     db = SessionLocal()

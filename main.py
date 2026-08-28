@@ -13,15 +13,14 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
 # Setup DB Connection
-from backend_app.core.database import engine, Base, db_session, request_context, ensure_dynamic_schemas
+from app.core.database import engine, Base, db_session, request_context
 
 # Import models so they are registered with Base.metadata before create_all is called
 import core.models  # type: ignore
-import backend_app.modules.doctor_appointment.models  # type: ignore
-import backend_app.modules.ecommerce.models  # type: ignore
+import app.modules.doctor_appointment.models  # type: ignore
+import app.modules.ecommerce.models  # type: ignore
 
 Base.metadata.create_all(bind=engine)
-ensure_dynamic_schemas(engine)
 
 # Import factories to ensure workflows are registered
 import industries.healthcare.HealthcareWorkflowFactory 
@@ -32,10 +31,10 @@ import industries.ecommerce.EcommerceWorkflowFactory
 from core.routers import whatsapp_webhook_router 
 
 # Backend API routers
-from backend_app.common.router import router as common_router  # type: ignore
-from backend_app.modules.doctor_appointment.routers import router as doctor_appointment_router  # type: ignore
-from backend_app.modules.ecommerce.routers import router as ecommerce_router  # type: ignore
-from backend_app.modules.doctor_appointment.services import StatusTypeService, ConsultationTypeService  # type: ignore
+from app.common.router import router as common_router  # type: ignore
+from app.modules.doctor_appointment.routers import router as doctor_appointment_router  # type: ignore
+from app.modules.ecommerce.routers import router as ecommerce_router  # type: ignore
+from app.modules.doctor_appointment.services import StatusTypeService, ConsultationTypeService  # type: ignore
 
 app = FastAPI(
     title="HiCore Slotify - Unified Server",
@@ -49,7 +48,7 @@ os.makedirs(workflows_industries_dir, exist_ok=True)
 app.mount("/industries", StaticFiles(directory=workflows_industries_dir), name="industries")
 
 # Serve backend images
-backend_images_dir = os.path.join(os.path.dirname(__file__), "Backend", "backend_app", "images")
+backend_images_dir = os.path.join(os.path.dirname(__file__), "Backend", "app", "images")
 os.makedirs(backend_images_dir, exist_ok=True)
 app.mount("/api_images", StaticFiles(directory=backend_images_dir), name="api_images")
 
@@ -102,7 +101,7 @@ async def cleanup_sessions_task():
         except Exception as e:
             logging.getLogger("uvicorn").error(f"Error in session cleanup task: {e}")
 
-from backend_app.modules.doctor_appointment.services.reminder_service import ReminderService
+from app.modules.doctor_appointment.services.reminder_service import ReminderService
 async def appointment_reminders_task():
     while True:
         try:
@@ -113,7 +112,7 @@ async def appointment_reminders_task():
         except Exception as e:
             logging.getLogger("uvicorn").error(f"Error processing reminders: {e}")
 
-from backend_app.modules.doctor_appointment.services.review_service import ReviewService
+from app.modules.doctor_appointment.services.review_service import ReviewService
 async def appointment_reviews_task():
     while True:
         try:
