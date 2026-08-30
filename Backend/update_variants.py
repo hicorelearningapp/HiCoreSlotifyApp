@@ -11,7 +11,8 @@ def update_product_variants():
     
     prod = db.query(Product).filter(Product.name == "T-Shirt").first()
     if prod:
-        prod.product_data = {
+        from typing import cast, Any
+        prod.product_data = cast(Any, {
             "options": [
                 {"name": "Color", "values": ["Red", "Blue"]},
                 {"name": "Size", "values": ["Small", "Large"]}
@@ -21,7 +22,7 @@ def update_product_variants():
                 {"id": 2, "options": {"Color": "Red", "Size": "Large"}, "price": 24.99, "stock_quantity": 10, "active": True},
                 {"id": 3, "options": {"Color": "Blue", "Size": "Small"}, "price": 19.99, "stock_quantity": 5, "active": True}
             ]
-        }
+        })
         db.commit()
         print("Updated T-Shirt product with multi-dimensional variants.")
     else:
