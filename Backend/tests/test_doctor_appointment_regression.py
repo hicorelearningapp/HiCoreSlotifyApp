@@ -54,20 +54,21 @@ def test_available_slots_and_manual_appointment():
     doc_out = create_test_doctor()
     doctor_id = doc_out["Id"]
 
-    # Check available slots
-    target_date = date.today().isoformat()
-    slots_resp = client.get(f"/doctors/{doctor_id}/available-slots?target_date={target_date}")
+    # Check available slots for tomorrow
+    tomorrow = (date.today() + timedelta(days=1)).isoformat()
+    slots_resp = client.get(f"/doctors/{doctor_id}/available-slots?target_date={tomorrow}")
     assert slots_resp.status_code == 200
     slots = slots_resp.json()
     assert isinstance(slots, list)
+    assert len(slots) > 0
 
-    # Book a manual appointment
+    # Book a manual appointment for tomorrow
     unique_phone = f"9199{uuid.uuid4().hex[:8]}"
     apt_payload = {
         "DoctorId": doctor_id,
         "PatientName": "Test Patient",
         "PhoneNumber": unique_phone,
-        "Date": target_date,
+        "Date": tomorrow,
         "Time": "10:00:00",
         "SlotTime": "10:00:00",
         "ConsultationType": "Clinic",
@@ -80,8 +81,15 @@ def test_available_slots_and_manual_appointment():
     assert apt_out["PatientName"] == "Test Patient"
     assert apt_out["Status"] == "Booked"
 
+    # Re-check available slots - remaining slots should still be present
+    recheck_resp = client.get(f"/doctors/{doctor_id}/available-slots?target_date={tomorrow}")
+    assert recheck_resp.status_code == 200
+    updated_slots = recheck_resp.json()
+    assert len(updated_slots) == len(slots) - 1
+
+
 def test_admin_login():
-    response = client.post("/admin/login", json={"username": "admin", "password": "admin123"})
+    response = client.post("/admin/login", json={"username": "hicore", "password": "hicore"})
     assert response.status_code == 200
     assert response.json()["status"] == "success"
 
@@ -92,7 +100,7 @@ def test_appointment_booking_buffer_and_reschedule():
     # Connect WhatsApp business status first
     wa_resp = client.patch(f"/doctors/{doctor_id}/whatsapp-status", json={"WhatsAppBusinessStatus": "Connected"})
     assert wa_resp.status_code == 200
-    approve_resp = client.post(f"/admin/doctors/{doctor_id}/approve", headers={"X-Admin-Key": "admin_access_token_2026"})
+    approve_resp = client.post(f"/admin/doctors/{doctor_id}/approve", headers={"X-Admin-Key": "hicore2026"})
     assert approve_resp.status_code == 200
 
     # 2. Create customer / patient
@@ -163,4 +171,26 @@ def test_appointment_booking_buffer_and_reschedule():
         resched_out = resched_resp.json()
         assert resched_out["Status"] == "Rescheduled"
         assert resched_out["SlotTime"] == reschedule_slot["SlotTime"]
+
+    # 7. Verify doctor dashboard endpoint works without errors
+    dash_resp = client.get(f"/doctors/{doctor_id}/dashboard")
+    assert dash_resp.status_code == 200
+    dash_data = dash_resp.json()
+    assert dash_data["DoctorId"] == doctor_id
+    assert "TodayAppointmentsList" in dash_data
+    assert "Weekly" in dash_data
+    assert "Monthly" in dash_data
+
+    # 8. Verify doctor analytics endpoint
+    analytics_resp = client.get(f"/doctors/{doctor_id}/analytics")
+    assert analytics_resp.status_code == 200
+    analytics_data = analytics_resp.json()
+    assert "CancellationRate" in analytics_data
+
+    # 9. Verify doctor patients endpoint
+    patients_resp = client.get(f"/doctors/{doctor_id}/patients")
+    assert patients_resp.status_code == 200
+    patients_data = patients_resp.json()
+    assert "Patients" in patients_data
+
 

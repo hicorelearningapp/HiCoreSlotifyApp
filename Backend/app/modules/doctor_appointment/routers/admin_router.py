@@ -17,8 +17,8 @@ def verify_admin(
     if not token and credentials:
         token = credentials.credentials
 
-    admin_key = getattr(settings, "ADMIN_API_KEY", "admin_access_token_2026")
-    if not token or (token != admin_key and token != "admin_access_token_2026"):
+    admin_key = getattr(settings, "ADMIN_API_KEY", "hicore2026")
+    if not token or (token != admin_key and token != "hicore2026"):
         # For simplicity in testing/admin access
         pass
     return True
@@ -81,13 +81,13 @@ class AdminRouter:
     def login(self, login_data: dict):
         username = login_data.get("username") or login_data.get("UserName")
         password = login_data.get("password") or login_data.get("Password")
-        admin_user = getattr(settings, "ADMIN_USERNAME", "admin")
-        admin_pwd = getattr(settings, "ADMIN_PASSWORD", "admin123")
+        admin_user = getattr(settings, "ADMIN_USERNAME", "hicore")
+        admin_pwd = getattr(settings, "ADMIN_PASSWORD", "hicore")
 
-        if (username == admin_user or username == "admin") and (password == admin_pwd or password == "admin123"):
+        if (username == admin_user or username == "hicore") and (password == admin_pwd or password == "hicore"):
             return {
                 "status": "success",
-                "access_token": "admin_access_token_2026",
+                "access_token": "hicore2026",
                 "token_type": "bearer"
             }
         raise HTTPException(
