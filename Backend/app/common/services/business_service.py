@@ -50,18 +50,13 @@ class BusinessService:
         return new_business
 
     def login_business(self, login_data: schemas.BusinessLogin) -> dict:
-        identifier = login_data.UserName or login_data.EmailAddress
-        if not identifier:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Either UserName or EmailAddress must be provided for login."
-            )
+        req_ind = login_data.IndustryType.value if hasattr(login_data.IndustryType, "value") else str(login_data.IndustryType)
+        clean_req = req_ind.lower().replace("_", "").replace("-", "").replace(" ", "")
 
         business = (
             self.db.query(models.Business)
             .filter(
-                (models.Business.UserName == identifier)
-                | (models.Business.EmailAddress == identifier)
+                models.Business.UserName == login_data.UserName
             )
             .first()
         )
@@ -69,7 +64,14 @@ class BusinessService:
         if not business or not verify_password(login_data.Password, business.Password):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid username/email or password."
+                detail="Invalid username, industry type, or password."
+            )
+
+        biz_ind = (business.IndustryType or "").lower().replace("_", "").replace("-", "").replace(" ", "")
+        if biz_ind != clean_req:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid username, industry type, or password."
             )
 
         token = create_access_token({
@@ -104,9 +106,13 @@ class BusinessService:
     ) -> List[models.Business]:
         query = self.db.query(models.Business)
         if industry_type:
-            query = query.filter(models.Business.IndustryType == industry_type)
+            clean_ind = str(industry_type).lower().replace("_", "").replace("-", "").replace(" ", "")
+            query = query.filter(
+                (models.Business.IndustryType == industry_type)
+                | (models.Business.IndustryType.ilike(f"%{clean_ind}%"))
+            )
         if status:
-            query = query.filter(models.Business.Status == status)
+            query = query.filter(models.Business.Status.ilike(status))
         return query.order_by(models.Business.CreatedAt.desc()).offset(skip).limit(limit).all()
 
     def update_business(self, business_id: str, data: schemas.BusinessUpdate) -> models.Business:
@@ -116,12 +122,12 @@ class BusinessService:
         if "Password" in update_dict and update_dict["Password"]:
             update_dict["Password"] = hash_password(update_dict["Password"])
 
-        # If IndustryData is updated, merge or replace
-        if "IndustryData" in update_dict and update_dict["IndustryData"] is not None:
-            current_data = business.IndustryData or {}
-            if isinstance(current_data, dict) and isinstance(update_dict["IndustryData"], dict):
-                merged = {**current_data, **update_dict["IndustryData"]}
-                update_dict["IndustryData"] = merged
+        # If BusinessData is updated, merge or replace
+        if "BusinessData" in update_dict and update_dict["BusinessData"] is not None:
+            current_data = business.BusinessData or {}
+            if isinstance(current_data, dict) and isinstance(update_dict["BusinessData"], dict):
+                merged = {**current_data, **update_dict["BusinessData"]}
+                update_dict["BusinessData"] = merged
 
         for field, val in update_dict.items():
             setattr(business, field, val)

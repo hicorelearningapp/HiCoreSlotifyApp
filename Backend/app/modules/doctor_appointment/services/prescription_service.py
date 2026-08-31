@@ -3,6 +3,7 @@ import os
 import uuid
 import shutil
 from typing import List, Optional
+from app.core.config import settings
 from app.core.database import db_session
 import app.modules.doctor_appointment.models as models
 import app.modules.doctor_appointment.schemas as schemas
@@ -12,7 +13,7 @@ class PrescriptionService:
         self.db = db_session
 
     def save_file_bytes(self, file) -> str:
-        images_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "images", "prescriptions")
+        images_dir = os.path.join(settings.IMAGES_DIR, "prescriptions")
         os.makedirs(images_dir, exist_ok=True)
 
         ext = os.path.splitext(file.filename)[1] if file.filename else ".pdf"
@@ -101,11 +102,7 @@ class PrescriptionService:
         if not prescription:
             return None
 
-        import os
-        import uuid
-        import shutil
-
-        images_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "images", "prescriptions")
+        images_dir = os.path.join(settings.IMAGES_DIR, "prescriptions")
         os.makedirs(images_dir, exist_ok=True)
 
         ext = os.path.splitext(file.filename)[1] if file.filename else ".pdf"

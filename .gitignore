@@ -82,3 +82,4 @@ scripts/
 # Legacy pre-split monolith, kept locally for reference only.
 # Holds a real .env and appointments.db, so never commit it.
 hicore_platform/
+Backend/images/

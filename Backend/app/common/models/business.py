@@ -10,10 +10,11 @@ class Business(Base):
     Id = Column(String(36), primary_key=True, default=generate_uuid, index=True)
     BusinessName = Column(String(200), nullable=False)
     IndustryType = Column(String(100), nullable=False, index=True)  # e.g., 'doctor_appointment', 'ecommerce', 'hospitality', 'fitness', 'salon', etc.
-    OwnerName = Column(String(150), nullable=False)
+    FullName = Column(String(150), nullable=False)
     EmailAddress = Column(String(150), unique=True, nullable=False, index=True)
     MobileNumber = Column(String(20), nullable=False, index=True)
     BusinessPhoneNumber = Column(String(20), nullable=True)
+    ProfilePic = Column(Text, nullable=True)
     
     # Common Address Information
     Address = Column(Text, nullable=True)
@@ -28,9 +29,9 @@ class Business(Base):
     Status = Column(String(50), default="Pending")  # 'Pending', 'Approved', 'Active', 'Suspended'
     IsVerified = Column(Boolean, default=False)
 
-    # Dynamic JSON Column for storing industry-specific business data
+    # Dynamic JSON Column for storing business data
     # (e.g. clinic fees/timings for healthcare, store policies/catalogs for ecom, salon menu, etc.)
-    IndustryData = Column(JSON, nullable=True, default=dict)
+    BusinessData = Column(JSON, nullable=True, default=dict)
 
     # Common Timestamps
     CreatedAt = Column(DateTime, default=datetime.utcnow, nullable=False)

@@ -72,10 +72,9 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# Static file serving for images
-images_dir = os.path.join(os.path.dirname(__file__), "images")
-os.makedirs(images_dir, exist_ok=True)
-app.mount("/images", StaticFiles(directory=images_dir), name="images")
+# Static file serving for images (stored in Backend/images)
+os.makedirs(settings.IMAGES_DIR, exist_ok=True)
+app.mount("/images", StaticFiles(directory=settings.IMAGES_DIR), name="images")
 
 @app.middleware("http")
 async def db_session_middleware(request: Request, call_next):

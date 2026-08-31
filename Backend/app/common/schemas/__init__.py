@@ -1,4 +1,6 @@
 from app.common.schemas.business import (
+    IndustryTypeEnum,
+    BusinessStatusEnum,
     BusinessBase,
     BusinessRegisterCreate,
     BusinessLogin,
@@ -8,6 +10,8 @@ from app.common.schemas.business import (
 )
 
 __all__ = [
+    "IndustryTypeEnum",
+    "BusinessStatusEnum",
     "BusinessBase",
     "BusinessRegisterCreate",
     "BusinessLogin",

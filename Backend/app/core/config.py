@@ -14,6 +14,9 @@ class Settings(BaseSettings):
     PROJECT_NAME: str = "HiCore Slotify API Platform"
     API_V1_STR: str = "/api/v1"
 
+    # Images Directory directly in Backend/
+    IMAGES_DIR: str = os.path.join(_BACKEND_DIR, "images")
+
     # Database
     DATABASE_URL: str = os.getenv(
         "DATABASE_URL", f"sqlite:///{_DEFAULT_SQLITE_PATH.replace(os.sep, '/')}"

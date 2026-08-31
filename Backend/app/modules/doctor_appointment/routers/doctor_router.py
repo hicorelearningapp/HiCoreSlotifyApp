@@ -6,6 +6,7 @@ from fastapi import APIRouter, HTTPException, Query, Response, status, UploadFil
 from typing import List, Optional
 from datetime import date, datetime
 
+from app.core.config import settings
 import app.modules.doctor_appointment.schemas as schemas
 from app.modules.doctor_appointment.services.doctor_service import DoctorService
 
@@ -55,7 +56,7 @@ class DoctorRouter:
         self.router.add_api_route("/{doctor_id}", self.delete_doctor, methods=["DELETE"])
 
     def _save_photo(self, photo: UploadFile) -> str:
-        images_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "images", "doctors")
+        images_dir = os.path.join(settings.IMAGES_DIR, "doctors")
         os.makedirs(images_dir, exist_ok=True)
         ext = os.path.splitext(photo.filename)[1] if photo.filename else ".jpg"
         filename = f"{uuid.uuid4()}{ext}"
