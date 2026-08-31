@@ -20,7 +20,7 @@ class ConfirmOrderWorkflow:
         price = product.get("price", 0.0)
         
         if variant_id:
-            variants = api_client.get_variants(product_id)
+            variants = api_client.get_variants_by_product_id(product_id)
             variant = next((v for v in variants if v.get("id") == variant_id), None)
             if variant and variant.get("price") is not None:
                 price = variant.get("price")

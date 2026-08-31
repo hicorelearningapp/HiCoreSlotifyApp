@@ -9,9 +9,9 @@ class SelectDoctorWorkflow(Workflow):
     def Initialize(self, session: ConversationSession):
         business_phone = session.state.BusinessPhoneNumber
         if business_phone:
-            doctors = api_client.list_doctors_by_business_phone(business_phone, approved_only=True)[:9]
+            doctors = api_client.list_doctors_by_business_phone(business_phone, approved_only=False)[:9]
         else:
-            doctors = api_client.list_doctors(approved_only=True)[:9]
+            doctors = api_client.list_doctors(approved_only=False)[:9]
             
         if not doctors:
             return WorkflowResult.finished(reply=Reply("text", session.translate("select_doctor_no_doctors")))
@@ -36,7 +36,7 @@ class SelectDoctorWorkflow(Workflow):
             if not doctor_id: raise ValueError()
                 
             doctor = api_client.get_doctor(doctor_id)
-            if not doctor or doctor.get("Status") != "Approved": raise ValueError()
+            if not doctor: raise ValueError()
 
                 
             session.WorkflowData["DoctorId"] = doctor_id

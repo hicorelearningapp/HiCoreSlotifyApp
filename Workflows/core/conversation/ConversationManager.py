@@ -6,52 +6,88 @@ from core.Sequence import Sequence
 from core.workflows.ExitWorkflow import ExitWorkflow
 from core.services.message_logger import MessageLogger
 from core.database import db_session
+from core.api_client import api_client as product_service
 import asyncio
 import logging
+import re
 from datetime import datetime
 
-class BaseConversationManager:
-    _interceptors = []
-
-    @classmethod
-    def register_interceptor(cls, interceptor_func):
-        """Register a global interceptor (e.g. for e-commerce product deep links).
-        Interceptors run for all businesses, supporting multi-industry setups.
-        """
-        cls._interceptors.append(interceptor_func)
-
+class ConversationManager:
     def __init__(self):
         self.Sequence = None
         self.Workflows = []
         self.CurrentWorkflowIndex = 0
 
-
-    async def apply_industry_interceptions(self, session, message, customer_phone: str):
-        """Spot a product deep link arriving from Instagram or a QR code.
-
-        Delegates to registered interceptors (like eCommerce) to ensure businesses
-        sharing one WhatsApp number across multiple industries can still handle
-        industry-specific interceptions gracefully.
-
-        Returns True to stop processing.
-        """
+    async def _handle_ecommerce_deep_link(self, session, message, customer_phone: str) -> bool:
+        """Spot a product deep link arriving from Instagram or a QR code and jump to the order flow."""
         if not (message and message.Text and not session.workflow_initialized):
             return False
 
-        for interceptor in self._interceptors:
-            if await interceptor(self, session, message, customer_phone):
-                return True
+        def parse_order_text(text: str) -> dict | None:
+            if not text: return None
+            text = text.strip()
+            match = re.match(r"Hi!\s*I'd like to order\s+(.+?)\s*\(id:(\d+),\s*ref:IG(\d+)\)", text, re.IGNORECASE)
+            if match: return {"source": "instagram", "product_name": match.group(1).strip(), "product_id": match.group(2), "ig_user_id": match.group(3)}
+            match = re.match(r"Hi!\s*I'd like to order\s+(.+?)\s*\(ref:IG(\d+)\)", text, re.IGNORECASE)
+            if match: return {"source": "instagram", "product_name": match.group(1).strip(), "ig_user_id": match.group(2)}
+            match = re.match(r"Hi!\s*I'd like to order\s+(.+?)\s*\(ref:QR(\d+)\)", text, re.IGNORECASE)
+            if match: return {"source": "qr_code", "product_name": match.group(1).strip(), "product_id": match.group(2)}
+            match = re.match(r"ORDER:(.+?):FROM_IG:(.+)", text, re.IGNORECASE)
+            if match: return {"source": "instagram", "product_name": match.group(1).strip(), "ig_user_id": match.group(2).strip()}
+            return None
 
+        handoff_data = parse_order_text(message.Text)
+        if not (handoff_data and "product_name" in handoff_data):
+            return False
+
+        identifier = handoff_data.get("product_id") or handoff_data["product_name"]
+        product = product_service.get_product_by_name_or_id(identifier)
+        if not product:
+            return False
+
+        # Deep link matched a product! Find the sequence to jump to.
+        sequence_name = self._resolve_order_sequence(session, product.get("id"))
+        if not sequence_name:
+            logging.getLogger("uvicorn").warning(
+                "Product deep link received for business %s but no "
+                "order_handoff_sequence is configured; ignoring the jump.",
+                session.state.BusinessPhoneNumber or "<default>",
+            )
+            return False
+
+        try:
+            self.Sequence = SequenceFactory.Get(
+                sequence_name, session.state.BusinessPhoneNumber
+            )
+        except ValueError:
+            logging.getLogger("uvicorn").warning(
+                "order_handoff_sequence '%s' is not defined for business %s.",
+                sequence_name, session.state.BusinessPhoneNumber or "<default>",
+            )
+            return False
+
+        self.Workflows = self.Sequence.GetAll()
+        session.state.SequenceName = sequence_name
+        
+        session.WorkflowData["product_id"] = product.get("id")
+        session.WorkflowData["category"] = product.get("category")
+
+        # Catalogues that carry variants start at the variant picker; the rest at quantity
+        target_idx = self.Sequence.IndexOfName("SelectVariantWorkflow")
+        if target_idx == -1:
+            target_idx = self.Sequence.IndexOfName("SelectQuantityWorkflow")
+
+        if target_idx != -1:
+            session.state.WorkflowIndex = target_idx
+            
+        # We successfully intercepted. We want it to process the next workflow step!
+        # Set message fields to None so it doesn't process the deep link text as input.
+        message.Text = None
+        message.InteractiveId = None
         return False
 
     def _resolve_order_sequence(self, session, product_id) -> str:
-        """Which sequence a product deep link should land in.
-
-        Config-driven so a business declares its own catalogue flows:
-          product_order_sequences -- optional {product id: sequence} overrides
-          order_handoff_sequence  -- the fallback for everything else
-        """
-
+        """Which sequence a product deep link should land in."""
         per_product = SequenceFactory.get_setting(
             session.state.BusinessPhoneNumber, "product_order_sequences", {}
         ) or {}
@@ -62,18 +98,16 @@ class BaseConversationManager:
         return SequenceFactory.get_setting(
             session.state.BusinessPhoneNumber, "order_handoff_sequence", ""
         )
-    # execute_industry_handoff_jump removed, logic migrated to ecommerce interceptor
 
     async def process(self, customer_phone: str, message: Message | None):
         logger = MessageLogger()
-        logger.log_received(customer_phone, message.Text or message.InteractiveId)
+        if message:
+            logger.log_received(customer_phone, message.Text or message.InteractiveId)
+        
         business_phone = message.BusinessPhoneNumber if message else None
         session = SessionService().load_session(customer_phone, business_phone)
         if message and message.BusinessPhoneNumber:
             session.state.BusinessPhoneNumber = message.BusinessPhoneNumber
-            
-        # Load language context for this request
-        # LanguageManager().load_for_session(session, customer_phone)
             
         # --- GLOBAL RESET INTERCEPTION ---
         if message and message.Text and message.Text.strip().lower() in ["hi", "hello", "menu", "reset", "start", "0"]:
@@ -84,8 +118,8 @@ class BaseConversationManager:
                 session.state.BusinessPhoneNumber = message.BusinessPhoneNumber
             message = None # Clear message to start fresh at index 0
             
-        # --- INDUSTRY SPECIFIC INTERCEPTION ---
-        stop_processing = await self.apply_industry_interceptions(session, message, customer_phone)
+        # --- DEEP LINK INTERCEPTION ---
+        stop_processing = await self._handle_ecommerce_deep_link(session, message, customer_phone)
         if stop_processing:
             return
 
@@ -112,12 +146,8 @@ class BaseConversationManager:
             self.Sequence = SequenceFactory.Get(session.state.SequenceName, session.state.BusinessPhoneNumber)
             
         self.Workflows = self.Sequence.GetAll()
-        
-        # --- EXECUTE INDUSTRY HANDOFF JUMP (Removed, handled by interceptors) ---
-
         self.CurrentWorkflowIndex = session.state.WorkflowIndex
         
-
         while True:
             seq = SequenceFactory.Get(session.state.SequenceName, session.state.BusinessPhoneNumber)
             workflow_class = seq.Current(session.state.WorkflowIndex)

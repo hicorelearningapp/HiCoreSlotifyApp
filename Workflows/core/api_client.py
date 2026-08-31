@@ -121,7 +121,7 @@ class BackendAPIClient:
     def get_product(self, product_id: int):
         return self._request("GET", f"/ecommerce/products/{product_id}")
         
-    def get_variants(self, product_id: int):
+    def get_variants_by_product_id(self, product_id: int):
         return self._request("GET", f"/ecommerce/products/{product_id}/variants")
         
     def find_product(self, identifier: str):

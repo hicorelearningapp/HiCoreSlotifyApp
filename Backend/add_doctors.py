@@ -7,7 +7,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "app")))
 
 from app.core.database import SessionLocal
 from app.modules.doctor_appointment.models.doctor import Doctor
-from app.core.security import get_password_hash
+from app.core.security import hash_password
 
 def seed_doctors():
     db = SessionLocal()
@@ -42,7 +42,7 @@ def seed_doctors():
             "Friday": "09:00-17:00",
             "Status": "Approved",
             "IsVerified": True,
-            "Password": get_password_hash("password123"),
+            "Password": hash_password("password123"),
             "UserName": "sarah_jenkins"
         },
         {
@@ -72,7 +72,7 @@ def seed_doctors():
             "Friday": "10:00-18:00",
             "Status": "Approved",
             "IsVerified": True,
-            "Password": get_password_hash("password123"),
+            "Password": hash_password("password123"),
             "UserName": "robert_smith"
         },
         {
@@ -102,7 +102,7 @@ def seed_doctors():
             "Friday": "08:00-14:00",
             "Status": "Approved",
             "IsVerified": True,
-            "Password": get_password_hash("password123"),
+            "Password": hash_password("password123"),
             "UserName": "emily_davis"
         },
         {
@@ -132,7 +132,7 @@ def seed_doctors():
             "Friday": "09:00-16:00",
             "Status": "Approved",
             "IsVerified": True,
-            "Password": get_password_hash("password123"),
+            "Password": hash_password("password123"),
             "UserName": "michael_johnson"
         }
     ]

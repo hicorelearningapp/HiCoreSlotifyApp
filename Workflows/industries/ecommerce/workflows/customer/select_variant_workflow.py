@@ -16,7 +16,7 @@ class SelectVariantWorkflow:
         
         # Legacy/Flat variant fallback
         if not options or not variants:
-            legacy_variants = product_service.get_variants(product_id)
+            legacy_variants = product_service.get_variants_by_product_id(product_id)
             if not legacy_variants:
                 return WorkflowResult.completed()
             rows = [{"id": f"VAR_{v.get('id')}", "title": v.get('variant_name', '')[:24]} for v in legacy_variants]
@@ -103,7 +103,7 @@ class SelectVariantWorkflow:
         elif message.InteractiveId and message.InteractiveId.startswith("VAR_"):
             variant_id = int(message.InteractiveId.split("_")[1])
             product_id = session.WorkflowData.get("product_id")
-            legacy_variants = product_service.get_variants(product_id)
+            legacy_variants = product_service.get_variants_by_product_id(product_id)
             selected_variant = next((v for v in legacy_variants if v.get('id') == variant_id), None)
             
             if selected_variant:
