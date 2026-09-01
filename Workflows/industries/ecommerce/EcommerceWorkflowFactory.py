@@ -36,3 +36,9 @@ WorkflowFactory.register("HandoffToWhatsAppWorkflow", HandoffToWhatsAppWorkflow)
 WorkflowFactory.register("OwnerMenuWorkflow", OwnerMenuWorkflow)
 WorkflowFactory.register("ViewPendingOrdersWorkflow", ViewPendingOrdersWorkflow)
 WorkflowFactory.register("UpdateOrderStatusWorkflow", UpdateOrderStatusWorkflow)
+
+from industries.ecommerce.workflows.common.GreetingMessageWorkflow import GreetingMessageWorkflow
+from industries.ecommerce.workflows.common.ExitWorkflow import ExitWorkflow
+
+WorkflowFactory.register("GreetingMessageWorkflow", GreetingMessageWorkflow)
+WorkflowFactory.register("ExitWorkflow", ExitWorkflow)

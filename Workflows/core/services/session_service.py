@@ -11,7 +11,7 @@ from core.models.workflow_models import SessionState
 from core.database import db_session
 from core.services.whatsapp_service import whatsapp
 from core.services.message_logger import MessageLogger
-from core.config.BusinessManager import BusinessManager
+from core.SequenceManager import SequenceManager
 from core.services.IdentifyService import IdentifyServiceFactory
 
 
@@ -64,16 +64,16 @@ class SessionService:
         if not session or not session.StateData:
 
             config = (
-                BusinessManager.get_config(business_phone_number)
+                SequenceManager.get_config(business_phone_number)
                 if business_phone_number
-                else BusinessManager._load_default_config()
+                else SequenceManager._load_default_config()
             )
             industry = config.get("industry", "default") if isinstance(config, dict) else "default"
 
             biz_phone = business_phone_number or ""
             identify_svc = IdentifyServiceFactory.get_service(industry)
             user = identify_svc.identify_user(phone_number, biz_phone)
-            from core.Sequence import SequenceFactory
+            from core.SequenceManager import SequenceFactory
             sequence_name = SequenceFactory.GetSequenceName(user.UserType, biz_phone)
             if not sequence_name:
                 # The business config has no mapping for this user type. The
@@ -143,7 +143,7 @@ class SessionService:
 
     def save_session(self, domain_session: DomainConversationSession):
         """Serialises SessionState back to a dict and saves to DB."""
-        from core.Sequence import SequenceFactory
+        from core.SequenceManager import SequenceFactory
         session_obj = self.get_session(
             domain_session.PhoneNumber, domain_session.state.BusinessPhoneNumber
         )
@@ -202,7 +202,7 @@ class SessionService:
 
             business_phone = data.get("BusinessPhoneNumber", "")
 
-            from core.Sequence import SequenceFactory
+            from core.SequenceManager import SequenceFactory
             time_out_enabled = SequenceFactory.get_setting(business_phone, "time_out_enabled", True)
             if not time_out_enabled:
                 continue

@@ -25,6 +25,8 @@ Base.metadata.create_all(bind=engine)
 # Import factories to ensure workflows are registered
 import industries.healthcare.HealthcareWorkflowFactory
 import industries.ecommerce.EcommerceWorkflowFactory
+import industries.healthcare.HealthcareSequenceManager
+import industries.ecommerce.EcommerceSequenceManager
 
 # Webhook routers
 from core.routers import whatsapp_webhook_router

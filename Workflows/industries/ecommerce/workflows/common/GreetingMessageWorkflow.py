@@ -5,7 +5,7 @@ import urllib.parse
 
 class GreetingMessageWorkflow(Workflow):
     def Initialize(self, session: ConversationSession) -> WorkflowResult:
-        from core.Sequence import SequenceFactory
+        from core.SequenceManager import SequenceFactory
         role = session.WorkflowData.get("role", "customer")
         user_name = session.WorkflowData.get("name")
         

@@ -1,15 +1,9 @@
-from core.workflows.GreetingMessageWorkflow import GreetingMessageWorkflow
-from core.workflows.ExitWorkflow import ExitWorkflow
-
 class WorkflowFactory:
     """
     A generic registry that maintains a mapping of workflow names to classes.
     Industries will register their specific workflows here.
     """
-    WORKFLOW_REGISTRY = {
-        "GreetingMessageWorkflow": GreetingMessageWorkflow,
-        "ExitWorkflow": ExitWorkflow,
-    }
+    WORKFLOW_REGISTRY = {}
 
     @classmethod
     def register(cls, name: str, workflow_cls):

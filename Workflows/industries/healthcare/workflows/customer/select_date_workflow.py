@@ -12,7 +12,7 @@ from core.services.whatsapp_service import whatsapp as WhatsAppService
 
 class SelectDateWorkflow(Workflow):
     def Initialize(self, session: ConversationSession):
-        from core.Sequence import SequenceFactory
+        from core.SequenceManager import SequenceFactory
         sections = [{"title": session.translate("section_upcoming_dates"), "rows": []}]
         doctor_id = session.WorkflowData.get("DoctorId")
         if not doctor_id and session.state.BusinessPhoneNumber:

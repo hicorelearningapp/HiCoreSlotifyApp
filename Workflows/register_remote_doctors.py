@@ -5,7 +5,7 @@ business_number = "917550175964"
 
 doctors_data = [
     {
-        "FullName": "Dr. Sarah Jenkins",
+        "FullName": "Dr. Kiruthuka Sharma",
         "Qualification": "MD, MBBS",
         "Specialization": "Cardiologist",
         "MedicalRegistrationNumber": "MED-CARD-001",

@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from config import ADMIN_PHONE_NUMBER
-from core.config.BusinessManager import BusinessManager
+from core.SequenceManager import SequenceManager
 
 
 @dataclass
@@ -24,7 +24,7 @@ class BaseIdentifyService:
         raise NotImplementedError("Subclasses must implement identify_customer")
 
     def identify_user(self, phone_number: str, business_phone_number: str | None = None) -> IdentityResult:
-        config = BusinessManager.get_config(business_phone_number) if business_phone_number else BusinessManager._load_default_config()
+        config = SequenceManager.get_config(business_phone_number) if business_phone_number else SequenceManager._load_default_config()
         industry = config.get("industry", "default")
         mappings = config.get("user_type_mappings", {})
         

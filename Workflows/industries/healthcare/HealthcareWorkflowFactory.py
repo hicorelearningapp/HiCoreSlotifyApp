@@ -50,3 +50,9 @@ WorkflowFactory.register("DoctorCancellationConfirmationWorkflow", DoctorCancell
 WorkflowFactory.register("DoctorViewRefundsWorkflow", DoctorViewRefundsWorkflow)
 WorkflowFactory.register("DoctorProcessRefundWorkflow", DoctorProcessRefundWorkflow)
 WorkflowFactory.register("AdminMenuWorkflow", AdminMenuWorkflow)
+
+from industries.healthcare.workflows.common.GreetingMessageWorkflow import GreetingMessageWorkflow
+from industries.healthcare.workflows.common.ExitWorkflow import ExitWorkflow
+
+WorkflowFactory.register("GreetingMessageWorkflow", GreetingMessageWorkflow)
+WorkflowFactory.register("ExitWorkflow", ExitWorkflow)

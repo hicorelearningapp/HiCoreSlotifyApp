@@ -1,9 +1,8 @@
-from core.Sequence import SequenceFactory
+from core.SequenceManager import SequenceFactory
 from core.models.workflow_models import Message, WorkflowStatus, WorkflowResult, Reply
 from core.services.session_service import SessionService
 from core.services.channel_messenger import channel_messenger as ChannelMessenger
-from core.Sequence import Sequence
-from core.workflows.ExitWorkflow import ExitWorkflow
+from core.SequenceManager import Sequence
 from core.services.message_logger import MessageLogger
 from core.database import db_session
 from core.api_client import api_client as product_service
@@ -118,14 +117,14 @@ class ConversationManager:
         if message and message.BusinessPhoneNumber:
             session.state.BusinessPhoneNumber = message.BusinessPhoneNumber
             
-        # --- GLOBAL RESET INTERCEPTION ---
-        if message and message.Text and message.Text.strip().lower() in ["hi", "hello", "menu", "reset", "start", "0"]:
-            SessionService().reset_session(customer_phone, business_phone)
-            business_phone = message.BusinessPhoneNumber if message else None
-            session = SessionService().load_session(customer_phone, business_phone)
-            if message and message.BusinessPhoneNumber:
-                session.state.BusinessPhoneNumber = message.BusinessPhoneNumber
-            message = None # Clear message to start fresh at index 0
+        # # --- GLOBAL RESET INTERCEPTION ---
+        # if message and message.Text and message.Text.strip().lower() in ["hi", "hello", "menu", "reset", "start", "0"]:
+        #     SessionService().reset_session(customer_phone, business_phone)
+        #     business_phone = message.BusinessPhoneNumber if message else None
+        #     session = SessionService().load_session(customer_phone, business_phone)
+        #     if message and message.BusinessPhoneNumber:
+        #         session.state.BusinessPhoneNumber = message.BusinessPhoneNumber
+        #     message = None # Clear message to start fresh at index 0
             
         # --- DEEP LINK INTERCEPTION ---
         stop_processing = await self._handle_ecommerce_deep_link(session, message, customer_phone)
@@ -133,19 +132,20 @@ class ConversationManager:
             return
 
         # --- GLOBAL CANCEL INTERCEPTION ---
-        if message and (message.InteractiveId == "CANCEL_FLOW" or (message.Text and message.Text.strip().lower() in ["cancel", "quit", "exit"])):
-            try:
-                reply = Reply("text", session.translate("cancel_message", default="Your flow has been cancelled."))
-                await ChannelMessenger.send_reply(customer_phone, reply, session.state.BusinessPhoneNumber)
-                seq = SequenceFactory.Get(session.state.SequenceName, session.state.BusinessPhoneNumber)
-                if ExitWorkflow in seq.GetAll():
-                    session.state.WorkflowIndex = seq.IndexOf(ExitWorkflow)
-                    session.current_workflow = "ExitWorkflow"
-                    session.workflow_initialized = False
-                    message = None
-                    SessionService().save_session(session)
-            except ValueError:
-                pass
+        # if message and (message.InteractiveId == "CANCEL_FLOW" or (message.Text and message.Text.strip().lower() in ["cancel", "quit", "exit"])):
+        #     try:
+        #         reply = Reply("text", session.translate("cancel_message", default="Your flow has been cancelled."))
+        #         await ChannelMessenger.send_reply(customer_phone, reply, session.state.BusinessPhoneNumber)
+        #         seq = SequenceFactory.Get(session.state.SequenceName, session.state.BusinessPhoneNumber)
+        #         exit_idx = seq.IndexOfName("ExitWorkflow")
+        #         if exit_idx != -1:
+        #             session.state.WorkflowIndex = exit_idx
+        #             session.current_workflow = "ExitWorkflow"
+        #             session.workflow_initialized = False
+        #             message = None
+        #             SessionService().save_session(session)
+        #     except ValueError:
+        #         pass
                 
         try:
             self.Sequence = SequenceFactory.Get(session.state.SequenceName, session.state.BusinessPhoneNumber)
