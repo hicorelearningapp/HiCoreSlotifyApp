@@ -4,12 +4,11 @@ Reply policy, resolved per Instagram account.
 Three layers, cheapest first:
 
     1. environment defaults          how this deployment behaves
-    2. the connection row            handoff number comes from the account
-    3. PolicyJson on that connection whatever the vendor customised
+    2. PolicyJson on the connection  whatever the vendor customised
 
-Layer 2 is the reason a policy is per-account rather than global: two clinics
-sharing one server hand off to their own WhatsApp numbers, and two Instagram
-accounts belonging to one business can still be configured apart.
+Where a commenter is sent is no longer part of this. That moved to
+instagram_reel_links, one link per reel, so the policy now only decides how
+the reply is worded and which comments earn one.
 """
 from __future__ import annotations
 
@@ -21,10 +20,6 @@ from config import (
     INSTAGRAM_COMMENT_KEYWORDS,
     INSTAGRAM_COMMENT_MATCH_MODE,
     INSTAGRAM_COMMENT_REPLY_MODE,
-    INSTAGRAM_DM_REPLY_TEXT,
-    INSTAGRAM_HANDOFF_MODE,
-    INSTAGRAM_HANDOFF_PREFILL_TEXT,
-    INSTAGRAM_HANDOFF_WA_NUMBER,
     INSTAGRAM_IGNORE_OWN_COMMENTS,
     INSTAGRAM_PRIVATE_REPLY_TEXT,
     INSTAGRAM_PUBLIC_REPLY_TEXT,
@@ -35,7 +30,6 @@ logger = logging.getLogger("uvicorn")
 
 REPLY_MODES = {"public", "private", "both", "none"}
 MATCH_MODES = {"all", "contains", "exact"}
-HANDOFF_MODES = {"healthcare", "ecommerce"}
 
 
 @dataclass(frozen=True)
@@ -45,12 +39,8 @@ class InstagramPolicy:
     comment_keywords: tuple
     public_reply_text: str
     private_reply_text: str
-    dm_reply_text: str
     reply_to_nested_comments: bool
     ignore_own_comments: bool
-    handoff_mode: str
-    handoff_wa_number: str
-    handoff_prefill_text: str
 
 
 #: Fields a connection's PolicyJson is allowed to override. Anything else in
@@ -66,21 +56,14 @@ def default_policy() -> InstagramPolicy:
         comment_keywords=INSTAGRAM_COMMENT_KEYWORDS,
         public_reply_text=INSTAGRAM_PUBLIC_REPLY_TEXT,
         private_reply_text=INSTAGRAM_PRIVATE_REPLY_TEXT,
-        dm_reply_text=INSTAGRAM_DM_REPLY_TEXT,
         reply_to_nested_comments=INSTAGRAM_REPLY_TO_NESTED_COMMENTS,
         ignore_own_comments=INSTAGRAM_IGNORE_OWN_COMMENTS,
-        handoff_mode=INSTAGRAM_HANDOFF_MODE,
-        handoff_wa_number=INSTAGRAM_HANDOFF_WA_NUMBER,
-        handoff_prefill_text=INSTAGRAM_HANDOFF_PREFILL_TEXT,
     )
 
 
 def resolve_policy(connection) -> InstagramPolicy:
     """Overlay one connection's stored policy on the deployment defaults."""
     policy = default_policy()
-
-    if connection is not None and connection.BusinessPhoneNumber:
-        policy = replace(policy, handoff_wa_number=connection.BusinessPhoneNumber)
 
     if connection is None or not connection.PolicyJson:
         return policy
@@ -116,7 +99,6 @@ def resolve_policy(connection) -> InstagramPolicy:
     for field, allowed in (
         ("comment_reply_mode", REPLY_MODES),
         ("comment_match_mode", MATCH_MODES),
-        ("handoff_mode", HANDOFF_MODES),
     ):
         value = overrides.get(field)
         if value is not None and str(value).strip().lower() not in allowed:

@@ -2,12 +2,12 @@
 HiCore Instagram Handler.
 
 A standalone FastAPI service for the Instagram side of the platform: comment
-automation, direct-message handoff, vendor onboarding and token lifecycle.
+automation, WhatsApp handoff and token lifecycle. Vendors are added by hand
+through the connections API -- there is no OAuth flow.
 
-It imports nothing from Backend or Workflows. Its only cross-service read is
-the catalogue lookup in services/catalog_client.py, which joins a reel to a
-product and is isolated behind one interface so it can become an HTTP call
-without touching anything else.
+It imports nothing from Backend or Workflows, and since the reel-to-link
+lookup replaced the catalogue join it reads no other service's tables either.
+Every table it touches is one of its own.
 
 Run:  python main.py          (or: uvicorn main:app --port 8002)
 """
@@ -32,9 +32,9 @@ from db import Base, db_session, engine, request_context  # noqa: E402
 
 # Import the models so create_all sees them.
 import models.connection  # noqa: E402,F401
-from routers import connections, legal, oauth, webhook  # noqa: E402
+from routers import connections, legal, webhook  # noqa: E402
 from services.dedup_guard import dedup_guard  # noqa: E402
-from services.onboarding import instagram_onboarding_service  # noqa: E402
+from services import graph_admin  # noqa: E402
 from services.reply_queue import reply_queue  # noqa: E402
 
 # This service owns four tables. Base is its own, so this never tries to build
@@ -79,26 +79,19 @@ def setup_logging():
 
 
 def check_public_base_url():
-    """Warn when the origin Meta is told to call cannot reach this service.
+    """Log the origin Meta has been told to call.
 
-    A wrong value fails late and quietly: OAuth only breaks when a vendor
-    clicks Connect, and App Review only fails when a reviewer opens /privacy.
-    Comparing the configured redirect against the routes actually mounted
-    catches it at boot.
+    A wrong value fails late and quietly -- the webhook simply never arrives,
+    which looks identical to nobody commenting. Saying it at boot is the
+    cheapest place to notice.
     """
-    from urllib.parse import urlparse
-
-    from config import INSTAGRAM_OAUTH_REDIRECT_URI
+    from routers.webhook import WEBHOOK_PATH
 
     log = logging.getLogger("uvicorn")
-    path = urlparse(INSTAGRAM_OAUTH_REDIRECT_URI).path or "/"
-    if path not in {getattr(r, "path", None) for r in app.routes}:
-        log.warning(
-            "INSTAGRAM_OAUTH_REDIRECT_URI points at %s, which this service does "
-            "not serve. Meta will get a 404 on the OAuth callback.", path,
-        )
+    if WEBHOOK_PATH not in {getattr(r, "path", None) for r in app.routes}:
+        log.warning("%s is not mounted; Meta has nowhere to deliver", WEBHOOK_PATH)
     else:
-        log.info("Meta callbacks addressed to %s", PUBLIC_BASE_URL)
+        log.info("Meta should deliver comments to %s%s", PUBLIC_BASE_URL, WEBHOOK_PATH)
 
 
 # ── Background work ───────────────────────────────────────────────────────
@@ -131,11 +124,15 @@ async def event_prune_task():
 
 
 async def token_refresh_task():
-    """Refresh long-lived tokens before their 60-day expiry."""
+    """Refresh long-lived tokens before their 60-day expiry.
+
+    The only automation left around a vendor's token. Without it every
+    manually added account goes dark 60 days later.
+    """
     while True:
         try:
             await asyncio.sleep(12 * 60 * 60)
-            instagram_onboarding_service.refresh_expiring_tokens(db_session)
+            graph_admin.refresh_expiring_tokens(db_session)
         except asyncio.CancelledError:
             break
         except Exception as e:
@@ -153,7 +150,6 @@ async def startup_event():
 
 app.include_router(webhook.router)
 app.include_router(connections.router)
-app.include_router(oauth.router)
 app.include_router(legal.router)
 
 

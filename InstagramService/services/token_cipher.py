@@ -1,9 +1,10 @@
 """
 Encryption at rest for per-vendor Instagram access tokens.
 
-appointments.db is tracked in git. A token stored in a plain column would be
-committed and published, so tokens are Fernet-encrypted with a key that lives
-in .env (which is gitignored) and never in the database.
+A vendor's access token can post as them, so it is never stored in a readable
+column. Tokens are Fernet-encrypted with a key that lives in .env and never in
+the database, which means the database file can be copied, backed up or moved
+between machines without carrying working credentials with it.
 
 Generate a key once and put it in .env:
 
@@ -16,6 +17,8 @@ issue a new one.
 """
 from __future__ import annotations
 
+import logging
+
 from cryptography.fernet import Fernet, InvalidToken
 
 from config import INSTAGRAM_TOKEN_ENCRYPTION_KEY
@@ -25,6 +28,9 @@ GENERATE_KEY_HINT = (
     'python -c "from cryptography.fernet import Fernet; '
     'print(Fernet.generate_key().decode())"'
 )
+
+
+logger = logging.getLogger("uvicorn")
 
 
 class TokenCipherError(RuntimeError):
@@ -40,6 +46,12 @@ class InstagramTokenCipher:
         if self._fernet is not None:
             return self._fernet
         if not self._key:
+            # Every connection write fails until this is set, and the error is
+            # only seen by whoever made the request. Say it server-side too.
+            logger.error(
+                "INSTAGRAM_TOKEN_ENCRYPTION_KEY is not configured; no access "
+                "token can be stored or read"
+            )
             raise TokenCipherError(
                 "INSTAGRAM_TOKEN_ENCRYPTION_KEY is not configured. The database "
                 "file is tracked in git, so access tokens cannot be stored "
@@ -48,6 +60,7 @@ class InstagramTokenCipher:
         try:
             self._fernet = Fernet(self._key.encode("utf-8"))
         except (ValueError, TypeError) as exc:
+            logger.error("INSTAGRAM_TOKEN_ENCRYPTION_KEY is not a valid Fernet key")
             raise TokenCipherError(
                 "INSTAGRAM_TOKEN_ENCRYPTION_KEY is not a valid Fernet key. "
                 f"Generate one with: {GENERATE_KEY_HINT}"

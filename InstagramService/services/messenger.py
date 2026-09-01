@@ -1,6 +1,12 @@
 """
-Outbound calls to Meta: public comment replies, comment-to-DM private replies,
-and plain direct messages.
+Outbound calls to Meta: public comment replies and comment-to-DM private
+replies.
+
+There is no plain-DM send. The account is subscribed to `comments` only, so
+inbound direct messages are never delivered and nothing needs to answer one.
+The private reply below still posts to {account_id}/messages and still needs
+the instagram_business_manage_messages permission -- the endpoint is shared,
+only the recipient differs.
 
 Every call here is synchronous and raises on failure. The old implementation
 sent DMs from a daemon thread and returned None, so a rejection was printed and
@@ -14,6 +20,8 @@ answers itself in a loop.
 """
 from __future__ import annotations
 
+import logging
+
 import requests
 
 from config import (
@@ -22,6 +30,9 @@ from config import (
     INSTAGRAM_GRAPH_HOST,
     INSTAGRAM_HTTP_TIMEOUT,
 )
+
+
+logger = logging.getLogger("uvicorn")
 
 
 class InstagramSendError(RuntimeError):
@@ -58,6 +69,11 @@ class Messenger:
         try:
             data = response.json()
         except ValueError:
+            # Meta answered with something that is not JSON. Harmless on a 2xx,
+            # but on an error it means the detail below is lost, so record it.
+            logger.warning(
+                "%s: Meta returned a non-JSON body (HTTP %s)", label, response.status_code
+            )
             data = {}
 
         if 200 <= response.status_code < 300:
@@ -66,6 +82,14 @@ class Messenger:
         error = data.get("error", {}) if isinstance(data, dict) else {}
         detail = error.get("message") if isinstance(error, dict) else None
         retryable = response.status_code == 429 or response.status_code >= 500
+        # Logged here as well as by the queue: this line carries Meta's own
+        # wording, which is the only thing that explains *why* it was refused.
+        logger.error(
+            "%s rejected by Meta (HTTP %s, %s): %s",
+            label, response.status_code,
+            "retryable" if retryable else "permanent",
+            detail or "no detail given",
+        )
         raise InstagramSendError(
             f"{label} failed: {detail or f'Meta returned HTTP {response.status_code}'}",
             retryable=retryable,
@@ -93,25 +117,6 @@ class Messenger:
             f"{instagram_account_id}/messages",
             {"recipient": {"comment_id": comment_id}, "message": {"text": message}},
             "private reply",
-            access_token,
-        )
-        return str(data.get("message_id") or data.get("id") or "") or None
-
-    def send_text(
-        self, instagram_account_id: str, recipient_id: str, message: str,
-        access_token: str | None = None,
-    ) -> str | None:
-        """Send a plain DM to a user, addressed by Instagram-scoped id.
-
-        Uses the same {account_id}/messages endpoint as the private reply. The
-        bot engine's version posted to graph.facebook.com/me/messages, which
-        identifies the sender by whichever token is attached rather than by the
-        account in the path -- unusable once each vendor has their own token.
-        """
-        data = self._post(
-            f"{instagram_account_id}/messages",
-            {"recipient": {"id": recipient_id}, "message": {"text": message}},
-            "direct message",
             access_token,
         )
         return str(data.get("message_id") or data.get("id") or "") or None

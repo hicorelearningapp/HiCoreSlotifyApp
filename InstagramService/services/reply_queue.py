@@ -54,7 +54,14 @@ class ReplyQueue:
                 queued += 1
             except IntegrityError:
                 # Already queued by a concurrent delivery of the same comment.
+                # The gate claims each delivery before we get here, so reaching
+                # this twice is unusual enough to say so -- and if it was not a
+                # duplicate, this reply is now silently never sent.
                 db.rollback()
+                logger.warning(
+                    "Did not queue the %s reply for comment %s; an action with "
+                    "that id already exists", action_type, comment_id,
+                )
         return queued
 
     def claim_due(self, db, limit: int | None = None) -> list[InstagramReplyAction]:

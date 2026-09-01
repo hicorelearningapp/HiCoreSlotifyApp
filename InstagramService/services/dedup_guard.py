@@ -60,7 +60,15 @@ class DedupGuard:
 
     def record_own_reply(self, db, account_id: str, comment_id: str) -> None:
         """Remember a comment id this service created, so we ignore it later."""
-        self._claim(db, own_key(account_id, comment_id), account_id)
+        if not self._claim(db, own_key(account_id, comment_id), account_id):
+            # Already recorded is fine. A real write failure is not: without
+            # this row, Meta delivering our own reply back looks like a fresh
+            # comment and the account starts answering itself.
+            logger.warning(
+                "Could not record our own reply %s on account %s; if this was "
+                "not a duplicate, a self-reply loop is possible",
+                comment_id, account_id,
+            )
 
     def is_own_reply(self, db, account_id: str, comment_id: str) -> bool:
         return (

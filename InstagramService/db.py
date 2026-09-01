@@ -1,10 +1,13 @@
 """
 Database wiring.
 
-This service owns four tables and reads one belonging to the catalogue. Its
-Base is its own, so create_all() here only ever creates Instagram tables --
-it will not try to build Backend's schema even when pointed at the shared
-SQLite file.
+Four tables in a database of this service's own. It reads nobody else's
+tables, so it no longer shares appointments.db with the Backend API and the
+bot engine -- that sharing only ever existed for the catalogue join the reel
+link table replaced.
+
+Base is its own regardless, so create_all() creates Instagram tables and
+nothing else even when DATABASE_URL is pointed back at the shared file.
 """
 import contextvars
 import uuid
