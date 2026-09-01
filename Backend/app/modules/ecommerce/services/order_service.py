@@ -74,23 +74,84 @@ class OrderService:
         self.db.refresh(order)
         return order
 
-    def list_orders(self, customer_phone: Optional[str] = None, seller_id: Optional[str] = None, skip: int = 0, limit: int = 100) -> List[Order]:
-        query = self.db.query(Order)
-        if customer_phone:
-            query = query.filter(Order.CustomerPhone == customer_phone)
+    def list_orders(
+        self,
+        customer_phone: Optional[str] = None,
+        seller_id: Optional[str] = None,
+        status: Optional[str] = None,
+        skip: int = 0,
+        limit: int = 100
+    ) -> dict:
+        base_query = self.db.query(Order)
         if seller_id:
-            query = query.filter(Order.SellerId == seller_id)
-        return query.order_by(Order.Id.desc()).offset(skip).limit(limit).all()
+            base_query = base_query.filter(Order.SellerId == seller_id)
+        if customer_phone:
+            base_query = base_query.filter(Order.CustomerPhone == customer_phone)
+            
+        all_orders = base_query.all()
+        
+        all_count = len(all_orders)
+        new_count = 0
+        processing_count = 0
+        shipped_count = 0
+        delivered_count = 0
+        cancelled_count = 0
+        
+        for o in all_orders:
+            st = (o.Status or "").strip().lower()
+            if st in ["new", "pending", "created"]:
+                new_count += 1
+            elif st in ["processing", "in progress", "in_progress", "confirmed", "accepted"]:
+                processing_count += 1
+            elif st in ["shipped", "dispatched", "in transit", "in_transit", "out for delivery", "out_for_delivery"]:
+                shipped_count += 1
+            elif st in ["delivered", "completed", "done"]:
+                delivered_count += 1
+            elif st in ["cancelled", "canceled", "rejected"]:
+                cancelled_count += 1
+            else:
+                new_count += 1
+
+        filtered_query = base_query
+        if status:
+            filtered_query = filtered_query.filter(Order.Status.ilike(status))
+
+        order_items = filtered_query.order_by(Order.Id.desc()).offset(skip).limit(limit).all()
+
+        return {
+            "AllOrders": all_count,
+            "New": new_count,
+            "Processing": processing_count,
+            "Shipped": shipped_count,
+            "Delivered": delivered_count,
+            "Cancelled": cancelled_count,
+            "Orders": order_items
+        }
 
     def get_order(self, order_id: str) -> Optional[Order]:
         return self.db.query(Order).filter(Order.Id == order_id).first()
 
-    def update_status(self, order_id: str, status: str, payment_status: Optional[str] = None) -> Optional[Order]:
+    def update_status(self, order_id: str, status: str, payment_status: Optional[str] = None) -> Order:
         order = self.db.query(Order).filter(Order.Id == order_id).first()
-        if order:
-            order.Status = status
-            if payment_status:
-                order.PaymentStatus = payment_status
-            self.db.commit()
-            self.db.refresh(order)
+        if not order:
+            from fastapi import HTTPException
+            raise HTTPException(status_code=404, detail="Order not found")
+        order.Status = status
+        if payment_status:
+            order.PaymentStatus = payment_status
+        order.UpdatedAt = datetime.datetime.utcnow()
+        self.db.commit()
+        self.db.refresh(order)
         return order
+
+    def update_payment_status(self, order_id: str, payment_status: str) -> Order:
+        order = self.db.query(Order).filter(Order.Id == order_id).first()
+        if not order:
+            from fastapi import HTTPException
+            raise HTTPException(status_code=404, detail="Order not found")
+        order.PaymentStatus = payment_status
+        order.UpdatedAt = datetime.datetime.utcnow()
+        self.db.commit()
+        self.db.refresh(order)
+        return order
+

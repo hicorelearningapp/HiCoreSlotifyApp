@@ -39,8 +39,11 @@ class OrderCreate(BaseModel):
     OrderData: Optional[Dict[str, Any]] = None
 
 class OrderStatusUpdate(BaseModel):
-    Status: str
-    PaymentStatus: Optional[str] = None
+    Status: str = Field(..., description="Order status (e.g. New, Processing, Shipped, Delivered, Cancelled)")
+
+class OrderPaymentStatusUpdate(BaseModel):
+    PaymentStatus: str = Field(..., description="Payment status (e.g. Unpaid, Paid, Pending, Refunded, Failed)")
+
 
 class OrderOut(BaseModel):
     Id: str
@@ -70,3 +73,16 @@ class OrderOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+class OrderListResponse(BaseModel):
+    AllOrders: int = Field(0, description="Total count of all orders")
+    New: int = Field(0, description="Count of New / Pending orders")
+    Processing: int = Field(0, description="Count of Processing / Confirmed orders")
+    Shipped: int = Field(0, description="Count of Shipped / In-Transit orders")
+    Delivered: int = Field(0, description="Count of Delivered orders")
+    Cancelled: int = Field(0, description="Count of Cancelled orders")
+    Orders: List[OrderOut] = Field(default=[], description="List of order items")
+
+    class Config:
+        from_attributes = True
+
