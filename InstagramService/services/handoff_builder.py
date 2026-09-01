@@ -67,14 +67,16 @@ class HandoffBuilder:
         )
         return public_text, private_text
 
-    def dm_reply(self, template: str, policy: InstagramPolicy) -> str:
+    def dm_reply(self, policy: InstagramPolicy) -> str:
         """The text sent for a direct message.
 
         A DM carries no reel, so there is no product to resolve -- it always
-        gets the plain booking link.
+        gets the plain booking link. The template comes from the policy, like
+        the two comment replies, so vendors sharing a deployment can word their
+        DM differently instead of all sending the deployment default.
         """
         wa_link = self._healthcare(policy)
-        return template.replace("{wa_link}", wa_link)
+        return policy.dm_reply_text.replace("{wa_link}", wa_link)
 
     def _healthcare(self, policy: InstagramPolicy) -> str:
         return booking_link(policy.handoff_wa_number, policy.handoff_prefill_text)

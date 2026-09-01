@@ -21,6 +21,7 @@ from config import (
     INSTAGRAM_COMMENT_KEYWORDS,
     INSTAGRAM_COMMENT_MATCH_MODE,
     INSTAGRAM_COMMENT_REPLY_MODE,
+    INSTAGRAM_DM_REPLY_TEXT,
     INSTAGRAM_HANDOFF_MODE,
     INSTAGRAM_HANDOFF_PREFILL_TEXT,
     INSTAGRAM_HANDOFF_WA_NUMBER,
@@ -44,6 +45,7 @@ class InstagramPolicy:
     comment_keywords: tuple
     public_reply_text: str
     private_reply_text: str
+    dm_reply_text: str
     reply_to_nested_comments: bool
     ignore_own_comments: bool
     handoff_mode: str
@@ -64,6 +66,7 @@ def default_policy() -> InstagramPolicy:
         comment_keywords=INSTAGRAM_COMMENT_KEYWORDS,
         public_reply_text=INSTAGRAM_PUBLIC_REPLY_TEXT,
         private_reply_text=INSTAGRAM_PRIVATE_REPLY_TEXT,
+        dm_reply_text=INSTAGRAM_DM_REPLY_TEXT,
         reply_to_nested_comments=INSTAGRAM_REPLY_TO_NESTED_COMMENTS,
         ignore_own_comments=INSTAGRAM_IGNORE_OWN_COMMENTS,
         handoff_mode=INSTAGRAM_HANDOFF_MODE,

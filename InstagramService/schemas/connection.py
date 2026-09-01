@@ -21,6 +21,7 @@ class PolicyUpdate(BaseModel):
     comment_keywords: list[str] | None = None
     public_reply_text: str | None = None
     private_reply_text: str | None = None
+    dm_reply_text: str | None = None
     reply_to_nested_comments: bool | None = None
     ignore_own_comments: bool | None = None
     handoff_mode: Literal["healthcare", "ecommerce"] | None = None

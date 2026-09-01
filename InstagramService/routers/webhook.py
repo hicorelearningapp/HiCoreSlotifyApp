@@ -22,7 +22,6 @@ from fastapi.responses import PlainTextResponse
 
 from config import (
     INSTAGRAM_APP_SECRET,
-    INSTAGRAM_DM_REPLY_TEXT,
     INSTAGRAM_SIGNATURE_REQUIRED,
     INSTAGRAM_VERIFY_TOKEN,
     MAX_WEBHOOK_BYTES,
@@ -38,67 +37,74 @@ from utils.signature import verify_meta_signature
 
 logger = logging.getLogger("uvicorn")
 
-router = APIRouter(tags=["webhook"])
-
-# The standalone app registered the plural spelling in the Meta dashboard and
-# HiCore's convention is the singular. Serving both means the existing
-# dashboard entry keeps working without a re-verification.
-WEBHOOK_PATHS = ("/webhook/instagram", "/webhooks/instagram")
+# The path registered as the callback URL in the Meta dashboard. Changing it
+# means re-verifying the webhook there, so it is a constant rather than a
+# literal buried in the route table.
+WEBHOOK_PATH = "/webhook/instagram"
 
 
-async def verify(
-    hub_mode: str = Query(None, alias="hub.mode"),
-    hub_verify_token: str = Query(None, alias="hub.verify_token"),
-    hub_challenge: str = Query(None, alias="hub.challenge"),
-):
-    if (
-        hub_mode == "subscribe"
-        and hub_verify_token is not None
-        and INSTAGRAM_VERIFY_TOKEN
-        and secrets.compare_digest(hub_verify_token, INSTAGRAM_VERIFY_TOKEN)
-        and hub_challenge is not None
+class WebhookRouter:
+    def __init__(self):
+        self.router = APIRouter(tags=["webhook"])
+        self._add_routes()
+
+    def _add_routes(self):
+        self.router.add_api_route(WEBHOOK_PATH, self.verify, methods=["GET"])
+        self.router.add_api_route(WEBHOOK_PATH, self.receive, methods=["POST"])
+
+    async def verify(
+        self,
+        hub_mode: str = Query(None, alias="hub.mode"),
+        hub_verify_token: str = Query(None, alias="hub.verify_token"),
+        hub_challenge: str = Query(None, alias="hub.challenge"),
     ):
-        logger.info("Instagram webhook verified")
-        return PlainTextResponse(hub_challenge)
-    raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Verification failed")
+        if (
+            hub_mode == "subscribe"
+            and hub_verify_token is not None
+            and INSTAGRAM_VERIFY_TOKEN
+            and secrets.compare_digest(hub_verify_token, INSTAGRAM_VERIFY_TOKEN)
+            and hub_challenge is not None
+        ):
+            logger.info("Instagram webhook verified")
+            return PlainTextResponse(hub_challenge)
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Verification failed")
 
+    async def receive(self, request: Request):
+        raw_body = await request.body()
 
-async def receive(request: Request):
-    raw_body = await request.body()
+        if len(raw_body) > MAX_WEBHOOK_BYTES:
+            raise HTTPException(status_code=413, detail="Webhook payload is too large")
 
-    if len(raw_body) > MAX_WEBHOOK_BYTES:
-        raise HTTPException(status_code=413, detail="Webhook payload is too large")
+        if INSTAGRAM_SIGNATURE_REQUIRED:
+            if not INSTAGRAM_APP_SECRET:
+                raise HTTPException(status_code=503, detail="INSTAGRAM_APP_SECRET is not configured")
+            signature = request.headers.get("x-hub-signature-256")
+            if not signature:
+                raise HTTPException(status_code=401, detail="Missing webhook signature")
+            if not verify_meta_signature(raw_body, signature, INSTAGRAM_APP_SECRET):
+                raise HTTPException(status_code=403, detail="Invalid webhook signature")
 
-    if INSTAGRAM_SIGNATURE_REQUIRED:
-        if not INSTAGRAM_APP_SECRET:
-            raise HTTPException(status_code=503, detail="INSTAGRAM_APP_SECRET is not configured")
-        signature = request.headers.get("x-hub-signature-256")
-        if not signature:
-            raise HTTPException(status_code=401, detail="Missing webhook signature")
-        if not verify_meta_signature(raw_body, signature, INSTAGRAM_APP_SECRET):
-            raise HTTPException(status_code=403, detail="Invalid webhook signature")
+        try:
+            data = json.loads(raw_body)
+        except (json.JSONDecodeError, UnicodeDecodeError) as exc:
+            raise HTTPException(status_code=400, detail="Malformed JSON payload") from exc
+        if not isinstance(data, dict):
+            raise HTTPException(status_code=400, detail="Webhook payload must be an object")
 
-    try:
-        data = json.loads(raw_body)
-    except (json.JSONDecodeError, UnicodeDecodeError) as exc:
-        raise HTTPException(status_code=400, detail="Malformed JSON payload") from exc
-    if not isinstance(data, dict):
-        raise HTTPException(status_code=400, detail="Webhook payload must be an object")
+        if data.get("object") != "instagram":
+            return {"status": "ignored"}
 
-    if data.get("object") != "instagram":
-        return {"status": "ignored"}
+        try:
+            outcomes = _dispatch(data)
+        except HTTPException:
+            raise
+        except Exception:
+            # Deliberately a 500. Meta retries, and the claim in the funnel stops
+            # the retry becoming a duplicate reply.
+            logger.exception("Unhandled error processing Instagram webhook")
+            raise HTTPException(status_code=500, detail="Webhook processing failed")
 
-    try:
-        outcomes = _dispatch(data)
-    except HTTPException:
-        raise
-    except Exception:
-        # Deliberately a 500. Meta retries, and the claim in the funnel stops
-        # the retry becoming a duplicate reply.
-        logger.exception("Unhandled error processing Instagram webhook")
-        raise HTTPException(status_code=500, detail="Webhook processing failed")
-
-    return {"status": "ok", **outcomes}
+        return {"status": "ok", **outcomes}
 
 
 def _dispatch(payload: dict) -> dict:
@@ -145,7 +151,7 @@ def _handle_dm(account_id: str, messaging: dict) -> dict | None:
         return {"sender": sender_id, "skipped": "unroutable"}
 
     try:
-        text = handoff_builder.dm_reply(INSTAGRAM_DM_REPLY_TEXT, resolved.policy)
+        text = handoff_builder.dm_reply(resolved.policy)
     except ValueError as e:
         logger.warning("Could not build a DM reply for %s: %s", account_id, e)
         return {"sender": sender_id, "skipped": "no_wa_number"}
@@ -196,6 +202,4 @@ def _handle_comment(event) -> dict:
     return {"comment_id": event.comment_id, "queued": queued}
 
 
-for _path in WEBHOOK_PATHS:
-    router.add_api_route(_path, verify, methods=["GET"])
-    router.add_api_route(_path, receive, methods=["POST"])
+router = WebhookRouter().router

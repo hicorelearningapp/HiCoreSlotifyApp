@@ -29,8 +29,6 @@ from services.onboarding import (
 
 logger = logging.getLogger("uvicorn")
 
-router = APIRouter(prefix="/integrations/instagram", tags=["oauth"])
-
 
 def _page(title: str, message: str, ok: bool = True) -> HTMLResponse:
     colour = "#2F6B45" if ok else "#A02F26"
@@ -43,92 +41,106 @@ def _page(title: str, message: str, ok: bool = True) -> HTMLResponse:
     )
 
 
-@router.get("/connect", dependencies=[Depends(require_admin)])
-def connect(
-    business_phone_number: str = Query(min_length=1, max_length=20),
-    db: Session = Depends(get_db),
-):
-    """Start onboarding. Returns the Instagram URL to send the vendor to."""
-    try:
-        url = instagram_onboarding_service.build_authorization_url(db, business_phone_number)
-    except OnboardingError as e:
-        raise HTTPException(status_code=400, detail=str(e)) from e
-    return {"authorization_url": url}
+class OAuthRouter:
+    def __init__(self):
+        self.router = APIRouter(prefix="/integrations/instagram", tags=["oauth"])
+        self._add_routes()
 
+    def _add_routes(self):
+        admin = [Depends(require_admin)]
+        self.router.add_api_route("/connect", self.connect, methods=["GET"],
+                                  dependencies=admin)
+        self.router.add_api_route("/callback", self.callback, methods=["GET"],
+                                  response_class=HTMLResponse, include_in_schema=False)
+        self.router.add_api_route("/{instagram_account_id}/subscribe", self.subscribe,
+                                  methods=["POST"], dependencies=admin)
+        self.router.add_api_route("/{instagram_account_id}/refresh-token", self.refresh_token,
+                                  methods=["POST"], dependencies=admin)
+        self.router.add_api_route("/{instagram_account_id}", self.disconnect,
+                                  methods=["DELETE"], status_code=status.HTTP_200_OK,
+                                  dependencies=admin)
 
-@router.get("/callback", response_class=HTMLResponse, include_in_schema=False)
-def callback(
-    state: str = Query(default=""),
-    code: str = Query(default=""),
-    error: str = Query(default=""),
-    error_description: str = Query(default=""),
-    db: Session = Depends(get_db),
-):
-    """Where Meta returns the vendor after they approve or decline."""
-    if error:
-        logger.info("Instagram onboarding declined: %s %s", error, error_description)
-        return _page("Connection cancelled", error_description or error, ok=False)
+    def connect(
+        self,
+        business_phone_number: str = Query(min_length=1, max_length=20),
+        db: Session = Depends(get_db),
+    ):
+        """Start onboarding. Returns the Instagram URL to send the vendor to."""
+        try:
+            url = instagram_onboarding_service.build_authorization_url(db, business_phone_number)
+        except OnboardingError as e:
+            raise HTTPException(status_code=400, detail=str(e)) from e
+        return {"authorization_url": url}
 
-    if not state or not code:
-        return _page("Connection failed", "The callback was missing its state or code.", ok=False)
+    def callback(
+        self,
+        state: str = Query(default=""),
+        code: str = Query(default=""),
+        error: str = Query(default=""),
+        error_description: str = Query(default=""),
+        db: Session = Depends(get_db),
+    ):
+        """Where Meta returns the vendor after they approve or decline."""
+        if error:
+            logger.info("Instagram onboarding declined: %s %s", error, error_description)
+            return _page("Connection cancelled", error_description or error, ok=False)
 
-    try:
-        connection = instagram_onboarding_service.complete_authorization(db, state, code)
-    except InvalidOAuthStateError:
-        # Also the expired-link case: states are single-use and time-limited.
+        if not state or not code:
+            return _page("Connection failed", "The callback was missing its state or code.", ok=False)
+
+        try:
+            connection = instagram_onboarding_service.complete_authorization(db, state, code)
+        except InvalidOAuthStateError:
+            # Also the expired-link case: states are single-use and time-limited.
+            return _page(
+                "Link expired",
+                "That connection link has already been used or has expired. Start again.",
+                ok=False,
+            )
+        except ConnectionConflictError as e:
+            return _page("Already connected", str(e), ok=False)
+        except (InstagramOAuthResponseError, InstagramAPIError) as e:
+            logger.error("Instagram onboarding failed: %s", e)
+            return _page("Connection failed", str(e), ok=False)
+        except OnboardingError as e:
+            logger.error("Instagram onboarding failed: %s", e)
+            return _page("Connection failed", str(e), ok=False)
+
         return _page(
-            "Link expired",
-            "That connection link has already been used or has expired. Start again.",
-            ok=False,
+            "Connected",
+            f"@{connection.InstagramUsername or connection.InstagramAccountId} is now "
+            f"linked to {connection.BusinessPhoneNumber}. Comments on this account "
+            f"will be answered automatically.",
         )
-    except ConnectionConflictError as e:
-        return _page("Already connected", str(e), ok=False)
-    except (InstagramOAuthResponseError, InstagramAPIError) as e:
-        logger.error("Instagram onboarding failed: %s", e)
-        return _page("Connection failed", str(e), ok=False)
-    except OnboardingError as e:
-        logger.error("Instagram onboarding failed: %s", e)
-        return _page("Connection failed", str(e), ok=False)
 
-    return _page(
-        "Connected",
-        f"@{connection.InstagramUsername or connection.InstagramAccountId} is now "
-        f"linked to {connection.BusinessPhoneNumber}. Comments on this account "
-        f"will be answered automatically.",
-    )
+    def subscribe(self, instagram_account_id: str, db: Session = Depends(get_db)):
+        """Reinstall the account-level `comments` subscription."""
+        try:
+            ok = instagram_onboarding_service.subscribe_connection(db, instagram_account_id)
+        except OnboardingError as e:
+            raise HTTPException(status_code=400, detail=str(e)) from e
+        if not ok:
+            raise HTTPException(status_code=404, detail="No connection for that account")
+        return {"subscribed": True, "instagram_account_id": instagram_account_id}
 
+    def refresh_token(self, instagram_account_id: str, db: Session = Depends(get_db)):
+        try:
+            connection = instagram_onboarding_service.refresh_token(db, instagram_account_id)
+        except OnboardingError as e:
+            raise HTTPException(status_code=400, detail=str(e)) from e
+        if connection is None:
+            raise HTTPException(status_code=404, detail="No connection for that account")
+        return {
+            "instagram_account_id": instagram_account_id,
+            "token_expires_at": connection.TokenExpiresAt,
+        }
 
-@router.post("/{instagram_account_id}/subscribe", dependencies=[Depends(require_admin)])
-def subscribe(instagram_account_id: str, db: Session = Depends(get_db)):
-    """Reinstall the account-level `comments` subscription."""
-    try:
-        ok = instagram_onboarding_service.subscribe_connection(db, instagram_account_id)
-    except OnboardingError as e:
-        raise HTTPException(status_code=400, detail=str(e)) from e
-    if not ok:
-        raise HTTPException(status_code=404, detail="No connection for that account")
-    return {"subscribed": True, "instagram_account_id": instagram_account_id}
-
-
-@router.post("/{instagram_account_id}/refresh-token", dependencies=[Depends(require_admin)])
-def refresh_token(instagram_account_id: str, db: Session = Depends(get_db)):
-    try:
-        connection = instagram_onboarding_service.refresh_token(db, instagram_account_id)
-    except OnboardingError as e:
-        raise HTTPException(status_code=400, detail=str(e)) from e
-    if connection is None:
-        raise HTTPException(status_code=404, detail="No connection for that account")
-    return {
-        "instagram_account_id": instagram_account_id,
-        "token_expires_at": connection.TokenExpiresAt,
-    }
+    def disconnect(self, instagram_account_id: str, db: Session = Depends(get_db)):
+        """Unsubscribe at Meta and drop the stored connection."""
+        result = instagram_onboarding_service.disconnect(db, instagram_account_id)
+        if not result.get("removed"):
+            raise HTTPException(status_code=404, detail="No connection for that account")
+        return result
 
 
-@router.delete("/{instagram_account_id}", status_code=status.HTTP_200_OK,
-               dependencies=[Depends(require_admin)])
-def disconnect(instagram_account_id: str, db: Session = Depends(get_db)):
-    """Unsubscribe at Meta and drop the stored connection."""
-    result = instagram_onboarding_service.disconnect(db, instagram_account_id)
-    if not result.get("removed"):
-        raise HTTPException(status_code=404, detail="No connection for that account")
-    return result
+router = OAuthRouter().router

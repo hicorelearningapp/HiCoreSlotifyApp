@@ -8,6 +8,7 @@ data about a connection, never a path parameter.
 from __future__ import annotations
 
 import json
+import secrets
 
 from fastapi import APIRouter, Depends, Header, HTTPException, status
 from sqlalchemy.orm import Session
@@ -23,18 +24,24 @@ from schemas.connection import (
 from services.policy import POLICY_FIELDS, resolve_policy
 from services.tenant_resolver import tenant_resolver
 
-router = APIRouter(prefix="/integrations/instagram/connections", tags=["connections"])
-
 
 def require_admin(x_api_key: str | None = Header(None, alias="X-API-Key")) -> None:
     """Reject unless the caller presents the admin key.
 
     Without a key configured the endpoints stay closed rather than open --
     these expose vendor account ids and can revoke a live integration.
+
+    Module-level rather than a method: it is a FastAPI dependency, and the
+    OAuth router imports it for the same protection.
     """
     if not ADMIN_API_KEY:
         raise HTTPException(status_code=503, detail="ADMIN_API_KEY is not configured")
-    if x_api_key != ADMIN_API_KEY:
+    # compare_digest rather than !=, so the time taken does not reveal how much
+    # of the key was correct -- matching how the webhook checks its verify
+    # token. Compared as bytes because the str form rejects non-ASCII, and the
+    # header is attacker-controlled.
+    presented = (x_api_key or "").encode("utf-8")
+    if not secrets.compare_digest(presented, ADMIN_API_KEY.encode("utf-8")):
         raise HTTPException(status_code=401, detail="Invalid or missing X-API-Key")
 
 
@@ -61,83 +68,96 @@ def _to_out(connection) -> ConnectionOut:
     )
 
 
-@router.get("", response_model=list[ConnectionOut], dependencies=[Depends(require_admin)])
-def list_connections(status_filter: str | None = None, db: Session = Depends(get_db)):
-    return [_to_out(c) for c in tenant_resolver.list_connections(db, status_filter)]
-
-
-@router.get("/{instagram_account_id}", response_model=ConnectionOut,
-            dependencies=[Depends(require_admin)])
-def get_connection(instagram_account_id: str, db: Session = Depends(get_db)):
-    connection = tenant_resolver.get_by_account_id(db, instagram_account_id)
-    if connection is None:
-        raise HTTPException(status_code=404, detail="No connection for that account")
-    return _to_out(connection)
-
-
-@router.post("", response_model=ConnectionOut, status_code=status.HTTP_201_CREATED,
-             dependencies=[Depends(require_admin)])
-def create_connection(payload: ConnectionCreate, db: Session = Depends(get_db)):
-    """Register an account directly, bypassing OAuth.
-
-    Used to restore an existing integration, or to onboard an account whose
-    token was obtained by hand.
-    """
-    try:
-        connection = tenant_resolver.connect(
-            db,
-            instagram_account_id=payload.instagram_account_id,
-            business_phone_number=payload.business_phone_number,
-            access_token=payload.access_token,
-            instagram_username=payload.instagram_username,
+class ConnectionsRouter:
+    def __init__(self):
+        self.router = APIRouter(
+            prefix="/integrations/instagram/connections", tags=["connections"]
         )
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e)) from e
-    return _to_out(connection)
+        self._add_routes()
 
+    def _add_routes(self):
+        admin = [Depends(require_admin)]
+        self.router.add_api_route("", self.list_connections, methods=["GET"],
+                                  response_model=list[ConnectionOut], dependencies=admin)
+        self.router.add_api_route("/{instagram_account_id}", self.get_connection, methods=["GET"],
+                                  response_model=ConnectionOut, dependencies=admin)
+        self.router.add_api_route("", self.create_connection, methods=["POST"],
+                                  response_model=ConnectionOut,
+                                  status_code=status.HTTP_201_CREATED, dependencies=admin)
+        self.router.add_api_route("/{instagram_account_id}/policy", self.update_policy,
+                                  methods=["PATCH"], response_model=ConnectionOut,
+                                  dependencies=admin)
+        self.router.add_api_route("/{instagram_account_id}/status", self.set_status,
+                                  methods=["PATCH"], response_model=ConnectionOut,
+                                  dependencies=admin)
+        self.router.add_api_route("/{instagram_account_id}", self.delete_connection,
+                                  methods=["DELETE"],
+                                  status_code=status.HTTP_204_NO_CONTENT, dependencies=admin)
 
-@router.patch("/{instagram_account_id}/policy", response_model=ConnectionOut,
-              dependencies=[Depends(require_admin)])
-def update_policy(instagram_account_id: str, payload: PolicyUpdate,
-                  db: Session = Depends(get_db)):
-    connection = tenant_resolver.get_by_account_id(db, instagram_account_id)
-    if connection is None:
-        raise HTTPException(status_code=404, detail="No connection for that account")
+    def list_connections(self, status_filter: str | None = None, db: Session = Depends(get_db)):
+        return [_to_out(c) for c in tenant_resolver.list_connections(db, status_filter)]
 
-    overrides = payload.model_dump(exclude_unset=True, exclude_none=True)
-    unknown = set(overrides) - POLICY_FIELDS
-    if unknown:
-        raise HTTPException(
-            status_code=400, detail=f"Unknown policy fields: {sorted(unknown)}"
-        )
+    def get_connection(self, instagram_account_id: str, db: Session = Depends(get_db)):
+        connection = tenant_resolver.get_by_account_id(db, instagram_account_id)
+        if connection is None:
+            raise HTTPException(status_code=404, detail="No connection for that account")
+        return _to_out(connection)
 
-    existing = {}
-    if connection.PolicyJson:
+    def create_connection(self, payload: ConnectionCreate, db: Session = Depends(get_db)):
+        """Register an account directly, bypassing OAuth.
+
+        Used to restore an existing integration, or to onboard an account whose
+        token was obtained by hand.
+        """
         try:
-            existing = json.loads(connection.PolicyJson) or {}
-        except ValueError:
-            existing = {}
-    existing.update(overrides)
+            connection = tenant_resolver.connect(
+                db,
+                instagram_account_id=payload.instagram_account_id,
+                business_phone_number=payload.business_phone_number,
+                access_token=payload.access_token,
+                instagram_username=payload.instagram_username,
+            )
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=str(e)) from e
+        return _to_out(connection)
 
-    connection.PolicyJson = json.dumps(existing)
-    db.commit()
-    db.refresh(connection)
-    return _to_out(connection)
+    def update_policy(self, instagram_account_id: str, payload: PolicyUpdate,
+                      db: Session = Depends(get_db)):
+        connection = tenant_resolver.get_by_account_id(db, instagram_account_id)
+        if connection is None:
+            raise HTTPException(status_code=404, detail="No connection for that account")
+
+        overrides = payload.model_dump(exclude_unset=True, exclude_none=True)
+        unknown = set(overrides) - POLICY_FIELDS
+        if unknown:
+            raise HTTPException(
+                status_code=400, detail=f"Unknown policy fields: {sorted(unknown)}"
+            )
+
+        existing = {}
+        if connection.PolicyJson:
+            try:
+                existing = json.loads(connection.PolicyJson) or {}
+            except ValueError:
+                existing = {}
+        existing.update(overrides)
+
+        connection.PolicyJson = json.dumps(existing)
+        db.commit()
+        db.refresh(connection)
+        return _to_out(connection)
+
+    def set_status(self, instagram_account_id: str, payload: StatusUpdate,
+                   db: Session = Depends(get_db)):
+        connection = tenant_resolver.set_status(db, instagram_account_id, payload.status)
+        if connection is None:
+            raise HTTPException(status_code=404, detail="No connection for that account")
+        return _to_out(connection)
+
+    def delete_connection(self, instagram_account_id: str, db: Session = Depends(get_db)):
+        if not tenant_resolver.disconnect(db, instagram_account_id):
+            raise HTTPException(status_code=404, detail="No connection for that account")
+        return None
 
 
-@router.patch("/{instagram_account_id}/status", response_model=ConnectionOut,
-              dependencies=[Depends(require_admin)])
-def set_status(instagram_account_id: str, payload: StatusUpdate,
-               db: Session = Depends(get_db)):
-    connection = tenant_resolver.set_status(db, instagram_account_id, payload.status)
-    if connection is None:
-        raise HTTPException(status_code=404, detail="No connection for that account")
-    return _to_out(connection)
-
-
-@router.delete("/{instagram_account_id}", status_code=status.HTTP_204_NO_CONTENT,
-               dependencies=[Depends(require_admin)])
-def delete_connection(instagram_account_id: str, db: Session = Depends(get_db)):
-    if not tenant_resolver.disconnect(db, instagram_account_id):
-        raise HTTPException(status_code=404, detail="No connection for that account")
-    return None
+router = ConnectionsRouter().router
