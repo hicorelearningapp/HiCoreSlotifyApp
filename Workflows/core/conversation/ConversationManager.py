@@ -42,6 +42,15 @@ class ConversationManager:
 
         identifier = handoff_data.get("product_id") or handoff_data["product_name"]
         product = product_service.get_product_by_name_or_id(identifier)
+        
+        # TEMPORARY BYPASS FOR 917550175964:
+        if not product and session.state.BusinessPhoneNumber == "917550175964":
+            product = {
+                "id": identifier,
+                "category": "Saree",
+                "name": handoff_data.get("product_name")
+            }
+            
         if not product:
             return False
 
