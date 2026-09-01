@@ -3,6 +3,7 @@ from app.modules.ecommerce.models.order import Order, OrderItem
 from app.modules.ecommerce.models.inventory import Inventory
 from app.modules.ecommerce.models.category import Category
 from app.modules.ecommerce.models.customer import EcommerceCustomer
+from app.modules.ecommerce.models.address import Address
 
 __all__ = [
     "Product",
@@ -11,4 +12,5 @@ __all__ = [
     "Inventory",
     "Category",
     "EcommerceCustomer",
+    "Address",
 ]

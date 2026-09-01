@@ -1,49 +1,72 @@
-from pydantic import BaseModel
-from typing import Optional, List
+from pydantic import BaseModel, Field
+from typing import Optional, List, Dict, Any, Union
 from datetime import datetime
 
 class OrderItemCreate(BaseModel):
-    product_id: int
-    quantity: int
-    unit_price: float
+    ProductId: str
+    Quantity: int = 1
+    UnitPrice: float = 0.0
+    ProductName: Optional[str] = None
+    Sku: Optional[str] = None
+    ItemData: Optional[Dict[str, Any]] = None
+
+class OrderItemOut(BaseModel):
+    Id: str
+    OrderId: str
+    ProductId: Optional[str] = None
+    ProductName: Optional[str] = None
+    Sku: Optional[str] = None
+    Quantity: int
+    UnitPrice: float
+    TotalPrice: float
+    ItemData: Optional[Dict[str, Any]] = None
+
+    class Config:
+        from_attributes = True
 
 class OrderCreate(BaseModel):
-    customer_phone: str
-    customer_name: Optional[str] = None
-    customer_email: Optional[str] = None
-    shipping_address: str
-    city: str
-    state: str
-    pincode: str
-    payment_method: Optional[str] = "COD"
-    items: List[OrderItemCreate]
-    notes: Optional[str] = None
-    store_id: Optional[str] = "default"
+    CustomerPhone: str
+    CustomerName: Optional[str] = None
+    CustomerEmail: Optional[str] = None
+    ShippingAddress: str
+    City: str
+    State: str
+    Pincode: str
+    PaymentMethod: Optional[str] = "COD"
+    SellerId: Optional[str] = None
+    Items: List[OrderItemCreate]
+    Notes: Optional[str] = None
+    OrderData: Optional[Dict[str, Any]] = None
 
 class OrderStatusUpdate(BaseModel):
-    status: str
-    payment_status: Optional[str] = None
+    Status: str
+    PaymentStatus: Optional[str] = None
 
 class OrderOut(BaseModel):
-    id: int
-    order_number: Optional[str] = None
-    customer_name: Optional[str] = None
-    customer_phone: Optional[str] = None
-    customer_email: Optional[str] = None
-    shipping_address: Optional[str] = None
-    city: Optional[str] = None
-    state: Optional[str] = None
-    pincode: Optional[str] = None
-    status: str
-    payment_status: str
-    payment_method: Optional[str] = None
-    subtotal: float
-    shipping_fee: float
-    discount: float
-    total: float
-    store_id: str
-    created_at: datetime
-    updated_at: datetime
+    Id: str
+    OrderNumber: Optional[str] = None
+    SellerId: Optional[str] = None
+    CustomerName: Optional[str] = None
+    CustomerPhone: Optional[str] = None
+    CustomerEmail: Optional[str] = None
+    ShippingAddress: Optional[str] = None
+    City: Optional[str] = None
+    State: Optional[str] = None
+    Pincode: Optional[str] = None
+    Status: str
+    PaymentStatus: str
+    PaymentMethod: Optional[str] = None
+    Subtotal: float
+    ShippingFee: float
+    Discount: float
+    Total: float
+    DeliverySlot: Optional[str] = None
+    SourceChannel: str
+    Notes: Optional[str] = None
+    OrderData: Optional[Dict[str, Any]] = None
+    CreatedAt: datetime
+    UpdatedAt: Optional[datetime] = None
+    Items: Optional[List[OrderItemOut]] = []
 
     class Config:
         from_attributes = True

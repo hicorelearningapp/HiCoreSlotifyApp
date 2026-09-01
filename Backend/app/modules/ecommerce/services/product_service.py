@@ -25,49 +25,53 @@ class ProductService:
         return cls._reel_config
 
     @staticmethod
-    def get_all_categories(db: Session, store_id: str = "default"):
-        return db.query(ProductCategory).filter(ProductCategory.store_id == store_id).all()
+    def get_all_categories(db: Session):
+        return db.query(ProductCategory).all()
         
     @staticmethod
-    def get_products_by_category(db: Session, category_id: int):
-        category = db.query(ProductCategory).filter(ProductCategory.id == category_id).first()
+    def get_products_by_category(db: Session, category_id: str):
+        category = db.query(ProductCategory).filter(ProductCategory.Id == category_id).first()
         if not category:
             return []
         return db.query(Product).filter(
-            Product.category == category.name,
-            Product.store_id == category.store_id,
-            Product.active == True
+            Product.Category == category.CategoryName,
+            Product.Active == True
         ).all()
 
     @staticmethod
-    def get_product_by_id(db: Session, product_id: int):
-        return db.query(Product).filter(Product.id == product_id).first()
+    def get_product_by_id(db: Session, product_id: str):
+        return db.query(Product).filter(Product.Id == product_id).first()
 
     @staticmethod
     def get_product_by_reel_id(db: Session, reel_id: str):
-        return db.query(Product).filter(Product.reel_id == reel_id, Product.active == True).first()
+        prod = db.query(Product).filter(Product.ReelId == reel_id, Product.Active == True).first()
+        if prod:
+            return prod
+        products = db.query(Product).filter(Product.Active == True).all()
+        for p in products:
+            p_data = p.ProductData or {}
+            if isinstance(p_data, dict):
+                if p_data.get("reel_id") == reel_id or p_data.get("media_id") == reel_id or p_data.get("ReelId") == reel_id:
+                    return p
+        return None
 
     @classmethod
     def get_product_by_media_id(cls, db: Session, media_id: str):
         """
         Look up a product by Instagram media/reel ID.
-        First checks the DB (Product.reel_id), then falls back to reel_products.json.
+        First checks the DB (Product.ProductData['reel_id']), then falls back to reel_products.json.
         Returns a dict with {id, name, price} or None.
         """
         if not media_id:
             return None
             
         # Try DB first
-        product = db.query(Product).filter(
-            Product.reel_id == media_id, 
-            Product.active == True
-        ).first()
-        
+        product = cls.get_product_by_reel_id(db, media_id)
         if product:
             return {
-                "id": product.id,
-                "name": product.name,
-                "price": product.price,
+                "id": product.Id,
+                "name": product.ProductName,
+                "price": product.Price,
             }
         
         # Fallback to JSON config
@@ -86,82 +90,84 @@ class ProductService:
     @staticmethod
     def get_product_by_name_or_id(db: Session, identifier: str):
         """
-        Try to find a product by name (case-insensitive) or by ID.
+        Try to find a product by ID (UUID), exact name, or partial name match.
         Used when parsing the WhatsApp ORDER: deep-link text.
         """
-        # Try by ID first
-        try:
-            product_id = int(identifier)
-            product = db.query(Product).filter(Product.id == product_id, Product.active == True).first()
-            if product:
-                return product
-        except (ValueError, TypeError):
-            pass
-        
-        # Try by exact name (case-insensitive)
+        if not identifier:
+            return None
+
+        # 1. Try by exact ID
+        product = db.query(Product).filter(Product.Id == str(identifier), Product.Active == True).first()
+        if product:
+            return product
+
+        # 2. Try by exact name (case-insensitive)
         product = db.query(Product).filter(
-            Product.name.ilike(identifier),
-            Product.active == True
+            Product.ProductName.ilike(identifier),
+            Product.Active == True
         ).first()
         if product:
             return product
         
-        # Try by partial name match
+        # 3. Try by partial name match
         product = db.query(Product).filter(
-            Product.name.ilike(f"%{identifier}%"),
-            Product.active == True
+            Product.ProductName.ilike(f"%{identifier}%"),
+            Product.Active == True
         ).first()
         
         return product
 
     @staticmethod
-    def get_variants_by_product_id(db: Session, product_id: int):
-        product = db.query(Product).filter(Product.id == product_id).first()
-        if not product or not product.product_data:
+    def get_variants_by_product_id(db: Session, product_id: str):
+        product = db.query(Product).filter(Product.Id == product_id).first()
+        if not product or not product.ProductData:
             return []
             
-        variants = product.product_data.get("variants", [])
+        variants = product.ProductData.get("variants", [])
         return [v for v in variants if v.get("active", True) and v.get("stock_quantity", 0) > 0]
 
     @staticmethod
     def create_product(db: Session, data):
-        product = Product(
-            name=data.name,
-            category=data.category,
-            product_type=data.product_type,
-            price=data.price,
-            compare_at_price=data.compare_at_price,
-            sku=data.sku,
-            stock_quantity=data.stock_quantity,
-            unit=data.unit,
-            description=data.description,
-            image_url=data.image_url,
-            images=data.images,
-            reel_id=data.reel_id,
-            active=data.active,
-            store_id=data.store_id or "default",
-            product_data=data.product_data or {},
-        )
+        product_dict = data.model_dump() if hasattr(data, "model_dump") else data.dict()
+        if not product_dict.get("ImageUrl") and product_dict.get("Images"):
+            product_dict["ImageUrl"] = product_dict["Images"][0]
+        elif product_dict.get("ImageUrl") and not product_dict.get("Images"):
+            product_dict["Images"] = [product_dict["ImageUrl"]]
+
+        product = Product(**product_dict)
         db.add(product)
         db.commit()
         db.refresh(product)
         return product
 
     @staticmethod
-    def list_products(db: Session, store_id: str = "default", category: str | None = None):
+    def list_products(
+        db: Session,
+        seller_id: str | None = None,
+        category: str | None = None,
+        active_only: bool = False
+    ):
         q = db.query(Product)
-        if store_id:
-            q = q.filter(Product.store_id == store_id)
+        if seller_id:
+            q = q.filter(Product.SellerId == seller_id)
         if category:
-            q = q.filter(Product.category == category)
-        return q.all()
+            q = q.filter(Product.Category == category)
+        if active_only:
+            q = q.filter(Product.Active == True)
+        return q.order_by(Product.Id.desc()).all()
 
     @staticmethod
-    def update_product(db: Session, product_id: int, data):
-        product = db.query(Product).filter(Product.id == product_id).first()
+    def update_product(db: Session, product_id: str, data):
+        product = db.query(Product).filter(Product.Id == product_id).first()
         if not product:
             return None
         update_data = data.model_dump(exclude_unset=True) if hasattr(data, "model_dump") else data.dict(exclude_unset=True)
+        if "ProductData" in update_data and update_data["ProductData"] is not None:
+            curr_data = dict(product.ProductData or {})
+            if isinstance(update_data["ProductData"], dict):
+                curr_data.update(update_data["ProductData"])
+                product.ProductData = curr_data
+                del update_data["ProductData"]
         for key, val in update_data.items():
             setattr(product, key, val)
         db.commit()
@@ -169,8 +175,8 @@ class ProductService:
         return product
 
     @staticmethod
-    def delete_product(db: Session, product_id: int):
-        product = db.query(Product).filter(Product.id == product_id).first()
+    def delete_product(db: Session, product_id: str):
+        product = db.query(Product).filter(Product.Id == product_id).first()
         if not product:
             return False
         db.delete(product)
