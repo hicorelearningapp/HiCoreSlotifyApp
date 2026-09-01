@@ -12,7 +12,7 @@ from core.database import db_session
 from core.services.whatsapp_service import whatsapp
 from core.services.message_logger import MessageLogger
 from core.config.BusinessManager import BusinessManager
-from core.IdentifyService import IdentifyServiceFactory
+from core.services.IdentifyService import IdentifyServiceFactory
 
 
 class SessionService:
