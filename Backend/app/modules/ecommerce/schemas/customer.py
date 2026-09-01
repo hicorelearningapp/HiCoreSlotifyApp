@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from typing import Optional
-from datetime import date
+from datetime import date, datetime
 
 class EcommerceCustomerBase(BaseModel):
     PhoneNumber: str
@@ -29,6 +29,8 @@ class EcommerceCustomerUpdate(BaseModel):
 class EcommerceCustomerOut(EcommerceCustomerBase):
     CustomerId: str
     ProfileId: str
+    CreatedAt: Optional[datetime] = None
+    UpdatedAt: Optional[datetime] = None
 
     class Config:
         from_attributes = True

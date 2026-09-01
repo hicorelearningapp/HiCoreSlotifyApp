@@ -19,3 +19,5 @@ class EcommerceCustomer(Base):
     City: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     State: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     Pincode: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
+    CreatedAt: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    UpdatedAt: Mapped[Optional[datetime]] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, status, Query
 from sqlalchemy.orm import Session
 from typing import List, Optional
 
@@ -14,16 +14,22 @@ def create_order(data: OrderCreate, db: Session = Depends(get_db)):
     return svc.create_order(data)
 
 @router.get("", response_model=List[OrderOut])
-def list_orders(customer_phone: Optional[str] = None, skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+def list_orders(
+    customer_phone: Optional[str] = Query(None, description="Filter orders by customer phone"),
+    seller_id: Optional[str] = Query(None, description="Filter orders by Seller ID"),
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db)
+):
     svc = OrderService(db)
-    return svc.list_orders(customer_phone=customer_phone, skip=skip, limit=limit)
+    return svc.list_orders(customer_phone=customer_phone, seller_id=seller_id, skip=skip, limit=limit)
 
 @router.get("/{order_id}", response_model=OrderOut)
-def get_order(order_id: int, db: Session = Depends(get_db)):
+def get_order(order_id: str, db: Session = Depends(get_db)):
     svc = OrderService(db)
     return svc.get_order(order_id)
 
 @router.put("/{order_id}/status", response_model=OrderOut)
-def update_order_status(order_id: int, data: OrderStatusUpdate, db: Session = Depends(get_db)):
+def update_order_status(order_id: str, data: OrderStatusUpdate, db: Session = Depends(get_db)):
     svc = OrderService(db)
-    return svc.update_status(order_id, data.status, data.payment_status)
+    return svc.update_status(order_id, data.Status, data.PaymentStatus)

@@ -1,20 +1,22 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional
+from datetime import datetime
 
 class CategoryBase(BaseModel):
-    name: str
-    description: Optional[str] = None
-    store_id: Optional[str] = "default"
+    CategoryName: str = Field(..., description="Category display name")
+    Description: Optional[str] = Field(None, description="Category description")
 
 class CategoryCreate(CategoryBase):
     pass
 
 class CategoryUpdate(BaseModel):
-    name: Optional[str] = None
-    description: Optional[str] = None
+    CategoryName: Optional[str] = None
+    Description: Optional[str] = None
 
 class CategoryOut(CategoryBase):
-    id: int
+    Id: str
+    CreatedAt: Optional[datetime] = None
+    UpdatedAt: Optional[datetime] = None
 
     class Config:
         from_attributes = True

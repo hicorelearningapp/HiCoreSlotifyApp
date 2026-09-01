@@ -1,45 +1,48 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional, List, Dict, Any
+from datetime import datetime
 
 class ProductBase(BaseModel):
-    name: str
-    category: Optional[str] = None
-    product_type: Optional[str] = None
-    price: float = 0.0
-    compare_at_price: Optional[float] = None
-    sku: Optional[str] = None
-    stock_quantity: int = 0
-    unit: Optional[str] = "Pieces"
-    description: Optional[str] = None
-    image_url: Optional[str] = None
-    images: Optional[List[str]] = []
-    reel_id: Optional[str] = None
-    active: bool = True
-    store_id: Optional[str] = "default"
-    product_data: Optional[Dict[str, Any]] = {}
+    # Common core fields in PascalCase
+    ProductName: str = Field(..., description="Product title / name")
+    SellerId: Optional[str] = Field(None, description="Seller / Business ID for multi-seller marketplace")
+    Category: Optional[str] = Field(None, description="Category classification")
+    Price: float = Field(0.0, ge=0.0, description="Selling price")
+    CompareAtPrice: Optional[float] = Field(None, ge=0.0, description="Original / MRP / Compare at price")
+    Sku: Optional[str] = Field(None, description="Stock Keeping Unit (SKU)")
+    Description: Optional[str] = Field(None, description="Detailed product description")
+    ImageUrl: Optional[str] = Field(None, description="Main thumbnail / primary image URL")
+    Images: Optional[List[str]] = Field(default_factory=list, description="List of all product image URLs")
+    ReelId: Optional[str] = Field(None, description="Associated Instagram / video reel ID")
+    Active: bool = Field(True, description="Product visibility status")
+    
+    # Dynamic JSON payload for all other seller/product/category attributes
+    ProductData: Optional[Dict[str, Any]] = Field(
+        default_factory=dict,
+        description="Dynamic JSON data for all other seller/product attributes (brand, specifications, variants, tags, etc.)"
+    )
 
 class ProductCreate(ProductBase):
     pass
 
 class ProductUpdate(BaseModel):
-    name: Optional[str] = None
-    category: Optional[str] = None
-    product_type: Optional[str] = None
-    price: Optional[float] = None
-    compare_at_price: Optional[float] = None
-    sku: Optional[str] = None
-    stock_quantity: Optional[int] = None
-    unit: Optional[str] = None
-    description: Optional[str] = None
-    image_url: Optional[str] = None
-    images: Optional[List[str]] = None
-    reel_id: Optional[str] = None
-    active: Optional[bool] = None
-    store_id: Optional[str] = None
-    product_data: Optional[Dict[str, Any]] = None
+    ProductName: Optional[str] = None
+    SellerId: Optional[str] = None
+    Category: Optional[str] = None
+    Price: Optional[float] = None
+    CompareAtPrice: Optional[float] = None
+    Sku: Optional[str] = None
+    Description: Optional[str] = None
+    ImageUrl: Optional[str] = None
+    Images: Optional[List[str]] = None
+    ReelId: Optional[str] = None
+    Active: Optional[bool] = None
+    ProductData: Optional[Dict[str, Any]] = None
 
 class ProductOut(ProductBase):
-    id: int
+    Id: str
+    CreatedAt: Optional[datetime] = None
+    UpdatedAt: Optional[datetime] = None
 
     class Config:
         from_attributes = True
