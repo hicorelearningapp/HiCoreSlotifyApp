@@ -11,7 +11,6 @@ class ProductBase(BaseModel):
     CompareAtPrice: Optional[float] = Field(None, ge=0.0, description="Original / MRP / Compare at price")
     Sku: Optional[str] = Field(None, description="Stock Keeping Unit (SKU)")
     Description: Optional[str] = Field(None, description="Detailed product description")
-    ImageUrl: Optional[str] = Field(None, description="Main thumbnail / primary image URL")
     Images: Optional[List[str]] = Field(default_factory=list, description="List of all product image URLs")
     ReelId: Optional[str] = Field(None, description="Associated Instagram / video reel ID")
     Active: bool = Field(True, description="Product visibility status")
@@ -33,7 +32,6 @@ class ProductUpdate(BaseModel):
     CompareAtPrice: Optional[float] = None
     Sku: Optional[str] = None
     Description: Optional[str] = None
-    ImageUrl: Optional[str] = None
     Images: Optional[List[str]] = None
     ReelId: Optional[str] = None
     Active: Optional[bool] = None

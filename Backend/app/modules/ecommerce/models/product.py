@@ -16,7 +16,6 @@ class Product(Base):
     CompareAtPrice: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     Sku: Mapped[Optional[str]] = mapped_column(String(100), nullable=True, index=True)
     Description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    ImageUrl: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     Images: Mapped[Optional[list]] = mapped_column(JSON, default=list)
     ReelId: Mapped[Optional[str]] = mapped_column(String(100), nullable=True, index=True)
     Active: Mapped[bool] = mapped_column(Boolean, default=True)

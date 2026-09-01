@@ -129,11 +129,6 @@ class ProductService:
     @staticmethod
     def create_product(db: Session, data):
         product_dict = data.model_dump() if hasattr(data, "model_dump") else data.dict()
-        if not product_dict.get("ImageUrl") and product_dict.get("Images"):
-            product_dict["ImageUrl"] = product_dict["Images"][0]
-        elif product_dict.get("ImageUrl") and not product_dict.get("Images"):
-            product_dict["Images"] = [product_dict["ImageUrl"]]
-
         product = Product(**product_dict)
         db.add(product)
         db.commit()
