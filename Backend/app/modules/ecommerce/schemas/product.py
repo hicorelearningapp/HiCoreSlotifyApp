@@ -12,7 +12,7 @@ class ProductBase(BaseModel):
     Sku: Optional[str] = Field(None, description="Stock Keeping Unit (SKU)")
     Description: Optional[str] = Field(None, description="Detailed product description")
     Images: Optional[List[str]] = Field(default_factory=list, description="List of all product image URLs")
-    ReelId: Optional[str] = Field(None, description="Associated Instagram / video reel ID")
+    ReelLink: Optional[str] = Field(None, description="Associated Instagram / video reel link or URL")
     Active: bool = Field(True, description="Product visibility status")
     
     # Dynamic JSON payload for all other seller/product/category attributes
@@ -33,7 +33,7 @@ class ProductUpdate(BaseModel):
     Sku: Optional[str] = None
     Description: Optional[str] = None
     Images: Optional[List[str]] = None
-    ReelId: Optional[str] = None
+    ReelLink: Optional[str] = None
     Active: Optional[bool] = None
     ProductData: Optional[Dict[str, Any]] = None
 

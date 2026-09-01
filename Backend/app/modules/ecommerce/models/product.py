@@ -17,7 +17,7 @@ class Product(Base):
     Sku: Mapped[Optional[str]] = mapped_column(String(100), nullable=True, index=True)
     Description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     Images: Mapped[Optional[list]] = mapped_column(JSON, default=list)
-    ReelId: Mapped[Optional[str]] = mapped_column(String(100), nullable=True, index=True)
+    ReelLink: Mapped[Optional[str]] = mapped_column(String(500), nullable=True, index=True)
     Active: Mapped[bool] = mapped_column(Boolean, default=True)
 
     # Dynamic JSON data payload for all other seller/product attributes

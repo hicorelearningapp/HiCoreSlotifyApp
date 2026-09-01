@@ -1,5 +1,10 @@
 import json
 import os
+import shutil
+import uuid
+from typing import List, Optional, Union
+from fastapi import UploadFile
+from app.core.config import settings
 from app.modules.ecommerce.models.product import Product
 from app.modules.ecommerce.models.category import Category as ProductCategory
 from sqlalchemy.orm import Session
@@ -25,6 +30,32 @@ class ProductService:
         return cls._reel_config
 
     @staticmethod
+    def save_uploaded_images(files: List[UploadFile]) -> List[str]:
+        """
+        Saves uploaded images to Backend/images/products directory
+        and returns the list of static URLs.
+        """
+        target_dir = os.path.join(settings.IMAGES_DIR, "products")
+        os.makedirs(target_dir, exist_ok=True)
+        
+        saved_urls: List[str] = []
+        for file in files:
+            if not file or not file.filename:
+                continue
+            ext = os.path.splitext(file.filename)[1].lower()
+            if not ext:
+                ext = ".jpg"
+            unique_filename = f"prod_{uuid.uuid4().hex[:12]}{ext}"
+            file_path = os.path.join(target_dir, unique_filename)
+            
+            with open(file_path, "wb") as buffer:
+                shutil.copyfileobj(file.file, buffer)
+                
+            saved_urls.append(f"/images/products/{unique_filename}")
+            
+        return saved_urls
+
+    @staticmethod
     def get_all_categories(db: Session):
         return db.query(ProductCategory).all()
         
@@ -43,17 +74,23 @@ class ProductService:
         return db.query(Product).filter(Product.Id == product_id).first()
 
     @staticmethod
-    def get_product_by_reel_id(db: Session, reel_id: str):
-        prod = db.query(Product).filter(Product.ReelId == reel_id, Product.Active == True).first()
+    def get_product_by_reel_link(db: Session, reel_link: str):
+        prod = db.query(Product).filter(Product.ReelLink == reel_link, Product.Active == True).first()
         if prod:
             return prod
         products = db.query(Product).filter(Product.Active == True).all()
         for p in products:
+            if p.ReelLink and reel_link in p.ReelLink:
+                return p
             p_data = p.ProductData or {}
             if isinstance(p_data, dict):
-                if p_data.get("reel_id") == reel_id or p_data.get("media_id") == reel_id or p_data.get("ReelId") == reel_id:
+                if p_data.get("reel_link") == reel_link or p_data.get("reel_id") == reel_link or p_data.get("media_id") == reel_link or p_data.get("ReelLink") == reel_link:
                     return p
         return None
+
+    @classmethod
+    def get_product_by_reel_id(cls, db: Session, reel_id: str):
+        return cls.get_product_by_reel_link(db, reel_id)
 
     @classmethod
     def get_product_by_media_id(cls, db: Session, media_id: str):
@@ -165,6 +202,19 @@ class ProductService:
                 del update_data["ProductData"]
         for key, val in update_data.items():
             setattr(product, key, val)
+        db.commit()
+        db.refresh(product)
+        return product
+
+    @staticmethod
+    def add_images_to_product(db: Session, product_id: str, files: List[UploadFile]) -> Optional[Product]:
+        product = db.query(Product).filter(Product.Id == product_id).first()
+        if not product:
+            return None
+        new_urls = ProductService.save_uploaded_images(files)
+        current_images = list(product.Images or [])
+        current_images.extend(new_urls)
+        product.Images = current_images
         db.commit()
         db.refresh(product)
         return product

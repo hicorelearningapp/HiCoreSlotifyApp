@@ -1,19 +1,35 @@
-from fastapi import APIRouter, Depends, status, HTTPException, Query
+from fastapi import APIRouter, Depends, status, HTTPException, Query, UploadFile, File, Form, Request
 from sqlalchemy.orm import Session
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
+import os
+import shutil
+import uuid
+import json
 from app.core.database import get_db
+from app.core.config import settings
 from app.modules.ecommerce.schemas import ProductOut, ProductCreate, ProductUpdate
 from app.modules.ecommerce.services.product_service import ProductService
 
 
 router = APIRouter(prefix="/products", tags=["Ecommerce Products"])
 
+def _save_product_image(photo: UploadFile) -> str:
+    """Save an uploaded image file directly into Backend/images/products/."""
+    images_dir = os.path.join(settings.IMAGES_DIR, "products")
+    os.makedirs(images_dir, exist_ok=True)
+    ext = os.path.splitext(photo.filename)[1] if photo.filename else ".jpg"
+    filename = f"{uuid.uuid4()}{ext}"
+    file_path = os.path.join(images_dir, filename)
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(photo.file, buffer)
+    return f"/images/products/{filename}"
+
 @router.get("/categories")
-def get_categories(store_id: str = "default", db: Session = Depends(get_db)):
-    return ProductService.get_all_categories(db, store_id)
+def get_categories(db: Session = Depends(get_db)):
+    return ProductService.get_all_categories(db)
 
 @router.get("/categories/{category_id}/products")
-def get_products_by_category(category_id: int, db: Session = Depends(get_db)):
+def get_products_by_category(category_id: str, db: Session = Depends(get_db)):
     return ProductService.get_products_by_category(db, category_id)
 
 @router.get("/{product_id}/variants")
@@ -27,9 +43,99 @@ def find_product(identifier: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Product not found")
     return product
 
-@router.post("", response_model=ProductOut, status_code=status.HTTP_201_CREATED)
-def create_product(product_in: ProductCreate, db: Session = Depends(get_db)):
-    return ProductService.create_product(db, product_in)
+@router.post("", response_model=ProductOut, status_code=status.HTTP_201_CREATED, summary="Create a new product")
+async def create_product(
+    request: Request,
+    ProductName: Optional[str] = Form(None, description="Product title / name"),
+    SellerId: Optional[str] = Form(None, description="Seller / Business ID"),
+    Category: Optional[str] = Form(None, description="Category classification"),
+    Price: Optional[float] = Form(None, description="Selling price"),
+    CompareAtPrice: Optional[float] = Form(None, description="Original / MRP price"),
+    Sku: Optional[str] = Form(None, description="SKU code"),
+    Description: Optional[str] = Form(None, description="Product description"),
+    ReelLink: Optional[str] = Form(None, description="Associated Instagram / Video Reel URL"),
+    Active: Optional[bool] = Form(True, description="Product visibility status"),
+    ProductData: Optional[str] = Form(None, description="Dynamic JSON attributes (e.g. {'Fabric': 'Silk'})"),
+    Images: List[UploadFile] = File(
+        default=[],
+        description="Choose one or multiple product images from your computer",
+        json_schema_extra={"items": {"type": "string", "format": "binary"}}
+    ),
+    db: Session = Depends(get_db)
+):
+    """
+    Create a new product. Supports uploading multiple image files directly from system as well as JSON payloads.
+    """
+    content_type = request.headers.get("content-type", "")
+
+    if "multipart/form-data" in content_type:
+        form = await request.form()
+        form_data: Dict[str, Any] = {}
+        uploaded_images: List[str] = []
+
+        # Extract regular form fields
+        for key, val in form.items():
+            if not hasattr(val, "filename"):
+                if val is not None and str(val).strip() != "":
+                    form_data[key] = val
+
+        # Extract uploaded image files (supports multiple files under Images)
+        for field_name in ["Images", "images", "files"]:
+            for item in form.getlist(field_name):
+                if hasattr(item, "filename") and item.filename:
+                    photo_url = _save_product_image(item)
+                    uploaded_images.append(photo_url)
+
+        if not uploaded_images:
+            for key, val in form.items():
+                if hasattr(val, "filename") and val.filename:
+                    uploaded_images.append(_save_product_image(val))
+
+        if uploaded_images:
+            form_data["Images"] = uploaded_images
+
+        if "ProductData" in form_data and isinstance(form_data["ProductData"], str):
+            try:
+                form_data["ProductData"] = json.loads(form_data["ProductData"])
+            except Exception:
+                form_data["ProductData"] = {}
+
+        parsed_data = ProductCreate(**form_data)
+        return ProductService.create_product(db, parsed_data)
+
+    elif "application/json" in content_type:
+        try:
+            body = await request.json()
+        except Exception:
+            body = {}
+        parsed_data = ProductCreate(**body)
+        return ProductService.create_product(db, parsed_data)
+
+    # Direct form parameters fallback
+    form_dict: Dict[str, Any] = {
+        "ProductName": ProductName or "",
+        "SellerId": SellerId,
+        "Category": Category,
+        "Price": Price if Price is not None else 0.0,
+        "CompareAtPrice": CompareAtPrice,
+        "Sku": Sku,
+        "Description": Description,
+        "ReelLink": ReelLink,
+        "Active": Active if Active is not None else True,
+        "ProductData": {}
+    }
+    if Images:
+        saved_urls = [_save_product_image(img) for img in Images if hasattr(img, "filename") and img.filename]
+        if saved_urls:
+            form_dict["Images"] = saved_urls
+    if ProductData:
+        try:
+            form_dict["ProductData"] = json.loads(ProductData) if isinstance(ProductData, str) else ProductData
+        except Exception:
+            form_dict["ProductData"] = {}
+
+    parsed_data = ProductCreate(**form_dict)
+    return ProductService.create_product(db, parsed_data)
 
 @router.get("", response_model=List[ProductOut])
 def list_products(
@@ -47,9 +153,119 @@ def get_product(product_id: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Product not found")
     return product
 
-@router.put("/{product_id}", response_model=ProductOut)
-def update_product(product_id: str, product_in: ProductUpdate, db: Session = Depends(get_db)):
-    product = ProductService.update_product(db, product_id, product_in)
+@router.put("/{product_id}", response_model=ProductOut, summary="Update an existing product")
+async def update_product(
+    product_id: str,
+    request: Request,
+    ProductName: Optional[str] = Form(None, description="Product title / name"),
+    SellerId: Optional[str] = Form(None, description="Seller / Business ID"),
+    Category: Optional[str] = Form(None, description="Category classification"),
+    Price: Optional[float] = Form(None, description="Selling price"),
+    CompareAtPrice: Optional[float] = Form(None, description="Original / MRP price"),
+    Sku: Optional[str] = Form(None, description="SKU code"),
+    Description: Optional[str] = Form(None, description="Product description"),
+    ReelLink: Optional[str] = Form(None, description="Associated Instagram / Video Reel URL"),
+    Active: Optional[bool] = Form(None, description="Product visibility status"),
+    ProductData: Optional[str] = Form(None, description="Dynamic JSON attributes"),
+    Images: List[UploadFile] = File(
+        default=[],
+        description="Choose one or multiple product images to add from your computer",
+        json_schema_extra={"items": {"type": "string", "format": "binary"}}
+    ),
+    db: Session = Depends(get_db)
+):
+    """
+    Update a product. Supports uploading multiple image files directly from system as well as JSON payloads.
+    """
+    content_type = request.headers.get("content-type", "")
+
+    if "multipart/form-data" in content_type:
+        form = await request.form()
+        form_data: Dict[str, Any] = {}
+        uploaded_images: List[str] = []
+
+        # Extract regular form fields
+        for key, val in form.items():
+            if not hasattr(val, "filename"):
+                if val is not None and str(val).strip() != "":
+                    form_data[key] = val
+
+        # Extract uploaded image files
+        for field_name in ["Images", "images", "files"]:
+            for item in form.getlist(field_name):
+                if hasattr(item, "filename") and item.filename:
+                    photo_url = _save_product_image(item)
+                    uploaded_images.append(photo_url)
+
+        if not uploaded_images:
+            for key, val in form.items():
+                if hasattr(val, "filename") and val.filename:
+                    uploaded_images.append(_save_product_image(val))
+
+        if uploaded_images:
+            existing_prod = ProductService.get_product_by_id(db, product_id)
+            curr_images = list(existing_prod.Images or []) if existing_prod else []
+            curr_images.extend(uploaded_images)
+            form_data["Images"] = curr_images
+
+        if "ProductData" in form_data and isinstance(form_data["ProductData"], str):
+            try:
+                form_data["ProductData"] = json.loads(form_data["ProductData"])
+            except Exception:
+                form_data["ProductData"] = {}
+
+        parsed_data = ProductUpdate(**form_data)
+        product = ProductService.update_product(db, product_id, parsed_data)
+        if not product:
+            raise HTTPException(status_code=404, detail="Product not found")
+        return product
+
+    elif "application/json" in content_type:
+        try:
+            body = await request.json()
+        except Exception:
+            body = {}
+        parsed_data = ProductUpdate(**body)
+        product = ProductService.update_product(db, product_id, parsed_data)
+        if not product:
+            raise HTTPException(status_code=404, detail="Product not found")
+        return product
+
+    # Direct form parameters fallback
+    form_dict: Dict[str, Any] = {}
+    if ProductName is not None:
+        form_dict["ProductName"] = ProductName
+    if SellerId is not None:
+        form_dict["SellerId"] = SellerId
+    if Category is not None:
+        form_dict["Category"] = Category
+    if Price is not None:
+        form_dict["Price"] = Price
+    if CompareAtPrice is not None:
+        form_dict["CompareAtPrice"] = CompareAtPrice
+    if Sku is not None:
+        form_dict["Sku"] = Sku
+    if Description is not None:
+        form_dict["Description"] = Description
+    if ReelLink is not None:
+        form_dict["ReelLink"] = ReelLink
+    if Active is not None:
+        form_dict["Active"] = Active
+    if Images:
+        saved_urls = [_save_product_image(img) for img in Images if hasattr(img, "filename") and img.filename]
+        if saved_urls:
+            existing_prod = ProductService.get_product_by_id(db, product_id)
+            curr_images = list(existing_prod.Images or []) if existing_prod else []
+            curr_images.extend(saved_urls)
+            form_dict["Images"] = curr_images
+    if ProductData:
+        try:
+            form_dict["ProductData"] = json.loads(ProductData) if isinstance(ProductData, str) else ProductData
+        except Exception:
+            pass
+
+    parsed_data = ProductUpdate(**form_dict)
+    product = ProductService.update_product(db, product_id, parsed_data)
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
     return product
