@@ -1,4 +1,4 @@
-from core.IdentifyService import BaseIdentifyService, IdentityResult
+from core.services.IdentifyService import BaseIdentifyService, IdentityResult
 from core.api_client import api_client
 
 class HealthcareIdentifyService(BaseIdentifyService):
