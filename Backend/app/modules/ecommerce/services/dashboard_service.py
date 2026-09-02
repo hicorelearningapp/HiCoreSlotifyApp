@@ -8,7 +8,7 @@ class DashboardService:
     def __init__(self, db: Session):
         self.db = db
 
-    def get_seller_dashboard(self, seller_id: Optional[str] = None) -> Dict[str, Any]:
+    def get_seller_dashboard(self, seller_id: Optional[str] = None, year: Optional[int] = None) -> Dict[str, Any]:
         prod_query = self.db.query(Product)
         order_query = self.db.query(Order)
 
@@ -28,6 +28,9 @@ class DashboardService:
 
         for o in orders:
             created = o.CreatedAt or now
+            if year is not None and created.year != year:
+                continue
+
             month_key = months_list[created.month - 1]
             week_key = f"week{((created.day - 1) // 7) + 1}"
             date_key = f"{created.strftime('%A')}({created.strftime('%d.%m.%Y')})"

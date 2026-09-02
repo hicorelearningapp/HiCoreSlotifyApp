@@ -13,6 +13,9 @@ from app.modules.ecommerce.schemas.customer import (
 from app.modules.ecommerce.schemas.dashboard import (
     SellerDashboardOut
 )
+from app.modules.ecommerce.schemas.report import (
+    ReportSummary, TopProductItem, RecentSaleItem, EcommerceReportOut
+)
 
 __all__ = [
     "ProductOut",
@@ -31,4 +34,8 @@ __all__ = [
     "EcommerceCustomerCreate",
     "EcommerceCustomerUpdate",
     "SellerDashboardOut",
+    "ReportSummary",
+    "TopProductItem",
+    "RecentSaleItem",
+    "EcommerceReportOut",
 ]

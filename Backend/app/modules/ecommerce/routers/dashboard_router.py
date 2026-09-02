@@ -11,13 +11,13 @@ router = APIRouter(prefix="/dashboard", tags=["Ecommerce Dashboard"])
 @router.get("", response_model=SellerDashboardOut, summary="Get seller dashboard metrics")
 def get_dashboard(
     seller_id: Optional[str] = Query(None, description="Filter dashboard by Seller / Merchant ID"),
+    year: Optional[int] = Query(None, description="Filter dashboard by Year (e.g. 2024, 2025, 2026)"),
     db: Session = Depends(get_db)
 ):
     """
     Returns seller ecommerce dashboard metrics:
     - TotalProducts
-    - TotalSales
-    - TotalOrders
+    - OrdersAndSales (12 months hierarchy)
     """
     svc = DashboardService(db)
-    return svc.get_seller_dashboard(seller_id=seller_id)
+    return svc.get_seller_dashboard(seller_id=seller_id, year=year)
