@@ -1,3 +1,4 @@
+
 from core.workflows.BaseWorkflow import Workflow
 from core.models.workflow_models import ConversationSession, Message, WorkflowResult, Reply
 from core.api_client import api_client
@@ -38,6 +39,10 @@ class SelectDoctorWorkflow(Workflow):
             doctor = api_client.get_doctor(doctor_id)
             if not doctor: raise ValueError()
 
+            if doctor.get("Status") != "Approved":
+                WhatsAppService.send_text(session.PhoneNumber, f"Dr.{doctor.get("FullName")} is currently not available for booking. Please select another doctor or try again later.")
+                time.sleep(1.5)
+                return self.Initialize(session)
                 
             session.WorkflowData["DoctorId"] = doctor_id
             return WorkflowResult.completed()

@@ -1,8 +1,8 @@
-from core.SequenceManager import SequenceFactory
+from core.SequenceFactory import SequenceFactory
 from core.models.workflow_models import Message, WorkflowStatus, WorkflowResult, Reply
 from core.services.session_service import SessionService
 from core.services.channel_messenger import channel_messenger as ChannelMessenger
-from core.SequenceManager import Sequence
+from core.SequenceFactory import Sequence
 from core.services.message_logger import MessageLogger
 from core.database import db_session
 from core.api_client import api_client as product_service

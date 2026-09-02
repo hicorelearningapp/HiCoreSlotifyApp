@@ -15,8 +15,8 @@ Here is the exact execution trace of classes and methods that are triggered when
 - **PROCESS:** `SessionService.load_session()` is executed. It queries the database and realizes this phone number does not exist. It must build a new session.
 
 ### 4. Fetching the Configuration
-- **CLASS CALLED:** `ConfigManager`
-- **PROCESS:** `ConfigManager.get_config(business_phone)` is executed to read the `[business_phone].txt` file and determine which industry this business belongs to (e.g., `"healthcare"`).
+- **CLASS CALLED:** `SequenceManager`
+- **PROCESS:** `SequenceManager.get_config(business_phone)` is executed to read the `[business_phone].txt` file and determine which industry this business belongs to (e.g., `"healthcare"`).
 
 ### 5. Identifying the User
 - **CLASS CALLED:** `IdentifyServiceFactory` -> `HealthcareIdentifyService`
