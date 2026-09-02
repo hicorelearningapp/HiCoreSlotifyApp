@@ -1,4 +1,5 @@
-from core.SequenceManager import SequenceManager, Sequence, BaseSequenceManager
+from core.SequenceManager import SequenceManager
+from core.SequenceFactory import Sequence, BaseSequenceManager
 from core.WorkflowFactory import WorkflowFactory
 
 class EcommerceSequenceManager(BaseSequenceManager):
@@ -31,5 +32,4 @@ class EcommerceSequenceManager(BaseSequenceManager):
 
         return Sequence(name, workflows)
 
-from core.SequenceManager import SequenceFactory
-SequenceFactory.register_factory("ecommerce", EcommerceSequenceManager)
+
