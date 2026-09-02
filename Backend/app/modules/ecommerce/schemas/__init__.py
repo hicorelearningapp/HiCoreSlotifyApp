@@ -10,6 +10,9 @@ from app.modules.ecommerce.schemas.category import (
 from app.modules.ecommerce.schemas.customer import (
     EcommerceCustomerOut, EcommerceCustomerCreate, EcommerceCustomerUpdate
 )
+from app.modules.ecommerce.schemas.dashboard import (
+    SellerDashboardOut
+)
 
 __all__ = [
     "ProductOut",
@@ -27,4 +30,5 @@ __all__ = [
     "EcommerceCustomerOut",
     "EcommerceCustomerCreate",
     "EcommerceCustomerUpdate",
+    "SellerDashboardOut",
 ]
