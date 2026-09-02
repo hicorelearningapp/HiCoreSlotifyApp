@@ -123,15 +123,6 @@ def subscribe_account(access_token: str, instagram_account_id: str) -> bool:
     return True
 
 
-def unsubscribe_account(access_token: str, instagram_account_id: str) -> bool:
-    _request(
-        "DELETE",
-        _graph_url(f"{instagram_account_id}/subscribed_apps"),
-        access_token=access_token,
-    )
-    return True
-
-
 # ── token lifecycle ───────────────────────────────────────────────────────
 def refresh_token(db, instagram_account_id: str) -> InstagramConnection | None:
     """Renew one connection's long-lived token in place."""
