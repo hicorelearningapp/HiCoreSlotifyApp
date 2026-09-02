@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, status, HTTPException, Query, UploadFile, File, Form, Request
 from sqlalchemy.orm import Session
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Union
 import os
 import shutil
 import uuid
@@ -13,8 +13,10 @@ from app.modules.ecommerce.services.product_service import ProductService
 
 router = APIRouter(prefix="/products", tags=["Ecommerce Products"])
 
-def _save_product_image(photo: UploadFile) -> str:
+def _save_product_image(photo: Any) -> Optional[str]:
     """Save an uploaded image file directly into Backend/images/products/."""
+    if not hasattr(photo, "filename") or not photo.filename:
+        return None
     images_dir = os.path.join(settings.IMAGES_DIR, "products")
     os.makedirs(images_dir, exist_ok=True)
     ext = os.path.splitext(photo.filename)[1] if photo.filename else ".jpg"
@@ -56,9 +58,9 @@ async def create_product(
     ReelLink: Optional[str] = Form(None, description="Associated Instagram / Video Reel URL"),
     Active: Optional[bool] = Form(True, description="Product visibility status"),
     ProductData: Optional[str] = Form(None, description="Dynamic JSON attributes (e.g. {'Fabric': 'Silk'})"),
-    Images: List[UploadFile] = File(
+    Images: List[Union[UploadFile, str]] = File(
         default=[],
-        description="Choose one or multiple product images from your computer",
+        description="Choose one or multiple product images from your computer or provide URLs",
         json_schema_extra={"items": {"type": "string", "format": "binary"}}
     ),
     db: Session = Depends(get_db)
@@ -79,17 +81,24 @@ async def create_product(
                 if val is not None and str(val).strip() != "":
                     form_data[key] = val
 
-        # Extract uploaded image files (supports multiple files under Images)
+        # Extract uploaded image files / URLs
         for field_name in ["Images", "images", "files"]:
             for item in form.getlist(field_name):
                 if hasattr(item, "filename") and item.filename:
                     photo_url = _save_product_image(item)
-                    uploaded_images.append(photo_url)
+                    if photo_url:
+                        uploaded_images.append(photo_url)
+                elif isinstance(item, str) and item.strip():
+                    uploaded_images.append(item.strip())
 
         if not uploaded_images:
             for key, val in form.items():
                 if hasattr(val, "filename") and val.filename:
-                    uploaded_images.append(_save_product_image(val))
+                    photo_url = _save_product_image(val)
+                    if photo_url:
+                        uploaded_images.append(photo_url)
+                elif isinstance(val, str) and key.lower() in ["images", "image"] and val.strip():
+                    uploaded_images.append(val.strip())
 
         if uploaded_images:
             form_data["Images"] = uploaded_images
@@ -125,7 +134,14 @@ async def create_product(
         "ProductData": {}
     }
     if Images:
-        saved_urls = [_save_product_image(img) for img in Images if hasattr(img, "filename") and img.filename]
+        saved_urls = []
+        for img in Images:
+            if hasattr(img, "filename") and img.filename:
+                photo_url = _save_product_image(img)
+                if photo_url:
+                    saved_urls.append(photo_url)
+            elif isinstance(img, str) and img.strip():
+                saved_urls.append(img.strip())
         if saved_urls:
             form_dict["Images"] = saved_urls
     if ProductData:
@@ -167,9 +183,9 @@ async def update_product(
     ReelLink: Optional[str] = Form(None, description="Associated Instagram / Video Reel URL"),
     Active: Optional[bool] = Form(None, description="Product visibility status"),
     ProductData: Optional[str] = Form(None, description="Dynamic JSON attributes"),
-    Images: List[UploadFile] = File(
+    Images: List[Union[UploadFile, str]] = File(
         default=[],
-        description="Choose one or multiple product images to add from your computer",
+        description="Choose one or multiple product images to add from your computer or provide URLs",
         json_schema_extra={"items": {"type": "string", "format": "binary"}}
     ),
     db: Session = Depends(get_db)
@@ -190,17 +206,24 @@ async def update_product(
                 if val is not None and str(val).strip() != "":
                     form_data[key] = val
 
-        # Extract uploaded image files
+        # Extract uploaded image files / URLs
         for field_name in ["Images", "images", "files"]:
             for item in form.getlist(field_name):
                 if hasattr(item, "filename") and item.filename:
                     photo_url = _save_product_image(item)
-                    uploaded_images.append(photo_url)
+                    if photo_url:
+                        uploaded_images.append(photo_url)
+                elif isinstance(item, str) and item.strip():
+                    uploaded_images.append(item.strip())
 
         if not uploaded_images:
             for key, val in form.items():
                 if hasattr(val, "filename") and val.filename:
-                    uploaded_images.append(_save_product_image(val))
+                    photo_url = _save_product_image(val)
+                    if photo_url:
+                        uploaded_images.append(photo_url)
+                elif isinstance(val, str) and key.lower() in ["images", "image"] and val.strip():
+                    uploaded_images.append(val.strip())
 
         if uploaded_images:
             existing_prod = ProductService.get_product_by_id(db, product_id)
@@ -252,7 +275,14 @@ async def update_product(
     if Active is not None:
         form_dict["Active"] = Active
     if Images:
-        saved_urls = [_save_product_image(img) for img in Images if hasattr(img, "filename") and img.filename]
+        saved_urls = []
+        for img in Images:
+            if hasattr(img, "filename") and img.filename:
+                photo_url = _save_product_image(img)
+                if photo_url:
+                    saved_urls.append(photo_url)
+            elif isinstance(img, str) and img.strip():
+                saved_urls.append(img.strip())
         if saved_urls:
             existing_prod = ProductService.get_product_by_id(db, product_id)
             curr_images = list(existing_prod.Images or []) if existing_prod else []
