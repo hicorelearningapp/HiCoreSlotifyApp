@@ -59,10 +59,12 @@ class DoctorService:
         return query.offset(skip).limit(limit).all()
 
     def list_doctors_by_business_phone(self, business_phone: str, skip: int = 0, limit: int = 100, status: Optional[str] = None, approved_only: bool = False) -> List[models.Doctor]:
+        from app.core.phone_utils import build_phone_filter
+        phone_filter = build_phone_filter(models.Doctor.BusinessPhoneNumber, business_phone)
         query = self.db.query(models.Doctor).filter(
             (models.Doctor.IndustryType == "DoctorAppointment") |
             (models.Doctor.IndustryType.ilike("%doctor%")),
-            models.Doctor.BusinessPhoneNumber == business_phone
+            phone_filter
         )
         if status:
             query = query.filter(models.Doctor.Status == status)
@@ -93,8 +95,14 @@ class DoctorService:
         return f"Dr. {name.split()[0]}"
 
     def get_doctor_by_phone(self, phone_id: str) -> Optional[models.Doctor]:
+        from app.core.phone_utils import build_phone_filter
+        from sqlalchemy import or_
+        phone_filter = or_(
+            build_phone_filter(models.Doctor.MobileNumber, phone_id),
+            build_phone_filter(models.Doctor.BusinessPhoneNumber, phone_id)
+        )
         return (
-            self.db.query(models.Doctor).filter(models.Doctor.MobileNumber == phone_id).first()
+            self.db.query(models.Doctor).filter(phone_filter).first()
         )
 
     def _delete_photo_file(self, photo_path: Optional[str]):

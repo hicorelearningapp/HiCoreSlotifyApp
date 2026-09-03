@@ -2,10 +2,12 @@ from typing import Optional, List
 from app.core.database import db_session
 from app.modules.ecommerce.models.customer import EcommerceCustomer
 from app.modules.ecommerce.schemas.customer import EcommerceCustomerCreate, EcommerceCustomerUpdate
+from app.core.phone_utils import build_phone_filter
 
 class CustomerService:
     def get_customer_by_phone(self, phone_number: str) -> Optional[EcommerceCustomer]:
-        return db_session.query(EcommerceCustomer).filter(EcommerceCustomer.PhoneNumber == phone_number).first()
+        phone_filter = build_phone_filter(EcommerceCustomer.PhoneNumber, phone_number)
+        return db_session.query(EcommerceCustomer).filter(phone_filter).first()
         
     def get_customer_by_profile_id(self, profile_id: str) -> Optional[EcommerceCustomer]:
         return db_session.query(EcommerceCustomer).filter(EcommerceCustomer.ProfileId == profile_id).first()

@@ -49,12 +49,14 @@ class CustomerService:
         return self.db.query(models.Customer).filter(models.Customer.PatientId == patient_id).first()
 
     def get_customer_by_phone(self, phone_number: str) -> Optional[models.Customer]:
+        from app.core.phone_utils import build_phone_filter
+        phone_filter = build_phone_filter(models.Customer.PhoneNumber, phone_number)
         cust = self.db.query(models.Customer).filter(
-            models.Customer.PhoneNumber == phone_number,
+            phone_filter,
             models.Customer.CustomerName == models.Customer.PatientName
         ).first()
         if not cust:
-            cust = self.db.query(models.Customer).filter(models.Customer.PhoneNumber == phone_number).first()
+            cust = self.db.query(models.Customer).filter(phone_filter).first()
         return cust
 
     def get_patients_by_phone(self, phone_number: str) -> List[models.Customer]:

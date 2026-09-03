@@ -99,11 +99,13 @@ class BusinessService:
         return business
 
     def get_business_by_phone(self, phone_number: str) -> models.Business:
-        business = self.db.query(models.Business).filter(models.Business.BusinessPhoneNumber == phone_number).first()
+        from app.core.phone_utils import build_phone_filter
+        phone_filter = build_phone_filter(models.Business.BusinessPhoneNumber, phone_number)
+        business = self.db.query(models.Business).filter(phone_filter).first()
         if not business:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="Business not found for this phone number."
+                detail="Business not found for this business phone number."
             )
         return business
 

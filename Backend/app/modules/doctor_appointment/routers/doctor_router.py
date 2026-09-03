@@ -37,8 +37,8 @@ def format_validation_error(e: Exception) -> str:
 class DoctorRouter:
     def __init__(self):
         self.router = APIRouter(prefix="/doctors", tags=["Doctors"])
-        self._add_routes()
         self.doctor_svc = DoctorService()
+        self._add_routes()
 
     def _add_routes(self):
         self.router.add_api_route("", self.list_doctors, methods=["GET"], response_model=List[schemas.DoctorOut])

@@ -13,7 +13,9 @@ class OrderService:
 
     def create_order(self, data: OrderCreate) -> Order:
         # Find customer by phone
-        customer = self.db.query(EcommerceCustomer).filter(EcommerceCustomer.PhoneNumber == data.CustomerPhone).first()
+        from app.core.phone_utils import build_phone_filter
+        phone_filter = build_phone_filter(EcommerceCustomer.PhoneNumber, data.CustomerPhone)
+        customer = self.db.query(EcommerceCustomer).filter(phone_filter).first()
         customer_id = customer.CustomerId if customer else None
 
         subtotal = sum(item.Quantity * item.UnitPrice for item in data.Items)
@@ -86,7 +88,8 @@ class OrderService:
         if seller_id:
             base_query = base_query.filter(Order.SellerId == seller_id)
         if customer_phone:
-            base_query = base_query.filter(Order.CustomerPhone == customer_phone)
+            from app.core.phone_utils import build_phone_filter
+            base_query = base_query.filter(build_phone_filter(Order.CustomerPhone, customer_phone))
             
         all_orders = base_query.all()
         
