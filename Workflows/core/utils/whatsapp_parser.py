@@ -23,6 +23,10 @@ class ParseManager:
         if business_phone_number:
             business_phone_number = str(business_phone_number).strip()
 
+        business_phone_number_id = metadata.get("phone_number_id")
+        if business_phone_number_id:
+            business_phone_number_id = str(business_phone_number_id).strip()
+
         text = None
         interactive_id = None
 
@@ -42,4 +46,5 @@ class ParseManager:
             text=text,
             interactive_id=interactive_id,
             business_phone_number=business_phone_number,
+            business_phone_number_id=business_phone_number_id,
         )

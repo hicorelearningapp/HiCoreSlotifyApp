@@ -8,6 +8,7 @@ from fastapi import APIRouter, Query, status, UploadFile, File, Form, Request, H
 from app.core.config import settings
 import app.common.schemas as schemas
 from app.common.services.business_service import BusinessService
+from typing import Any
 
 class BusinessRouter:
     def __init__(self):
@@ -47,6 +48,14 @@ class BusinessRouter:
             response_model=schemas.BusinessOut,
             status_code=status.HTTP_200_OK,
             summary="Get details of a registered business by ID"
+        )
+        self.router.add_api_route(
+            "/by-phone/{phone_number}",
+            self.get_business_by_phone,
+            methods=["GET"],
+            response_model=schemas.BusinessOut,
+            status_code=status.HTTP_200_OK,
+            summary="Get details of a registered business by BusinessPhoneNumber"
         )
         self.router.add_api_route(
             "/{business_id}",
@@ -118,7 +127,7 @@ class BusinessRouter:
             return self.business_svc.register_business(parsed_data)
         else:
             # Fallback if form parameters were bound directly
-            form_dict = {
+            form_dict : dict[str, Any] = {
                 "BusinessName": BusinessName,
                 "IndustryType": IndustryType,
                 "FullName": FullName,
@@ -160,6 +169,9 @@ class BusinessRouter:
 
     def get_business(self, business_id: str):
         return self.business_svc.get_business(business_id)
+
+    def get_business_by_phone(self, phone_number: str):
+        return self.business_svc.get_business_by_phone(phone_number)
 
     async def update_business(
         self,
@@ -207,7 +219,7 @@ class BusinessRouter:
             return self.business_svc.update_business(business_id, parsed_data)
         else:
             # Fallback if form parameters were bound directly
-            form_dict = {
+            form_dict : dict[str, Any] = {
                 "BusinessName": BusinessName,
                 "FullName": FullName,
                 "MobileNumber": MobileNumber,

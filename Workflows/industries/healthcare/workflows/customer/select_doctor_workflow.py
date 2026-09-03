@@ -2,8 +2,6 @@
 from core.workflows.BaseWorkflow import Workflow
 from core.models.workflow_models import ConversationSession, Message, WorkflowResult, Reply
 from core.api_client import api_client
-from core.services.whatsapp_service import whatsapp as WhatsAppService
-import time
 
 
 class SelectDoctorWorkflow(Workflow):
@@ -17,7 +15,7 @@ class SelectDoctorWorkflow(Workflow):
         if not doctors:
             return WorkflowResult.finished(reply=Reply("text", session.translate("select_doctor_no_doctors")))
             
-        if len(doctors) == 1:
+        if len(doctors) == 1 and doctors[0].get("Status") == "Approved":
             session.WorkflowData["DoctorId"] = str(doctors[0].get("Id"))
             return WorkflowResult.completed()
             
@@ -29,7 +27,11 @@ class SelectDoctorWorkflow(Workflow):
             "rows": [{"id": "CANCEL_FLOW", "title": session.translate("btn_cancel"), "description": session.translate("btn_cancel_desc")}]
         }]
         
-        return WorkflowResult.waiting(reply=Reply("list", session.translate("prompt_select_doctor"), sections=sections))
+        prompt = session.translate("prompt_select_doctor")
+        if session.WorkflowData.get("doctor_error"):
+            prompt = session.WorkflowData.pop("doctor_error") + "\n\n" + prompt
+            
+        return WorkflowResult.waiting(reply=Reply("list", prompt, sections=sections))
 
     def Process(self, session: ConversationSession, message: Message):
         try:
@@ -40,15 +42,13 @@ class SelectDoctorWorkflow(Workflow):
             if not doctor: raise ValueError()
 
             if doctor.get("Status") != "Approved":
-                WhatsAppService.send_text(session.PhoneNumber, f"Dr.{doctor.get("FullName")} is currently not available for booking. Please select another doctor or try again later.")
-                time.sleep(1.5)
+                session.WorkflowData["doctor_error"] = f"Dr. {doctor.get('FullName')} is currently not available for booking."
                 return self.Initialize(session)
                 
             session.WorkflowData["DoctorId"] = doctor_id
             return WorkflowResult.completed()
         except (ValueError, TypeError):
-            WhatsAppService.send_text(session.PhoneNumber, session.translate("prompt_invalid_doctor"))
-            time.sleep(1.5)
+            session.WorkflowData["doctor_error"] = session.translate("prompt_invalid_doctor")
             return self.Initialize(session)
 
     def Complete(self, session: ConversationSession):

@@ -20,7 +20,7 @@ class SelectCategoryWorkflow:
         
     def Process(self, session, message):
         if message.InteractiveId and message.InteractiveId.startswith("CAT_"):
-            session.WorkflowData["category_id"] = int(message.InteractiveId.split("_")[1])
+            session.WorkflowData["category_id"] = message.InteractiveId.split("_", 1)[1]
             return WorkflowResult.completed()
             
         return WorkflowResult.waiting(Reply("text", "Please select a category from the list."))

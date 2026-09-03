@@ -4,7 +4,8 @@ from core.api_client import api_client as product_service
 class SelectProductWorkflow:
     def Initialize(self, session):
         cat_id = session.WorkflowData.get("category_id")
-        products = product_service.get_products_by_category(cat_id)
+        store_id = session.state.BusinessPhoneNumber if session.state.BusinessPhoneNumber else "default"
+        products = product_service.get_products_by_category(cat_id, store_id)
         
         if not products:
             session.state.WorkflowIndex = 0
@@ -23,7 +24,7 @@ class SelectProductWorkflow:
             
         options = []
         for p in paginated_products:
-            options.append({"id": f"PROD_{p.get('id')}", "title": p.get('name', '')[:24], "description": f"₹{p.get('price', 0)}"})
+            options.append({"id": f"PROD_{p.get('Id')}", "title": p.get('ProductName', '')[:24], "description": f"₹{p.get('Price', 0)}"})
             
         if has_more:
             options.append({"id": "SHOW_MORE_PRODUCTS", "title": "Show more items ➡️", "description": "Tap to see more"})
@@ -37,7 +38,7 @@ class SelectProductWorkflow:
             return self.Initialize(session)
             
         if message.InteractiveId and message.InteractiveId.startswith("PROD_"):
-            session.WorkflowData["product_id"] = int(message.InteractiveId.split("_")[1])
+            session.WorkflowData["product_id"] = message.InteractiveId.split("_", 1)[1]
             # Reset page for next time
             session.WorkflowData.pop("product_page", None)
             return WorkflowResult.completed()

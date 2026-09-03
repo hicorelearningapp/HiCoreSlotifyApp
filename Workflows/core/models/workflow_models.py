@@ -2,11 +2,12 @@ from enum import Enum
 from typing import Optional, Any
 
 class Message:
-    def __init__(self, phone_number: str, text: str | None = None, interactive_id: str | None = None, business_phone_number: str | None = None):
+    def __init__(self, phone_number: str, text: str | None = None, interactive_id: str | None = None, business_phone_number: str | None = None, business_phone_number_id: str | None = None):
         self.PhoneNumber = phone_number
         self.Text = text
         self.InteractiveId = interactive_id
         self.BusinessPhoneNumber = business_phone_number
+        self.BusinessPhoneNumberId = business_phone_number_id
 
 from pydantic import BaseModel, Field
 
@@ -18,6 +19,7 @@ class SessionState(BaseModel):
     WorkflowData: dict = Field(default_factory=dict)
     Initialized: bool = False
     BusinessPhoneNumber: str = ""
+    BusinessPhoneNumberId: str = ""
 
 class ConversationSession:
     def __init__(self, phone_number: str, state: SessionState):

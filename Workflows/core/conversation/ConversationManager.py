@@ -25,11 +25,15 @@ class ConversationManager:
         def parse_order_text(text: str) -> dict | None:
             if not text: return None
             text = text.strip()
-            match = re.match(r"Hi!\s*I'd like to order\s+(.+?)\s*\(id:(\d+),\s*ref:IG(\d+)\)", text, re.IGNORECASE)
+            # New generic match: "hi i would like to buy {product name} product {id}"
+            match = re.match(r"hi\s*i would like to buy\s+(.+?)\s+product\s+([\w\-]+)", text, re.IGNORECASE)
+            if match: return {"source": "direct", "product_name": match.group(1).strip(), "product_id": match.group(2)}
+            
+            match = re.match(r"Hi!\s*I'd like to order\s+(.+?)\s*\(id:([\w\-]+),\s*ref:IG([\w\-]+)\)", text, re.IGNORECASE)
             if match: return {"source": "instagram", "product_name": match.group(1).strip(), "product_id": match.group(2), "ig_user_id": match.group(3)}
-            match = re.match(r"Hi!\s*I'd like to order\s+(.+?)\s*\(ref:IG(\d+)\)", text, re.IGNORECASE)
+            match = re.match(r"Hi!\s*I'd like to order\s+(.+?)\s*\(ref:IG([\w\-]+)\)", text, re.IGNORECASE)
             if match: return {"source": "instagram", "product_name": match.group(1).strip(), "ig_user_id": match.group(2)}
-            match = re.match(r"Hi!\s*I'd like to order\s+(.+?)\s*\(ref:QR(\d+)\)", text, re.IGNORECASE)
+            match = re.match(r"Hi!\s*I'd like to order\s+(.+?)\s*\(ref:QR([\w\-]+)\)", text, re.IGNORECASE)
             if match: return {"source": "qr_code", "product_name": match.group(1).strip(), "product_id": match.group(2)}
             match = re.match(r"ORDER:(.+?):FROM_IG:(.+)", text, re.IGNORECASE)
             if match: return {"source": "instagram", "product_name": match.group(1).strip(), "ig_user_id": match.group(2).strip()}
@@ -55,6 +59,11 @@ class ConversationManager:
 
         # Deep link matched a product! Find the sequence to jump to.
         sequence_name = self._resolve_order_sequence(session, product.get("id"))
+        
+        # TEMPORARY BYPASS FOR 917550175964: Force sequence name if missing
+        if not sequence_name and session.state.BusinessPhoneNumber == "917550175964":
+            sequence_name = "SareeOrderSequence"
+            
         if not sequence_name:
             logging.getLogger("uvicorn").warning(
                 "Product deep link received for business %s but no "
@@ -116,6 +125,8 @@ class ConversationManager:
         session = SessionService().load_session(customer_phone, business_phone)
         if message and message.BusinessPhoneNumber:
             session.state.BusinessPhoneNumber = message.BusinessPhoneNumber
+        if message and getattr(message, "BusinessPhoneNumberId", None):
+            session.state.BusinessPhoneNumberId = message.BusinessPhoneNumberId
             
         # # --- GLOBAL RESET INTERCEPTION ---
         # if message and message.Text and message.Text.strip().lower() in ["hi", "hello", "menu", "reset", "start", "0"]:
@@ -135,7 +146,7 @@ class ConversationManager:
         # if message and (message.InteractiveId == "CANCEL_FLOW" or (message.Text and message.Text.strip().lower() in ["cancel", "quit", "exit"])):
         #     try:
         #         reply = Reply("text", session.translate("cancel_message", default="Your flow has been cancelled."))
-        #         await ChannelMessenger.send_reply(customer_phone, reply, session.state.BusinessPhoneNumber)
+        #         await ChannelMessenger.send_reply(customer_phone, reply, session.state.BusinessPhoneNumber, session.state.BusinessPhoneNumberId)
         #         seq = SequenceFactory.Get(session.state.SequenceName, session.state.BusinessPhoneNumber)
         #         exit_idx = seq.IndexOfName("ExitWorkflow")
         #         if exit_idx != -1:
@@ -174,7 +185,7 @@ class ConversationManager:
                 print(f"[DEBUG] [{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Initialize {session.current_workflow} returned {result.status} with reply={bool(result.reply)}")
 
                 if result.reply:
-                    await ChannelMessenger.send_reply(customer_phone, result.reply, session.state.BusinessPhoneNumber)
+                    await ChannelMessenger.send_reply(customer_phone, result.reply, session.state.BusinessPhoneNumber, session.state.BusinessPhoneNumberId)
                     if result.reply.message_type in ["image", "document", "audio", "video"]:
                         await asyncio.sleep(1.5)
 
@@ -197,7 +208,7 @@ class ConversationManager:
                 print(f"[DEBUG] [{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Process {session.current_workflow} returned {result.status} with reply={bool(result.reply)}")
 
                 if result.reply:
-                    await ChannelMessenger.send_reply(customer_phone, result.reply, session.state.BusinessPhoneNumber)
+                    await ChannelMessenger.send_reply(customer_phone, result.reply, session.state.BusinessPhoneNumber, session.state.BusinessPhoneNumberId)
                     if result.reply.message_type in ["image", "document", "audio", "video"]:
                         await asyncio.sleep(1.5)
 
@@ -218,7 +229,7 @@ class ConversationManager:
             complete_result = workflow.Complete(session)
             print(f"[DEBUG] [{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Complete {session.current_workflow} returned {complete_result.status} with reply={bool(complete_result.reply)}")
             if complete_result and complete_result.reply:
-                await ChannelMessenger.send_reply(customer_phone, complete_result.reply, session.state.BusinessPhoneNumber)
+                await ChannelMessenger.send_reply(customer_phone, complete_result.reply, session.state.BusinessPhoneNumber, session.state.BusinessPhoneNumberId)
                 if complete_result.reply.message_type in ["image", "document", "audio", "video"]:
                     await asyncio.sleep(1.5)
 

@@ -10,7 +10,7 @@ class SelectVariantWorkflow:
         if not product:
             return WorkflowResult.completed()
             
-        product_data = product.get("product_data") or {}
+        product_data = product.get("ProductData") or {}
         options = product_data.get("options", [])
         variants = product_data.get("variants", [])
         
@@ -19,7 +19,7 @@ class SelectVariantWorkflow:
             legacy_variants = product_service.get_variants_by_product_id(product_id)
             if not legacy_variants:
                 return WorkflowResult.completed()
-            rows = [{"id": f"VAR_{v.get('id')}", "title": v.get('variant_name', '')[:24]} for v in legacy_variants]
+            rows = [{"id": f"VAR_{v.get('Id')}", "title": v.get('VariantName', '')[:24]} for v in legacy_variants]
             sections = [{"title": "Variations", "rows": rows}]
             return WorkflowResult.waiting(Reply("list", "Great choice! Which variation would you like?", sections=sections))
 
@@ -42,10 +42,10 @@ class SelectVariantWorkflow:
                     break
                     
             if matching_variant:
-                session.WorkflowData["variant_id"] = matching_variant.get('id')
+                session.WorkflowData["variant_id"] = matching_variant.get('Id')
                 session.WorkflowData["variant_name"] = " / ".join(selected_options.values())
-                if matching_variant.get('price'):
-                    session.WorkflowData["product_price"] = matching_variant.get('price')
+                if matching_variant.get('Price'):
+                    session.WorkflowData["product_price"] = matching_variant.get('Price')
             
             session.WorkflowData.pop("selected_options", None)
             return WorkflowResult.completed()
@@ -101,16 +101,16 @@ class SelectVariantWorkflow:
                 
         # Handle legacy flat variants
         elif message.InteractiveId and message.InteractiveId.startswith("VAR_"):
-            variant_id = int(message.InteractiveId.split("_")[1])
+            variant_id = message.InteractiveId.split("_", 1)[1]
             product_id = session.WorkflowData.get("product_id")
             legacy_variants = product_service.get_variants_by_product_id(product_id)
-            selected_variant = next((v for v in legacy_variants if v.get('id') == variant_id), None)
+            selected_variant = next((v for v in legacy_variants if str(v.get('Id')) == variant_id), None)
             
             if selected_variant:
-                session.WorkflowData["variant_id"] = selected_variant.get('id')
-                session.WorkflowData["variant_name"] = selected_variant.get('variant_name')
-                if selected_variant.get('price'):
-                    session.WorkflowData["product_price"] = selected_variant.get('price')
+                session.WorkflowData["variant_id"] = selected_variant.get('Id')
+                session.WorkflowData["variant_name"] = selected_variant.get('VariantName')
+                if selected_variant.get('Price'):
+                    session.WorkflowData["product_price"] = selected_variant.get('Price')
                 return WorkflowResult.completed()
                 
         return WorkflowResult.waiting(Reply("text", "Please make a selection from the list."))

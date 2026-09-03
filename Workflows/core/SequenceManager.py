@@ -37,30 +37,28 @@ class SequenceManager:
     def get_config(cls, business_phone: str | None = None) -> dict:
         default_config = cls._load_default_config()
         if business_phone:
-            base_dir = os.path.join(
-                os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-                "industry_configs"
-            )
-            
-            # Recursively search for the business_phone file
-            found_file = None
+            # Step 1: Try loading local file first (during transition)
+            base_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "industry_configs")
             for root, _, files in os.walk(base_dir):
                 for ext in (".txt", ".json"):
-                    filename = f"{business_phone}{ext}"
-                    if filename in files:
-                        found_file = os.path.join(root, filename)
+                    if f"{business_phone}{ext}" in files:
+                        try:
+                            with open(os.path.join(root, f"{business_phone}{ext}"), "r", encoding="utf-8") as f:
+                                default_config = cls._deep_merge(default_config, json.load(f))
+                        except Exception:
+                            pass
                         break
-                if found_file:
-                    break
-                    
-            if found_file:
-                try:
-                    with open(found_file, "r", encoding="utf-8") as f:
-                        local_config = json.load(f)
-                    return cls._deep_merge(default_config, local_config)
-                except Exception as e:
-                    print(f"Failed to load config {found_file}: {e}")
-                        
+
+            # Step 2: Fetch and merge from DB
+            from core.api_client import api_client
+            business = api_client.get_business_by_phone(business_phone)
+            
+            if business:
+                custom_config = business.get("BusinessData") or {}
+                if business.get("IndustryType"):
+                    custom_config["industry"] = business.get("IndustryType")
+                return cls._deep_merge(default_config, custom_config)
+                
         return default_config or {}
 
     @classmethod

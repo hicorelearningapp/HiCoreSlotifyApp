@@ -15,11 +15,9 @@
     "nlu_enabled": false,
     "order_handoff_sequence": "SareeOrderSequence",
     "product_order_sequences": {
-      "1": "SareeOrderSequence",
-      "2": "SareeOrderSequence",
-      "3": "SareeOrderSequence",
-      "7": "RingOrderSequence",
-      "8": "RingOrderSequence"
+      "6d79cfa6-feb7-42dc-bc0f-600d693e07f7": "SareeOrderSequence",
+      "0646d4bd-6607-4261-9ae8-d8135e6bf209": "SareeOrderSequence",
+      "218ff355-bc5d-4b62-8af5-da0d887db6df": "RingOrderSequence"
     }
   },
   "user_type_mappings": {

@@ -28,15 +28,17 @@ class WebhookRouter:
 
     async def receive_message(self, request: Request):
         try:
-            # Clear payloads before processing the message
-            WhatsAppService.sent_payloads = [] ###is this acutally needed
+            from core.services.whatsapp_service import request_payloads
+            
+            # Initialize a new list for this specific request context
+            request_payloads.set([])
             
             message = await ParseManager.ParseWhatsapp(request)
             if not message:
                 return {"status": "ignored"}
             await ConversationManager().process(message.PhoneNumber, message)
-            bot_replies = WhatsAppService.sent_payloads
-            WhatsAppService.sent_payloads = []
+            
+            bot_replies = request_payloads.get()
             
             return {"status": "ok", "bot_replies": bot_replies}
                 

@@ -12,7 +12,7 @@ import re
 class CollectEmailWorkflow(Workflow):
     def Initialize(self, session: ConversationSession):
         # Skip email collection for In-Person consultations
-        if session.WorkflowData.get("ConsultationType") == ("Clinic", "SecondOpinion"):
+        if session.WorkflowData.get("ConsultationType") in ("Clinic", "SecondOpinion"):
             return WorkflowResult.completed()
             
         customer = api_client.get_customer_by_phone(session.PhoneNumber)

@@ -3,25 +3,36 @@ from config import ACCESS_TOKEN, PHONE_NUMBER_ID
 from core.services.message_logger import MessageLogger
 import threading
 import time
+import contextvars
+
+# ContextVar to hold payloads for the current async task
+request_payloads: contextvars.ContextVar[list] = contextvars.ContextVar("request_payloads", default=[])
 
 
 class WhatsAppService:
     def __init__(self):
-        self.sent_payloads = []
-        self.url = f"https://graph.facebook.com/v23.0/{PHONE_NUMBER_ID}/messages"
+        pass
         
-    def _post(self, payload, label):
+        
+    def _post(self, payload, label, business_phone_id=None):
+        if not business_phone_id:
+            business_phone_id = PHONE_NUMBER_ID
+        url = f"https://graph.facebook.com/v23.0/{business_phone_id}/messages"
         headers = {
             "Authorization": f"Bearer {ACCESS_TOKEN}",
             "Content-Type": "application/json"
         }
 
         # Always append to sent_payloads so the local Simulator UI works even if offline
-        self.sent_payloads.append(payload)
+        try:
+            payloads = request_payloads.get()
+            payloads.append(payload)
+        except LookupError:
+            pass
 
         def make_request():
             try:
-                response = requests.post(self.url, headers=headers, json=payload, timeout=5)
+                response = requests.post(url, headers=headers, json=payload, timeout=5)
                 try:
                     print(f"[{label}] {response.status_code}: {response.text}")
                 except UnicodeEncodeError:
@@ -51,8 +62,10 @@ class WhatsAppService:
             obj["filename"] = filename
         return obj
 
-    def upload_media(self, file_bytes: bytes, filename: str, mime_type: str) -> str | None:
-        url = f"https://graph.facebook.com/v23.0/{PHONE_NUMBER_ID}/media"
+    def upload_media(self, file_bytes: bytes, filename: str, mime_type: str, business_phone_id: str | None = None) -> str | None:
+        if not business_phone_id:
+            business_phone_id = PHONE_NUMBER_ID
+        url = f"https://graph.facebook.com/v23.0/{business_phone_id}/media"
         headers = {
             "Authorization": f"Bearer {ACCESS_TOKEN}"
         }
@@ -74,7 +87,7 @@ class WhatsAppService:
     # ------------------------------------------------------------------
     # 1. Text
     # ------------------------------------------------------------------
-    def send_text(self, phone, body, preview_url=False):
+    def send_text(self, phone, body, preview_url=False, business_phone_id=None):
         payload = {
             "messaging_product": "whatsapp",
             "to": phone,
@@ -84,72 +97,72 @@ class WhatsAppService:
                 "preview_url": preview_url
             }
         }
-        return self._post(payload, "text message")
+        return self._post(payload, "text message", business_phone_id)
 
     # ------------------------------------------------------------------
     # 2. Image
     # ------------------------------------------------------------------
-    def send_image(self, phone, media_id=None, link=None, caption=None):
+    def send_image(self, phone, media_id=None, link=None, caption=None, business_phone_id=None):
         payload = {
             "messaging_product": "whatsapp",
             "to": phone,
             "type": "image",
             "image": self._media_object(media_id, link, caption)
         }
-        return self._post(payload, "image message")
+        return self._post(payload, "image message", business_phone_id)
 
     # ------------------------------------------------------------------
     # 3. Video
     # ------------------------------------------------------------------
-    def send_video(self, phone, media_id=None, link=None, caption=None):
+    def send_video(self, phone, media_id=None, link=None, caption=None, business_phone_id=None):
         payload = {
             "messaging_product": "whatsapp",
             "to": phone,
             "type": "video",
             "video": self._media_object(media_id, link, caption)
         }
-        return self._post(payload, "video message")
+        return self._post(payload, "video message", business_phone_id)
 
     # ------------------------------------------------------------------
     # 4. Audio
     # ------------------------------------------------------------------
-    def send_audio(self, phone, media_id=None, link=None):
+    def send_audio(self, phone, media_id=None, link=None, business_phone_id=None):
         payload = {
             "messaging_product": "whatsapp",
             "to": phone,
             "type": "audio",
             "audio": self._media_object(media_id, link)
         }
-        return self._post(payload, "audio message")
+        return self._post(payload, "audio message", business_phone_id)
 
     # ------------------------------------------------------------------
     # 5. Document
     # ------------------------------------------------------------------
-    def send_document(self, phone, media_id=None, link=None, caption=None, filename=None):
+    def send_document(self, phone, media_id=None, link=None, caption=None, filename=None, business_phone_id=None):
         payload = {
             "messaging_product": "whatsapp",
             "to": phone,
             "type": "document",
             "document": self._media_object(media_id, link, caption, filename)
         }
-        return self._post(payload, "document message")
+        return self._post(payload, "document message", business_phone_id)
 
     # ------------------------------------------------------------------
     # 6. Sticker
     # ------------------------------------------------------------------
-    def send_sticker(self, phone, media_id=None, link=None):
+    def send_sticker(self, phone, media_id=None, link=None, business_phone_id=None):
         payload = {
             "messaging_product": "whatsapp",
             "to": phone,
             "type": "sticker",
             "sticker": self._media_object(media_id, link)
         }
-        return self._post(payload, "sticker message")
+        return self._post(payload, "sticker message", business_phone_id)
 
     # ------------------------------------------------------------------
     # 7. Location
     # ------------------------------------------------------------------
-    def send_location(self, phone, latitude, longitude, name=None, address=None):
+    def send_location(self, phone, latitude, longitude, name=None, address=None, business_phone_id=None):
         location = {"latitude": latitude, "longitude": longitude}
         if name:
             location["name"] = name
@@ -162,12 +175,12 @@ class WhatsAppService:
             "type": "location",
             "location": location
         }
-        return self._post(payload, "location message")
+        return self._post(payload, "location message", business_phone_id)
 
     # ------------------------------------------------------------------
     # 8. Contacts
     # ------------------------------------------------------------------
-    def send_contacts(self, phone, contacts):
+    def send_contacts(self, phone, contacts, business_phone_id=None):
         """
         contacts: list of contact objects following Meta's contact schema, e.g.
         [{
@@ -181,12 +194,12 @@ class WhatsAppService:
             "type": "contacts",
             "contacts": contacts
         }
-        return self._post(payload, "contacts message")
+        return self._post(payload, "contacts message", business_phone_id)
 
     # ------------------------------------------------------------------
     # 9. Reaction
     # ------------------------------------------------------------------
-    def send_reaction(self, phone, message_id, emoji):
+    def send_reaction(self, phone, message_id, emoji, business_phone_id=None):
         """emoji='' removes a previously sent reaction."""
         payload = {
             "messaging_product": "whatsapp",
@@ -197,12 +210,12 @@ class WhatsAppService:
                 "emoji": emoji
             }
         }
-        return self._post(payload, "reaction")
+        return self._post(payload, "reaction", business_phone_id)
 
     # ------------------------------------------------------------------
     # 10. Template
     # ------------------------------------------------------------------
-    def send_template(self, phone, template_name, language_code="en_US", components=None):
+    def send_template(self, phone, template_name, language_code="en_US", components=None, business_phone_id=None):
         template = {
             "name": template_name,
             "language": {"code": language_code}
@@ -216,12 +229,12 @@ class WhatsAppService:
             "type": "template",
             "template": template
         }
-        return self._post(payload, "template message")
+        return self._post(payload, "template message", business_phone_id)
 
     # ------------------------------------------------------------------
     # 11. Interactive — reply buttons (max 3)
     # ------------------------------------------------------------------
-    def send_interactive_buttons(self, phone, text, buttons, header_text=None, footer_text=None):
+    def send_interactive_buttons(self, phone, text, buttons, header_text=None, footer_text=None, business_phone_id=None):
         action_buttons = [
             {"type": "reply", "reply": {"id": btn["id"], "title": btn["title"]}}
             for btn in buttons
@@ -243,12 +256,12 @@ class WhatsAppService:
             "type": "interactive",
             "interactive": interactive_data
         }
-        return self._post(payload, "interactive buttons")
+        return self._post(payload, "interactive buttons", business_phone_id)
 
     # ------------------------------------------------------------------
     # 12. Interactive — list
     # ------------------------------------------------------------------
-    def send_list_message(self, phone, body_text, button_text, sections, header_text=None, footer_text=None):
+    def send_list_message(self, phone, body_text, button_text, sections, header_text=None, footer_text=None, business_phone_id=None):
         sections = [s for s in (sections or []) if s.get("rows") and len(s["rows"]) > 0]
         interactive_data = {
             "type": "list",
@@ -269,12 +282,12 @@ class WhatsAppService:
             "type": "interactive",
             "interactive": interactive_data
         }
-        return self._post(payload, "list message")
+        return self._post(payload, "list message", business_phone_id)
 
     # ------------------------------------------------------------------
     # 13. Interactive — Carousel
     # ------------------------------------------------------------------
-    def send_carousel(self, phone, cards, body_text=None):
+    def send_carousel(self, phone, cards, body_text=None, business_phone_id=None):
         interactive_data = {
             "type": "carousel",
             "action": {
@@ -290,12 +303,12 @@ class WhatsAppService:
             "type": "interactive",
             "interactive": interactive_data
         }
-        return self._post(payload, "carousel message")
+        return self._post(payload, "carousel message", business_phone_id)
 
     # ------------------------------------------------------------------
     # Bonus: Interactive — CTA URL button (single button that opens a link)
     # ------------------------------------------------------------------
-    def send_cta_url(self, phone, body_text, display_text, url, header_text=None, footer_text=None):
+    def send_cta_url(self, phone, body_text, display_text, url, header_text=None, footer_text=None, business_phone_id=None):
         interactive_data = {
             "type": "cta_url",
             "body": {"text": body_text},
@@ -315,15 +328,15 @@ class WhatsAppService:
             "type": "interactive",
             "interactive": interactive_data
         }
-        return self._post(payload, "CTA URL message")
+        return self._post(payload, "CTA URL message", business_phone_id)
 
-    def send_workflow_response(self, phone: str, response):
+    def send_workflow_response(self, phone: str, response, business_phone_id=None):
         """Sends a WorkflowResponse directly mapping to Text, Buttons, or List."""
         if not response.Options:
-            return self.send_text(phone, response.Text)
+            return self.send_text(phone, response.Text, business_phone_id=business_phone_id)
             
         if len(response.Options) <= 3:
-            return self.send_interactive_buttons(phone, response.Text, response.Options)
+            return self.send_interactive_buttons(phone, response.Text, response.Options, business_phone_id=business_phone_id)
             
         # More than 3 options -> use a list message
         sections = [{
@@ -341,17 +354,18 @@ class WhatsAppService:
             phone=phone,
             body_text=response.Text,
             button_text="Select Option",
-            sections=sections
+            sections=sections,
+            business_phone_id=business_phone_id
         )
 
-    async def send_reply(self, to_phone: str, reply):
+    async def send_reply(self, to_phone: str, reply, business_phone_id=None):
         import asyncio
         logger = MessageLogger()
         
         try:
             if reply.message_type == "text":
                 logger.log_sent(to_phone, reply.text)
-                self.send_text(to_phone, reply.text)
+                self.send_text(to_phone, reply.text, business_phone_id=business_phone_id)
             elif reply.message_type == "buttons":
                 if reply.options and len(reply.options) > 3:
                     logger.log_sent(to_phone, f"[LIST (FALLBACK FROM >3 BUTTONS)] {reply.text}")
@@ -359,22 +373,22 @@ class WhatsAppService:
                         "title": "Options",
                         "rows": [{"id": opt.get("id", str(i)), "title": opt.get("title", "")[:24]} for i, opt in enumerate(reply.options)]
                     }]
-                    self.send_list_message(to_phone, reply.text, "Select Option", sections)
+                    self.send_list_message(to_phone, reply.text, "Select Option", sections, business_phone_id=business_phone_id)
                 else:
                     logger.log_sent(to_phone, f"[BUTTONS] {reply.text}")
-                    self.send_interactive_buttons(to_phone, reply.text, reply.options)
+                    self.send_interactive_buttons(to_phone, reply.text, reply.options, business_phone_id=business_phone_id)
             elif reply.message_type == "list":
                 logger.log_sent(to_phone, f"[LIST] {reply.text}")
-                self.send_list_message(to_phone, reply.text, "Select Option", reply.sections)
+                self.send_list_message(to_phone, reply.text, "Select Option", reply.sections, business_phone_id=business_phone_id)
             elif reply.message_type == "image":
                 logger.log_sent(to_phone, f"[IMAGE] {reply.text}")
-                self.send_image(to_phone, link=reply.image_url, caption=reply.text)
+                self.send_image(to_phone, link=reply.image_url, caption=reply.text, business_phone_id=business_phone_id)
             elif reply.message_type == "document":
                 logger.log_sent(to_phone, f"[DOCUMENT] {reply.text}")
-                self.send_document(to_phone, link=reply.document_url, filename=reply.filename, caption=reply.text)
+                self.send_document(to_phone, link=reply.document_url, filename=reply.filename, caption=reply.text, business_phone_id=business_phone_id)
             elif reply.message_type == "carousel":
                 logger.log_sent(to_phone, f"[CAROUSEL] {reply.text if reply.text else 'Sending Carousel'}")
-                self.send_carousel(to_phone, cards=reply.carousel_cards, body_text=reply.text)
+                self.send_carousel(to_phone, cards=reply.carousel_cards, body_text=reply.text, business_phone_id=business_phone_id)
         except Exception as e:
             print(f"Failed to send reply to {to_phone}: {e}")
             

@@ -23,6 +23,10 @@ class BackendAPIClient:
                 print(f"Response Body: {e.response.text}")
             return None
 
+    # --- Business APIs ---
+    def get_business_by_phone(self, phone_number: str):
+        return self._request("GET", f"/businesses/by-phone/{phone_number}")
+
     # --- Customer APIs ---
     def get_customer(self, patient_id: str):
         return self._request("GET", f"/customers/{patient_id}")
@@ -113,10 +117,16 @@ class BackendAPIClient:
 
     # --- Ecommerce APIs ---
     def get_all_categories(self, store_id: str = "default"):
-        return self._request("GET", "/ecommerce/products/categories", params={"store_id": store_id})
+        products = self._request("GET", "/ecommerce/products", params={"seller_id": store_id})
+        if not products: return []
+        cats = sorted(list(set(p.get("Category") for p in products if p.get("Category"))))
+        return [{"id": c, "name": c, "description": ""} for c in cats]
         
-    def get_products_by_category(self, category_id: int):
-        return self._request("GET", f"/ecommerce/products/categories/{category_id}/products")
+    def get_products_by_category(self, category_id: str, store_id: str | None = None):
+        params = {"category": category_id}
+        if store_id and store_id != "default":
+            params["seller_id"] = store_id
+        return self._request("GET", "/ecommerce/products", params=params)
         
     def get_product(self, product_id: int):
         return self._request("GET", f"/ecommerce/products/{product_id}")

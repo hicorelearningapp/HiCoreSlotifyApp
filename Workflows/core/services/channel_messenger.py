@@ -12,8 +12,8 @@ class ChannelMessenger:
     def __init__(self):
         self.wa = WhatsAppService
 
-    async def send_reply(self, customer_id: str, reply, business_id: str | None = None):
-        return await self.wa.send_reply(customer_id, reply)
+    async def send_reply(self, customer_id: str, reply, business_id: str | None = None, business_phone_id: str | None = None):
+        return await self.wa.send_reply(customer_id, reply, business_phone_id=business_phone_id)
 
 
 channel_messenger = ChannelMessenger()
