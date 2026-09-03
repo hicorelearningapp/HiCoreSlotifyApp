@@ -10,7 +10,7 @@ class Appointment(Base):
     __tablename__ = "appointments"
 
     Id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid, index=True)
-    DoctorId: Mapped[str] = mapped_column(String(36), ForeignKey("doctors.Id", ondelete="CASCADE"), nullable=False)
+    DoctorId: Mapped[str] = mapped_column(String(36), ForeignKey("businesses.Id", ondelete="CASCADE"), nullable=False)
     DoctorName: Mapped[Optional[str]] = mapped_column(String(150), nullable=True)
     PatientId: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey("customers.PatientId", ondelete="CASCADE"), nullable=True)
     PatientName: Mapped[Optional[str]] = mapped_column(String(150), nullable=True)
@@ -37,7 +37,7 @@ class Appointment(Base):
     )
 
     patient = relationship("Customer", back_populates="appointments")
-    doctor = relationship("Doctor", back_populates="appointments")
+    doctor = relationship("Business", back_populates="appointments")
     payments = relationship("Payment", back_populates="appointment", cascade="all, delete")
 
     @property

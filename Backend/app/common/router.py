@@ -1,8 +1,6 @@
 from fastapi import APIRouter
 from app.common.routers.business_router import BusinessRouter
-from fastapi import Depends
-from app.core.database import get_db
-from sqlalchemy.orm import Session
+from app.common.routers.admin_router import AdminRouter
 
 class CommonRouter:
     def __init__(self):
@@ -10,6 +8,8 @@ class CommonRouter:
         self._add_routes()
         # Include business management router
         self.router.include_router(BusinessRouter().router)
+        # Include admin management router
+        self.router.include_router(AdminRouter().router)
 
     def _add_routes(self):
         self.router.add_api_route(

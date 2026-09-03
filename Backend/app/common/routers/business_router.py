@@ -97,7 +97,7 @@ class BusinessRouter:
         City: Optional[str] = Form(None, description="City"),
         State: Optional[str] = Form(None, description="State"),
         Pincode: Optional[str] = Form(None, description="Postal / Zip code"),
-        Country: Optional[str] = Form("India", description="Country"),
+        Country: Optional[str] = Form(None, description="Country"),
         UserName: Optional[str] = Form(None, description="Unique username for business account login"),
         Password: Optional[str] = Form(None, description="Account login password"),
         BusinessData: Optional[str] = Form(None, description="Dynamic JSON data payload customized for business (e.g. {'consultation_fee': 700})"),

@@ -15,6 +15,7 @@ class IndustryTypeEnum(str, Enum):
 class BusinessStatusEnum(str, Enum):
     Pending = "Pending"
     Approved = "Approved"
+    Rejected = "Rejected"
     Active = "Active"
     Suspended = "Suspended"
 

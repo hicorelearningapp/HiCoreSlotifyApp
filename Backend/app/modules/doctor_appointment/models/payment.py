@@ -4,6 +4,7 @@ from sqlalchemy.orm import relationship
 from app.core.database import Base
 from app.core.security import generate_uuid
 from sqlalchemy.orm import Mapped, mapped_column
+
 class Payment(Base):
     __tablename__ = "payments"
 
@@ -11,7 +12,7 @@ class Payment(Base):
     DateTime: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.utcnow)
     AppointmentId: Mapped[str] = mapped_column(String(36), ForeignKey("appointments.Id", ondelete="CASCADE"), nullable=False)
     CustomerId: Mapped[str] = mapped_column(String(36), nullable=False)
-    DoctorId: Mapped[str] = mapped_column(String(36), ForeignKey("doctors.Id", ondelete="CASCADE"), nullable=False)
+    DoctorId: Mapped[str] = mapped_column(String(36), ForeignKey("businesses.Id", ondelete="CASCADE"), nullable=False)
     Payment: Mapped[float] = mapped_column(Float, nullable=False)
     Status: Mapped[str] = mapped_column(String(20), nullable=False)
 

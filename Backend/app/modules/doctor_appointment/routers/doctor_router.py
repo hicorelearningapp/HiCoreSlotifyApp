@@ -41,8 +41,6 @@ class DoctorRouter:
         self.doctor_svc = DoctorService()
 
     def _add_routes(self):
-        self.router.add_api_route("/login", self.login, methods=["POST"], response_model=schemas.DoctorOut)
-        self.router.add_api_route("/register", self.register_doctor, methods=["POST"], response_model=schemas.DoctorOut, status_code=status.HTTP_201_CREATED)
         self.router.add_api_route("", self.list_doctors, methods=["GET"], response_model=List[schemas.DoctorOut])
         self.router.add_api_route("/{doctor_id}/dashboard", self.get_doctor_dashboard, methods=["GET"], response_model=schemas.DoctorDashboardOut)
         self.router.add_api_route("/{doctor_id}/analytics", self.get_doctor_analytics, methods=["GET"], response_model=schemas.DoctorAnalyticsOut)
@@ -54,59 +52,6 @@ class DoctorRouter:
         self.router.add_api_route("/{doctor_id}/whatsapp-status", self.update_whatsapp_status, methods=["PATCH"], response_model=schemas.DoctorOut)
         self.router.add_api_route("/{doctor_id}/available-slots", self.get_available_slots, methods=["GET"])
         self.router.add_api_route("/{doctor_id}", self.delete_doctor, methods=["DELETE"])
-
-    def _save_photo(self, photo: UploadFile) -> str:
-        images_dir = os.path.join(settings.IMAGES_DIR, "doctors")
-        os.makedirs(images_dir, exist_ok=True)
-        ext = os.path.splitext(photo.filename)[1] if photo.filename else ".jpg"
-        filename = f"{uuid.uuid4()}{ext}"
-        file_path = os.path.join(images_dir, filename)
-        with open(file_path, "wb") as buffer:
-            shutil.copyfileobj(photo.file, buffer)
-        return f"/images/doctors/{filename}"
-
-    async def register_doctor(
-        self,
-        request: Request,
-        doctor_in: Optional[schemas.DoctorCreate] = None
-    ):
-        data = {}
-        content_type = request.headers.get("content-type", "")
-
-        if doctor_in is not None:
-            return self.doctor_svc.create_doctor(doctor_in)
-
-        if "multipart/form-data" in content_type:
-            try:
-                form = await request.form()
-                for key, val in form.items():
-                    if hasattr(val, "filename"):
-                        if val.filename:
-                            photo_url = self._save_photo(val)
-                            data["ProfilePhoto"] = photo_url
-                    else:
-                        if val is not None and str(val).strip() != "":
-                            data[key] = val
-            except Exception as e:
-                print("Error parsing multipart form:", e)
-
-        elif "application/json" in content_type:
-            try:
-                data = await request.json()
-            except Exception:
-                data = {}
-
-        try:
-            doctor_create = schemas.DoctorCreate(**data)
-            return self.doctor_svc.create_doctor(doctor_create)
-        except (ValueError, Exception) as e:
-            raise HTTPException(status_code=400, detail=format_validation_error(e))
-
-    def login(self, login_data: schemas.DoctorLogin):
-        doctor = self.doctor_svc.login_doctor(login_data)
-        if not doctor:
-            raise HTTPException(status_code=401, detail="Invalid username or password")
-        return doctor
 
     def list_doctors(
         self,

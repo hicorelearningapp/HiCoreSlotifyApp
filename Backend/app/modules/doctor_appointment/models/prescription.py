@@ -9,7 +9,7 @@ class Prescription(Base):
     __tablename__ = "prescriptions"
 
     Id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid, index=True)
-    DoctorId: Mapped[str] = mapped_column(String(36), ForeignKey("doctors.Id", ondelete="CASCADE"), nullable=False)
+    DoctorId: Mapped[str] = mapped_column(String(36), ForeignKey("businesses.Id", ondelete="CASCADE"), nullable=False)
     PatientId: Mapped[str] = mapped_column(String(36), ForeignKey("customers.PatientId", ondelete="CASCADE"), nullable=False)
     
     Diagnosis: Mapped[str] = mapped_column(Text, nullable=True)
@@ -24,5 +24,5 @@ class Prescription(Base):
     CreatedAt: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
     UpdatedAt: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
-    doctor = relationship("Doctor", back_populates="prescriptions")
+    doctor = relationship("Business", back_populates="prescriptions")
     patient = relationship("Customer", back_populates="prescriptions")

@@ -1,4 +1,5 @@
 from typing import List, Optional, Dict, Any
+from datetime import datetime, date
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
@@ -155,3 +156,32 @@ class BusinessService:
         self.db.delete(business)
         self.db.commit()
         return True
+
+    def get_admin_dashboard(self) -> dict:
+        total = self.db.query(models.Business).count()
+        pending_query = self.db.query(models.Business).filter(models.Business.Status == "Pending")
+        pending_count = pending_query.count()
+        pending_requests = pending_query.all()
+        approved_count = self.db.query(models.Business).filter(models.Business.Status == "Approved").count()
+        rejected_count = self.db.query(models.Business).filter(models.Business.Status == "Rejected").count()
+
+        # Group count by industry
+        all_biz = self.db.query(models.Business).all()
+        by_industry = {}
+        for b in all_biz:
+            ind = b.IndustryType or "Other"
+            by_industry[ind] = by_industry.get(ind, 0) + 1
+
+        return {
+            "TotalBusinesses": total,
+            "PendingApprovals": pending_count,
+            "ApprovedBusinesses": approved_count,
+            "RejectedBusinesses": rejected_count,
+            "ByIndustry": by_industry,
+            "PendingRequests": pending_requests,
+            "Total": total,
+            "Pending": pending_count,
+            "Approved": approved_count,
+            "Rejected": rejected_count,
+            "PendingRequest": pending_requests
+        }
