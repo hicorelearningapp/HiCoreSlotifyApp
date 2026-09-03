@@ -56,9 +56,9 @@ class AdminRouter:
             "/businesses",
             self.list_businesses,
             methods=["GET"],
-            response_model=List[schemas.BusinessOut],
+            response_model=schemas.AdminBusinessListOut,
             dependencies=[Depends(verify_admin)],
-            summary="List all businesses across all industries for admin review"
+            summary="List all businesses across all industries with metrics (Total, Approved, Pending, Rejected)"
         )
 
         # 4. Get Single Business Details
@@ -128,7 +128,7 @@ class AdminRouter:
         skip: int = Query(0, ge=0),
         limit: int = Query(100, ge=1, le=500)
     ):
-        return self.business_svc.list_businesses(industry_type=industry_type, status=status, skip=skip, limit=limit)
+        return self.business_svc.list_businesses_for_admin(industry_type=industry_type, status=status, skip=skip, limit=limit)
 
     def get_business(self, business_id: str):
         return self.business_svc.get_business(business_id)

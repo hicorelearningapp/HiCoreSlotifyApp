@@ -125,6 +125,40 @@ class BusinessService:
             query = query.filter(models.Business.Status.ilike(status))
         return query.order_by(models.Business.CreatedAt.desc()).offset(skip).limit(limit).all()
 
+    def list_businesses_for_admin(
+        self,
+        industry_type: Optional[str] = None,
+        status: Optional[str] = None,
+        skip: int = 0,
+        limit: int = 100
+    ) -> dict:
+        base_query = self.db.query(models.Business)
+        if industry_type:
+            clean_ind = str(industry_type).lower().replace("_", "").replace("-", "").replace(" ", "")
+            base_query = base_query.filter(
+                (models.Business.IndustryType == industry_type)
+                | (models.Business.IndustryType.ilike(f"%{clean_ind}%"))
+            )
+
+        total_count = base_query.count()
+        approved_count = base_query.filter(models.Business.Status.ilike("Approved")).count()
+        pending_count = base_query.filter(models.Business.Status.ilike("Pending")).count()
+        rejected_count = base_query.filter(models.Business.Status.ilike("Rejected")).count()
+
+        list_query = base_query
+        if status:
+            list_query = list_query.filter(models.Business.Status.ilike(status))
+
+        businesses = list_query.order_by(models.Business.CreatedAt.desc()).offset(skip).limit(limit).all()
+
+        return {
+            "Total": total_count,
+            "Approved": approved_count,
+            "Pending": pending_count,
+            "Rejected": rejected_count,
+            "Businesses": businesses
+        }
+
     def update_business(self, business_id: str, data: schemas.BusinessUpdate) -> models.Business:
         business = self.get_business(business_id)
         update_dict = data.model_dump(exclude_unset=True)
@@ -173,15 +207,10 @@ class BusinessService:
             by_industry[ind] = by_industry.get(ind, 0) + 1
 
         return {
-            "TotalBusinesses": total,
-            "PendingApprovals": pending_count,
-            "ApprovedBusinesses": approved_count,
-            "RejectedBusinesses": rejected_count,
-            "ByIndustry": by_industry,
-            "PendingRequests": pending_requests,
             "Total": total,
             "Pending": pending_count,
             "Approved": approved_count,
             "Rejected": rejected_count,
-            "PendingRequest": pending_requests
+            "ByIndustry": by_industry,
+            "PendingRequests": pending_requests
         }

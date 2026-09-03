@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict
 from app.common.schemas.business import BusinessOut
 
 class AdminLogin(BaseModel):
@@ -12,19 +12,22 @@ class AdminTokenOut(BaseModel):
     token_type: str = "bearer"
 
 class AdminDashboardOut(BaseModel):
-    TotalBusinesses: int
-    PendingApprovals: int
-    ApprovedBusinesses: int
-    RejectedBusinesses: int
+    Total: int
+    Pending: int
+    Approved: int
+    Rejected: int
     ByIndustry: Dict[str, int] = {}
     PendingRequests: List[BusinessOut] = []
 
-    # Backward compatibility fields
-    Total: Optional[int] = None
-    Pending: Optional[int] = None
-    Approved: Optional[int] = None
-    Rejected: Optional[int] = None
-    PendingRequest: Optional[List[BusinessOut]] = None
+    class Config:
+        from_attributes = True
+
+class AdminBusinessListOut(BaseModel):
+    Total: int
+    Approved: int
+    Pending: int
+    Rejected: int
+    Businesses: List[BusinessOut] = []
 
     class Config:
         from_attributes = True
