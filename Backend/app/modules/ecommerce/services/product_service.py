@@ -9,6 +9,7 @@ from fastapi import UploadFile, HTTPException, status
 from app.core.config import settings
 from app.modules.ecommerce.models.product import Product
 from app.modules.ecommerce.models.category import Category as ProductCategory
+from app.modules.ecommerce.models.inventory import Inventory
 from app.common.models.business import Business
 from sqlalchemy.orm import Session
 
@@ -266,6 +267,156 @@ class ProductService:
             
         variants = product.ProductData.get("variants", [])
         return [v for v in variants if v.get("active", True) and v.get("stock_quantity", 0) > 0]
+
+    @classmethod
+    def get_product_customer_info(cls, db: Session, product_id: str) -> dict:
+        """
+        Returns only necessary customer-facing details of a product needed for placing an order:
+        Product ID, title, selling price, MRP (CompareAtPrice), description, images,
+        in-stock status, and store name.
+        """
+        product = db.query(Product).filter(Product.Id == product_id).first()
+        if not product:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Product with ID '{product_id}' not found."
+            )
+
+        # Store name lookup
+        store_name = None
+        if product.SellerId:
+            business = db.query(Business).filter(Business.Id == product.SellerId).first()
+            if business:
+                store_name = business.BusinessName
+
+        # Stock check
+        inv_items = db.query(Inventory).filter(Inventory.ProductId == product_id).all()
+        p_data = product.ProductData or {}
+        if not isinstance(p_data, dict):
+            p_data = {}
+
+        if inv_items:
+            stock_qty = sum(item.StockQuantity for item in inv_items)
+        elif "stock_quantity" in p_data:
+            try:
+                stock_qty = int(p_data["stock_quantity"])
+            except (ValueError, TypeError):
+                stock_qty = 0
+        elif "variants" in p_data and isinstance(p_data["variants"], list):
+            stock_qty = sum(
+                int(v.get("stock_quantity", 0))
+                for v in p_data["variants"]
+                if isinstance(v, dict) and v.get("active", True)
+            )
+        else:
+            stock_qty = 10 if product.Active else 0
+
+        in_stock = stock_qty > 0 and bool(product.Active)
+
+        return {
+            "Id": product.Id,
+            "ProductName": product.ProductName,
+            "Price": float(product.Price or 0.0),
+            "CompareAtPrice": float(product.CompareAtPrice) if product.CompareAtPrice is not None else None,
+            "Description": product.Description,
+            "Images": list(product.Images or []),
+            "InStock": in_stock,
+            "StoreName": store_name
+        }
+
+    @classmethod
+    def get_product_customer_options(cls, db: Session, product_id: str) -> dict:
+        """
+        Returns only the selectable options and their available values where data is present for placing an order:
+        e.g. {"Colors": ["Red", "Green", "Pink", "Black"], "Sizes": ["S", "M", "L", "XL"]}
+        Excludes empty lists, empty strings, and internal non-option attributes.
+        """
+        product = db.query(Product).filter(Product.Id == product_id).first()
+        if not product:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Product with ID '{product_id}' not found."
+            )
+
+        p_data = product.ProductData or {}
+        if not isinstance(p_data, dict):
+            p_data = {}
+
+        options_map: dict = {}
+
+        # 1. Process explicit 'options' or 'Options' field if present
+        raw_options = p_data.get("options") or p_data.get("Options")
+        if isinstance(raw_options, dict):
+            for opt_name, vals in raw_options.items():
+                if isinstance(vals, list):
+                    clean_vals = [str(v).strip() for v in vals if v is not None and str(v).strip() != ""]
+                    if clean_vals:
+                        options_map[opt_name] = clean_vals
+                elif isinstance(vals, str) and vals.strip():
+                    options_map[opt_name] = [vals.strip()]
+        elif isinstance(raw_options, list):
+            for opt in raw_options:
+                if isinstance(opt, dict) and ("name" in opt or "Name" in opt):
+                    group_name = opt.get("name") or opt.get("Name")
+                    vals = opt.get("values") or opt.get("Values") or opt.get("options") or opt.get("Options") or []
+                    if isinstance(vals, list):
+                        clean_vals = [str(v).strip() for v in vals if v is not None and str(v).strip() != ""]
+                        if group_name and clean_vals:
+                            options_map[group_name] = clean_vals
+                    elif isinstance(vals, str) and vals.strip():
+                        if group_name:
+                            options_map[group_name] = [vals.strip()]
+
+        # 2. Process all top-level list keys in ProductData (e.g. Colors, Sizes, ChainLengths, PendantDesigns)
+        non_option_keys = {
+            "tags", "tag", "highlights", "highlight", "images", "image",
+            "photos", "features", "key_features", "specifications",
+            "variants", "options", "internal_notes", "seo_keywords"
+        }
+        for key, val in p_data.items():
+            if str(key).lower() in non_option_keys:
+                continue
+            if isinstance(val, list):
+                clean_vals = [str(v).strip() for v in val if v is not None and str(v).strip() != ""]
+                # Only include where data is present (non-empty)
+                if clean_vals and key not in options_map:
+                    options_map[key] = clean_vals
+
+        # 3. Process variants (if any variants have options not yet captured)
+        raw_variants = p_data.get("variants") or p_data.get("Variants")
+        if isinstance(raw_variants, list) and len(raw_variants) > 0:
+            for v in raw_variants:
+                if not isinstance(v, dict):
+                    continue
+                var_options = v.get("options") or v.get("Options")
+                if isinstance(var_options, dict):
+                    for ok, ov in var_options.items():
+                        if ov is not None and str(ov).strip() != "":
+                            val_str = str(ov).strip()
+                            if ok not in options_map:
+                                options_map[ok] = []
+                            if val_str not in options_map[ok]:
+                                options_map[ok].append(val_str)
+                else:
+                    for k, val in v.items():
+                        if k.lower() in {"id", "variant_id", "sku", "price", "stock_quantity", "stock", "active", "image", "image_url"}:
+                            continue
+                        if val is not None and str(val).strip() != "":
+                            val_str = str(val).strip()
+                            if k not in options_map:
+                                options_map[k] = []
+                            if val_str not in options_map[k]:
+                                options_map[k].append(val_str)
+
+        # Final pass: guarantee only non-empty option lists are returned as [{"PropertyName": ..., "PropertyValues": [...]}]
+        result = []
+        for prop_name, prop_vals in options_map.items():
+            if isinstance(prop_vals, list) and len(prop_vals) > 0:
+                result.append({
+                    "PropertyName": prop_name,
+                    "PropertyValues": prop_vals
+                })
+        return result
 
     @staticmethod
     def create_product(db: Session, data):

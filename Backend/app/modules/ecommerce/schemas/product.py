@@ -51,3 +51,26 @@ class ProductWhatsAppLinkOut(BaseModel):
     class Config:
         from_attributes = True
 
+class ProductCustomerInfoOut(BaseModel):
+    Id: str = Field(..., description="Product ID")
+    ProductName: str = Field(..., description="Product title / name")
+    Price: float = Field(0.0, description="Current selling price")
+    CompareAtPrice: Optional[float] = Field(None, description="Original / MRP price")
+    Description: Optional[str] = Field(None, description="Detailed product description")
+    Images: List[str] = Field(default_factory=list, description="Product image URLs")
+    InStock: bool = Field(True, description="Whether the product is currently in stock")
+    StoreName: Optional[str] = Field(None, description="Seller / Store business name")
+
+    class Config:
+        from_attributes = True
+
+class ProductOptionItemOut(BaseModel):
+    PropertyName: str = Field(..., description="Option / property name, e.g. Color, Size, ChainLengths")
+    PropertyValues: List[str] = Field(default_factory=list, description="Available selectable values, e.g. ['Red', 'Blue']")
+
+# ProductCustomerOptionsOut returns list of option items: [{"PropertyName": "Color", "PropertyValues": ["Red", "Blue"]}]
+ProductCustomerOptionsOut = List[ProductOptionItemOut]
+
+
+
+

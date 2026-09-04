@@ -8,7 +8,8 @@ import json
 from app.core.database import get_db
 from app.core.config import settings
 from app.modules.ecommerce.schemas import (
-    ProductOut, ProductCreate, ProductUpdate, ProductWhatsAppLinkOut
+    ProductOut, ProductCreate, ProductUpdate, ProductWhatsAppLinkOut,
+    ProductCustomerInfoOut, ProductCustomerOptionsOut
 )
 from app.modules.ecommerce.services.product_service import ProductService
 
@@ -35,6 +36,24 @@ def get_categories(db: Session = Depends(get_db)):
 @router.get("/categories/{category_id}/products")
 def get_products_by_category(category_id: str, db: Session = Depends(get_db)):
     return ProductService.get_products_by_category(db, category_id)
+
+@router.get("/{product_id}/product-info", response_model=ProductCustomerInfoOut, summary="Get customer-facing product information for ordering")
+@router.get("/product-info/{product_id}", response_model=ProductCustomerInfoOut, include_in_schema=False)
+def get_product_customer_info(product_id: str, db: Session = Depends(get_db)):
+    """
+    Returns basic product details for customer view / WhatsApp message:
+    Id, ProductName, Price, CompareAtPrice, Description, Images, InStock, and StoreName.
+    """
+    return ProductService.get_product_customer_info(db, product_id=product_id)
+
+@router.get("/{product_id}/product-options", response_model=ProductCustomerOptionsOut, summary="Get product option values for placing order")
+@router.get("/product-options/{product_id}", response_model=ProductCustomerOptionsOut, include_in_schema=False)
+def get_product_customer_options(product_id: str, db: Session = Depends(get_db)):
+    """
+    Returns selectable option names and values for placing order:
+    e.g. {"Color": ["Red", "Blue"], "Size": ["M", "L"]}
+    """
+    return ProductService.get_product_customer_options(db, product_id=product_id)
 
 @router.get("/{product_id}/variants")
 def get_product_variants(product_id: str, db: Session = Depends(get_db)):
