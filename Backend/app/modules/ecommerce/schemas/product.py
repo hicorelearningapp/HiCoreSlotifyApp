@@ -44,3 +44,10 @@ class ProductOut(ProductBase):
 
     class Config:
         from_attributes = True
+
+class ProductWhatsAppLinkOut(BaseModel):
+    WhatsAppLink: str = Field(..., description="Generated WhatsApp click-to-chat URL")
+
+    class Config:
+        from_attributes = True
+

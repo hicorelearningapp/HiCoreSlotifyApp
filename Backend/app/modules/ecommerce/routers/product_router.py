@@ -7,7 +7,9 @@ import uuid
 import json
 from app.core.database import get_db
 from app.core.config import settings
-from app.modules.ecommerce.schemas import ProductOut, ProductCreate, ProductUpdate
+from app.modules.ecommerce.schemas import (
+    ProductOut, ProductCreate, ProductUpdate, ProductWhatsAppLinkOut
+)
 from app.modules.ecommerce.services.product_service import ProductService
 
 
@@ -44,6 +46,17 @@ def find_product(identifier: str, db: Session = Depends(get_db)):
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
     return product
+
+@router.get("/whatsapp-link", response_model=ProductWhatsAppLinkOut, summary="Generate WhatsApp chat link for a product by Reel link")
+def get_product_whatsapp_link(
+    reel_link: str = Query(..., description="Instagram or Video Reel URL / Shortcode"),
+    db: Session = Depends(get_db)
+):
+    """
+    Given a Reel link, lookup the product, retrieve the seller's registered business phone number
+    from the businesses table, and generate a WhatsApp click-to-chat URL with product details.
+    """
+    return ProductService.get_whatsapp_link_by_reel(db, reel_link=reel_link)
 
 @router.post("", response_model=ProductOut, status_code=status.HTTP_201_CREATED, summary="Create a new product")
 async def create_product(

@@ -1,5 +1,5 @@
 from app.modules.ecommerce.schemas.product import (
-    ProductOut, ProductCreate, ProductUpdate
+    ProductOut, ProductCreate, ProductUpdate, ProductWhatsAppLinkOut
 )
 from app.modules.ecommerce.schemas.order import (
     OrderItemCreate, OrderCreate, OrderStatusUpdate, OrderPaymentStatusUpdate, OrderOut, OrderListResponse
@@ -21,6 +21,7 @@ __all__ = [
     "ProductOut",
     "ProductCreate",
     "ProductUpdate",
+    "ProductWhatsAppLinkOut",
     "OrderItemCreate",
     "OrderCreate",
     "OrderStatusUpdate",

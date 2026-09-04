@@ -2,11 +2,14 @@ import json
 import os
 import shutil
 import uuid
+import re
+import urllib.parse
 from typing import List, Optional, Union
-from fastapi import UploadFile
+from fastapi import UploadFile, HTTPException, status
 from app.core.config import settings
 from app.modules.ecommerce.models.product import Product
 from app.modules.ecommerce.models.category import Category as ProductCategory
+from app.common.models.business import Business
 from sqlalchemy.orm import Session
 
 class ProductService:
@@ -74,19 +77,120 @@ class ProductService:
         return db.query(Product).filter(Product.Id == product_id).first()
 
     @staticmethod
-    def get_product_by_reel_link(db: Session, reel_link: str):
-        prod = db.query(Product).filter(Product.ReelLink == reel_link, Product.Active == True).first()
+    def _extract_reel_shortcode(reel_str: str) -> Optional[str]:
+        if not reel_str:
+            return None
+        clean = str(reel_str).split('?')[0].split('#')[0].strip().rstrip('/')
+        match = re.search(r'/(?:reel|reels|p|share/reel)/([A-Za-z0-9_-]+)', clean, re.IGNORECASE)
+        if match:
+            return match.group(1)
+        if re.match(r'^[A-Za-z0-9_-]+$', clean):
+            return clean
+        return None
+
+    @classmethod
+    def get_product_by_reel_link(cls, db: Session, reel_link: str) -> Optional[Product]:
+        if not reel_link:
+            return None
+
+        clean_input = str(reel_link).strip()
+        base_input = clean_input.split('?')[0].split('#')[0].rstrip('/')
+        input_code = cls._extract_reel_shortcode(clean_input)
+
+        # 1. Exact match on ReelLink
+        prod = db.query(Product).filter(Product.ReelLink == clean_input, Product.Active == True).first()
         if prod:
             return prod
+
+        if base_input and base_input != clean_input:
+            prod = db.query(Product).filter(Product.ReelLink == base_input, Product.Active == True).first()
+            if prod:
+                return prod
+
+        # 2. Iterate active products for normalized matching, shortcode match, substring, or ProductData json
         products = db.query(Product).filter(Product.Active == True).all()
         for p in products:
-            if p.ReelLink and reel_link in p.ReelLink:
-                return p
+            if p.ReelLink:
+                p_clean = str(p.ReelLink).strip()
+                p_base = p_clean.split('?')[0].split('#')[0].rstrip('/')
+                p_code = cls._extract_reel_shortcode(p_clean)
+
+                if clean_input.lower() == p_clean.lower() or (base_input and base_input.lower() == p_base.lower()):
+                    return p
+                if input_code and p_code and input_code == p_code:
+                    return p
+                if (clean_input in p_clean) or (p_clean in clean_input) or (base_input and base_input in p_clean) or (p_base and p_base in clean_input):
+                    return p
+
             p_data = p.ProductData or {}
             if isinstance(p_data, dict):
-                if p_data.get("reel_link") == reel_link or p_data.get("reel_id") == reel_link or p_data.get("media_id") == reel_link or p_data.get("ReelLink") == reel_link:
-                    return p
+                for key in ["reel_link", "reel_id", "media_id", "ReelLink", "ReelId", "shortcode"]:
+                    val = p_data.get(key)
+                    if val is not None:
+                        val_str = str(val).strip()
+                        if val_str == clean_input or val_str == base_input:
+                            return p
+                        if input_code and (val_str == input_code or cls._extract_reel_shortcode(val_str) == input_code):
+                            return p
         return None
+
+    @classmethod
+    def get_whatsapp_link_by_reel(cls, db: Session, reel_link: str) -> dict:
+        """
+        Lookup product by reel link, retrieve registered seller's business phone number,
+        and generate a WhatsApp click-to-chat URL with product details.
+        """
+        if not reel_link or not str(reel_link).strip():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Reel link parameter is required."
+            )
+
+        product = cls.get_product_by_reel_link(db, reel_link)
+        if not product:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Product not found for the provided Reel link: '{reel_link}'."
+            )
+
+        if not product.SellerId:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Product '{product.ProductName}' (ID: {product.Id}) does not have an associated Seller ID."
+            )
+
+        # Lookup business in business register table
+        business = db.query(Business).filter(Business.Id == product.SellerId).first()
+        if not business:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Registered business/seller with ID '{product.SellerId}' not found for product '{product.ProductName}'."
+            )
+
+        # Extract business phone number
+        phone = business.BusinessPhoneNumber or getattr(business, "WhatsAppNumber", None) or business.MobileNumber
+        if not phone or not str(phone).strip():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Business '{business.BusinessName}' does not have a registered phone number."
+            )
+
+        # Format phone number for WhatsApp link (digits only, e.g. 919876543210)
+        clean_digits = re.sub(r"\D", "", str(phone).strip())
+        if clean_digits.startswith("0"):
+            clean_digits = clean_digits[1:]
+        if len(clean_digits) == 10:
+            clean_digits = f"91{clean_digits}"
+
+        # Message contains product id only
+        msg = str(product.Id)
+
+        encoded_msg = urllib.parse.quote(msg)
+        whatsapp_link = f"https://wa.me/{clean_digits}?text={encoded_msg}"
+
+        return {
+            "WhatsAppLink": whatsapp_link
+        }
 
     @classmethod
     def get_product_by_reel_id(cls, db: Session, reel_id: str):
