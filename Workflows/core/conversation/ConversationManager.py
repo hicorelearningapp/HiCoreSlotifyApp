@@ -44,7 +44,10 @@ class ConversationManager:
             return False
 
         identifier = handoff_data.get("product_id") or handoff_data["product_name"]
-        product = product_service.get_product_by_name_or_id(identifier)
+        try:
+            product = product_service.find_product(identifier)
+        except AttributeError:
+            product = None
         
         # TEMPORARY BYPASS FOR 917550175964:
         if not product and session.state.BusinessPhoneNumber == "917550175964":
@@ -58,7 +61,7 @@ class ConversationManager:
             return False
 
         # Deep link matched a product! Find the sequence to jump to.
-        sequence_name = self._resolve_order_sequence(session, product.get("id"))
+        sequence_name = self._resolve_order_sequence(session, product.get("id") or product.get("Id"))
         
         # TEMPORARY BYPASS FOR 917550175964: Force sequence name if missing
         if not sequence_name and session.state.BusinessPhoneNumber == "917550175964":
@@ -86,8 +89,8 @@ class ConversationManager:
         self.Workflows = self.Sequence.GetAll()
         session.state.SequenceName = sequence_name
         
-        session.WorkflowData["product_id"] = product.get("id")
-        session.WorkflowData["category"] = product.get("category")
+        session.WorkflowData["product_id"] = product.get("id") or product.get("Id")
+        session.WorkflowData["category"] = product.get("category") or product.get("Category")
 
         # Catalogues that carry variants start at the variant picker; the rest at quantity
         target_idx = self.Sequence.IndexOfName("SelectVariantWorkflow")

@@ -34,7 +34,7 @@ class SelectDateWorkflow(Workflow):
 
         reply = Reply(
             message_type="list",
-            text="Please select a date for your vehicle booking:",
+            text="Please select a preferred delivery date:",
             button_text="Dates",
             sections=sections,
         )
