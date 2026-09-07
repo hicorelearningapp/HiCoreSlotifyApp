@@ -425,6 +425,14 @@ class ProductService:
         db.add(product)
         db.commit()
         db.refresh(product)
+
+        # Automatically generate / update workflow .txt config for this product
+        try:
+            from app.modules.ecommerce.services.workflow_config_service import WorkflowConfigService
+            WorkflowConfigService.generate_product_workflow_config(product, db)
+        except Exception as e:
+            print(f"Failed to generate workflow config for product {product.Id}: {e}")
+
         return product
 
     @staticmethod
@@ -459,6 +467,14 @@ class ProductService:
             setattr(product, key, val)
         db.commit()
         db.refresh(product)
+
+        # Automatically update workflow .txt config for this product
+        try:
+            from app.modules.ecommerce.services.workflow_config_service import WorkflowConfigService
+            WorkflowConfigService.generate_product_workflow_config(product, db)
+        except Exception as e:
+            print(f"Failed to update workflow config for product {product.Id}: {e}")
+
         return product
 
     @staticmethod

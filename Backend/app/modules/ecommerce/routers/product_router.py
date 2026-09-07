@@ -13,6 +13,7 @@ from app.modules.ecommerce.schemas import (
 )
 from app.modules.ecommerce.services.product_service import ProductService
 
+from app.modules.ecommerce.services.workflow_config_service import WorkflowConfigService
 
 router = APIRouter(prefix="/products", tags=["Ecommerce Products"])
 
@@ -29,42 +30,54 @@ def _save_product_image(photo: Any) -> Optional[str]:
         shutil.copyfileobj(photo.file, buffer)
     return f"/images/products/{filename}"
 
-@router.get("/categories")
-def get_categories(db: Session = Depends(get_db)):
-    return ProductService.get_all_categories(db)
+# @router.get("/categories")
+# def get_categories(db: Session = Depends(get_db)):
+#     return ProductService.get_all_categories(db)
 
-@router.get("/categories/{category_id}/products")
-def get_products_by_category(category_id: str, db: Session = Depends(get_db)):
-    return ProductService.get_products_by_category(db, category_id)
+# @router.get("/categories/{category_id}/products")
+# def get_products_by_category(category_id: str, db: Session = Depends(get_db)):
+#     return ProductService.get_products_by_category(db, category_id)
 
-@router.get("/{product_id}/product-info", response_model=ProductCustomerInfoOut, summary="Get customer-facing product information for ordering")
-@router.get("/product-info/{product_id}", response_model=ProductCustomerInfoOut, include_in_schema=False)
-def get_product_customer_info(product_id: str, db: Session = Depends(get_db)):
+# @router.get("/{product_id}/product-info", response_model=ProductCustomerInfoOut, summary="Get customer-facing product information for ordering")
+# @router.get("/product-info/{product_id}", response_model=ProductCustomerInfoOut, include_in_schema=False)
+# def get_product_customer_info(product_id: str, db: Session = Depends(get_db)):
+#     """
+#     Returns basic product details for customer view / WhatsApp message:
+#     Id, ProductName, Price, CompareAtPrice, Description, Images, InStock, and StoreName.
+#     """
+#     return ProductService.get_product_customer_info(db, product_id=product_id)
+
+# @router.get("/{product_id}/product-options", response_model=ProductCustomerOptionsOut, summary="Get product option values for placing order")
+# @router.get("/product-options/{product_id}", response_model=ProductCustomerOptionsOut, include_in_schema=False)
+# def get_product_customer_options(product_id: str, db: Session = Depends(get_db)):
+#     """
+#     Returns selectable option names and values for placing order:
+#     e.g. {"Color": ["Red", "Blue"], "Size": ["M", "L"]}
+#     """
+#     return ProductService.get_product_customer_options(db, product_id=product_id)
+
+@router.get("/{product_id}/product-workflow", summary="Get workflow .txt configuration for a product by product ID")
+@router.get("/product-workflow/{product_id}", include_in_schema=False)
+@router.get("/{product_id}/workflow-config", include_in_schema=False)
+def get_product_workflow(product_id: str, db: Session = Depends(get_db)):
     """
-    Returns basic product details for customer view / WhatsApp message:
-    Id, ProductName, Price, CompareAtPrice, Description, Images, InStock, and StoreName.
+    Returns the workflow configuration JSON data from the product's .txt file for the given product ID.
     """
-    return ProductService.get_product_customer_info(db, product_id=product_id)
+    config = WorkflowConfigService.get_product_workflow_config(product_id=product_id, db=db)
+    if not config:
+        raise HTTPException(status_code=404, detail=f"Workflow configuration not found for product {product_id}")
+    return config
 
-@router.get("/{product_id}/product-options", response_model=ProductCustomerOptionsOut, summary="Get product option values for placing order")
-@router.get("/product-options/{product_id}", response_model=ProductCustomerOptionsOut, include_in_schema=False)
-def get_product_customer_options(product_id: str, db: Session = Depends(get_db)):
-    """
-    Returns selectable option names and values for placing order:
-    e.g. {"Color": ["Red", "Blue"], "Size": ["M", "L"]}
-    """
-    return ProductService.get_product_customer_options(db, product_id=product_id)
+# @router.get("/{product_id}/variants")
+# def get_product_variants(product_id: str, db: Session = Depends(get_db)):
+#     return ProductService.get_variants_by_product_id(db, product_id)
 
-@router.get("/{product_id}/variants")
-def get_product_variants(product_id: str, db: Session = Depends(get_db)):
-    return ProductService.get_variants_by_product_id(db, product_id)
-
-@router.get("/find/{identifier}")
-def find_product(identifier: str, db: Session = Depends(get_db)):
-    product = ProductService.get_product_by_name_or_id(db, identifier)
-    if not product:
-        raise HTTPException(status_code=404, detail="Product not found")
-    return product
+# @router.get("/find/{identifier}")
+# def find_product(identifier: str, db: Session = Depends(get_db)):
+#     product = ProductService.get_product_by_name_or_id(db, identifier)
+#     if not product:
+#         raise HTTPException(status_code=404, detail="Product not found")
+#     return product
 
 @router.get("/whatsapp-link", response_model=ProductWhatsAppLinkOut, summary="Generate WhatsApp chat link for a product by Reel link")
 def get_product_whatsapp_link(
