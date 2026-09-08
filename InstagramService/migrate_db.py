@@ -36,8 +36,7 @@ CONNECTION_COLUMNS = [
     "PolicyJson", "InstagramUsername", "BusinessPhoneNumber",
     "CreatedAt", "UpdatedAt",
 ]
-COPY_WHOLE = ["instagram_reel_links", "instagram_processed_events",
-              "instagram_reply_actions"]
+COPY_WHOLE = ["instagram_processed_events", "instagram_reply_actions"]
 
 
 def arg(name, default=None):

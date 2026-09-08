@@ -94,30 +94,3 @@ class InstagramReplyAction(Base):
     MetaResultId = Column(String(64), nullable=True)
     CreatedAt = Column(DateTime, default=datetime.utcnow)
     UpdatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-
-
-class InstagramReelLink(Base):
-    """One reel, one WhatsApp link.
-
-    The link is stored complete and percent-encoded, prefill text included, so
-    nothing assembles a URL at runtime -- what gets sent is exactly what was
-    seeded, readable in one table.
-
-    `%7Bref%7D` inside the link is the commenter's Instagram id, substituted
-    just before the reply is rendered. It is the encoded form of `{ref}`
-    because the whole prefill text is encoded.
-
-    Two columns, and deliberately no third. An earlier version also stored the
-    owning account so the reply path could check it against the webhook, but
-    Backend -- which owns this table next -- has no Instagram account id to
-    give: it knows businesses and reel ids, and nothing about Instagram
-    accounts. A column only a human could fill in is one a human can mistype,
-    and a mistyped one would block a link that was perfectly correct.
-
-    Reel ids are globally unique, so ReelId alone always finds the right row.
-    """
-
-    __tablename__ = "instagram_reel_links"
-
-    ReelId = Column(String(64), primary_key=True, index=True)
-    WaLink = Column(Text, nullable=False)
