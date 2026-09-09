@@ -6,9 +6,9 @@ Three layers, cheapest first:
     1. environment defaults          how this deployment behaves
     2. PolicyJson on the connection  whatever the vendor customised
 
-Where a commenter is sent is no longer part of this. That moved to
-instagram_reel_links, one link per reel, so the policy now only decides how
-the reply is worded and which comments earn one.
+Where a commenter is sent is no longer part of this. Backend decides it, one
+link per reel, so the policy now only decides how the reply is worded and
+which comments earn one.
 """
 from __future__ import annotations
 

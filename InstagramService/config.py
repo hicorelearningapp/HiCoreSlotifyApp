@@ -81,9 +81,9 @@ INSTAGRAM_REPLY_TO_NESTED_COMMENTS = _flag("INSTAGRAM_REPLY_TO_NESTED_COMMENTS",
 INSTAGRAM_IGNORE_OWN_COMMENTS = _flag("INSTAGRAM_IGNORE_OWN_COMMENTS", "true")
 
 # Placeholders: {username} {comment} {comment_id} {media_id} {media_type}
-# plus {wa_link}, which is the link seeded for that reel in
-# instagram_reel_links. An unknown placeholder renders empty rather than
-# raising, so a typo costs a word rather than the reply.
+# plus {wa_link}, which is the link Backend returns for that reel. An unknown
+# placeholder renders empty rather than raising, so a typo costs a word
+# rather than the reply.
 INSTAGRAM_PUBLIC_REPLY_TEXT = os.getenv(
     "INSTAGRAM_PUBLIC_REPLY_TEXT",
     "Thanks for commenting @{username}! Check your DMs 💬",
@@ -93,11 +93,35 @@ INSTAGRAM_PRIVATE_REPLY_TEXT = os.getenv(
     "Hi {username}! Continue on WhatsApp 👇\n\n{wa_link}",
 )
 
-# ── Handoff ─────────────────────────────────────────────────────────────────────────
-# Nothing to configure here any more. Where a commenter is sent is one row
-# per reel in instagram_reel_links, with the number and the prefill text
-# already encoded into the link. Seed it with seed_reel_links.py; Backend's
-# management level owns that table later.
+# ── Handoff: Backend's catalogue ──────────────────────────────────────────
+# Where a commenter is sent is no longer stored here. Backend joins the reel
+# to a product and the product to its seller's registered WhatsApp number and
+# returns the finished link, so a vendor changing either one takes effect
+# without touching this service.
+#
+# Backend runs on the same box, so this is a loopback call. Keep the timeout
+# short: it sits inside the webhook request Meta is waiting on, and a slow
+# lookup here is a webhook that times out rather than a reply that is late.
+BACKEND_BASE_URL = os.getenv("BACKEND_BASE_URL", "http://127.0.0.1:8003").strip().rstrip("/")
+# Both defaults are bounded by the webhook, not by Backend: one payload can
+# carry several comments and each resolves its own reel, so the worst case is
+# per comment. At 2s with one retry that is ~4.2s for a hung Backend; Meta
+# gives a webhook roughly five seconds before it counts as failed. Measured
+# loopback latency is under a millisecond, so 2s is already 2000x headroom --
+# raise it only if Backend moves off this box.
+BACKEND_HTTP_TIMEOUT = float(os.getenv("BACKEND_HTTP_TIMEOUT", "2"))
+#: Retried for a timeout or a 5xx only -- a 404 is a permanent answer, and a
+#: refused connection fails instantly rather than burning the timeout.
+BACKEND_LINK_RETRIES = int(os.getenv("BACKEND_LINK_RETRIES", "1"))
+#: How long a resolved link is reused. Long enough to collapse a burst of
+#: comments on one reel into a single call, short enough that a vendor's edit
+#: lands within the minute.
+BACKEND_LINK_CACHE_SECONDS = float(os.getenv("BACKEND_LINK_CACHE_SECONDS", "60"))
+#: Query parameter the reel is sent as. Temporary: Backend's endpoint takes
+#: `reel_link` today and grows a `reel_id` alongside it, and a media id
+#: matches either way -- so this lets the cutover happen without a code
+#: change on this side. Delete once `reel_id` is live everywhere.
+BACKEND_LINK_PARAM = os.getenv("BACKEND_LINK_PARAM", "reel_id").strip() or "reel_id"
 
 # ── Dedup and delivery ────────────────────────────────────────────────────
 INSTAGRAM_EVENT_RETENTION_SECONDS = int(os.getenv("INSTAGRAM_EVENT_RETENTION_SECONDS", "86400"))
