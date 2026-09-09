@@ -176,3 +176,4 @@ LANGUAGE_METADATA = {
     "hi": {"title": "🇮🇳 हिंदी", "description": "Hindi"},
     "es": {"title": "🇪🇸 Español", "description": "Spanish"}
 }
+

@@ -15,17 +15,19 @@ class EcommerceSequenceManager(BaseSequenceManager):
 
     @classmethod
     def GetSequence(self, sessionData : ConversationSession) -> Sequence:
-        config = SequenceManager.get_config(sessionData.ProductKey)
+        import json
+        config_path = SequenceManager.get_config(sessionData.state.ProductKey)
+        config = json.load(open(config_path, "r", encoding="utf-8")) if config_path else {}
         sequences_dict = config.get("sequences", {})
 
-        workflow_names = sequences_dict[sessionData.sequence_name]
+        workflow_names = sequences_dict.get(sessionData.state.SequenceName, [])
         workflows = []
         for w_name in workflow_names:
             wf_class = WorkflowFactory.get_workflow(w_name)
             if wf_class:
                 workflows.append(wf_class)
 
-        return Sequence(sessionData.sequence_name, workflows)
+        return Sequence(sessionData.state.SequenceName, workflows)
 
 #
 # @classmethod

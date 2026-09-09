@@ -72,9 +72,15 @@ class SequenceFactory:
         industry = SequenceManager.get_industry(business_phone)
         return cls.GetBaseSequenceManager(industry)
 
-    # @classmethod
-    # def get_setting(cls, business_phone: str | None = None, setting_key: str = "", default_value=None):
-    #     return cls._get_factory(business_phone).get_setting(business_phone, setting_key, default_value)
+    @classmethod
+    def get_setting(cls, business_phone: str | None = None, setting_key: str = "", default_value=None):
+        import json
+        config_path = SequenceManager.get_config(business_phone)
+        if config_path:
+            config = json.load(open(config_path, "r", encoding="utf-8"))
+            settings = config.get("settings", {})
+            return settings.get(setting_key, default_value)
+        return default_value
     #
     # @classmethod
     # def GetSequenceName(cls,  business_phone: str | None = None) -> str:

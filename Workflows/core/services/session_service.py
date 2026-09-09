@@ -14,6 +14,8 @@ from core.services.message_logger import MessageLogger
 from core.SequenceManager import SequenceManager
 from core.services.IdentifyService import IdentifyServiceFactory
 
+from fastapi import APIRouter
+session_router = APIRouter(tags=['sessions'])
 
 class SessionService:
     def __init__(self):
@@ -34,20 +36,19 @@ class SessionService:
     def list_sessions(self, skip: int = 0, limit: int = 100) -> List[models.ConversationSessionDB]:
         return self.db.query(models.ConversationSessionDB).offset(skip).limit(limit).all()
 
-    def get_session(self, phone_number: str) -> Optional[models.ConversationSessionDB]:
+    def get_session(self, phone_number: str, business_phone_number: Optional[str] = None) -> Optional[models.ConversationSessionDB]:
         """The conversation this person is having with this business.
 
         A phone number is unique only per business, so the engine must always
         scope by both -- otherwise someone messaging two businesses resumes
         whichever conversation happens to be found first.
         """
-        return (
-            self.db.query(models.ConversationSessionDB)
-            .filter(
-                models.ConversationSessionDB.PhoneNumber == phone_number
-            )
-            .first()
+        query = self.db.query(models.ConversationSessionDB).filter(
+            models.ConversationSessionDB.PhoneNumber == phone_number
         )
+        if business_phone_number:
+            query = query.filter(models.ConversationSessionDB.BusinessPhoneNumber == business_phone_number)
+        return query.first()
 
     def get_session_by_id_or_phone(self, identifier: str) -> Optional[models.ConversationSessionDB]:
         """Unscoped lookup for the admin routes, which only have an identifier."""
@@ -59,24 +60,23 @@ class SessionService:
     def load_session(self, message: Message) -> ConversationSession:
         phone_number = message.PhoneNumber
         business_phone_number = message.BusinessPhoneNumber
-        msg= message.Text
-        session = self.get_session(phone_number)
+        msg = message.Text
+        session = self.get_session(phone_number, business_phone_number)
 
         if not session or not session.StateData:
-            config = SequenceManager.get_config(business_phone_number)
-            industry = config.get("industry")
-            sequenceManager = sequenceFactory._get_factory(industry)
-
-            from core.SequenceFactory import SequenceFactory
-            sequence_name = SequenceFactory._get_factory(business_phone_number)
+            industry = SequenceManager.get_industry(business_phone_number)
+            
+            from core.services.IdentifyService import IdentifyServiceFactory
+            identify_service = IdentifyServiceFactory.get_service(industry or "healthcare")
+            identity = identify_service.identify_user(phone_number, business_phone_number)
 
             initial_state = {
-                "IndustryName" : industry,
-                "SequenceName": "MainWorkSequence",
+                "IndustryName" : industry or "healthcare",
+                "SequenceName": identity.Sequence or "MainWorkSequence",
                 "CurrentFlow": "",
-                "WorkflowIndex": 0,
-                "UserType": "",
-                "WorkflowData": "",
+                "WorkflowIndex": identity.WorkflowIndex,
+                "UserType": identity.UserType or "",
+                "WorkflowData": identity.WorkflowData or {},
                 "Initialized": False,
                 "BusinessPhoneNumber": business_phone_number,
                 "ProductKey" : message.Text
@@ -89,7 +89,11 @@ class SessionService:
             session = self.create_session(session_create)
 
         data = session.StateData
-        data = json.loads(data)
+        if isinstance(data, str):
+            try:
+                data = json.loads(data)
+            except json.JSONDecodeError:
+                data = {}
         state = SessionState.model_validate(data)
 
         return ConversationSession(
@@ -263,3 +267,17 @@ class SessionService:
         print("Committed")
         return True
 
+
+
+from fastapi import APIRouter
+session_router = APIRouter(tags=['sessions'])
+
+@session_router.post('/sessions/{phone_number}/reset')
+def reset_session_route(phone_number: str):
+    deleted = SessionService().reset_session(phone_number)
+    return {'status': 'success', 'deleted': deleted}
+
+@session_router.post('/sessions/reset-all')
+def reset_all_sessions_route():
+    deleted = SessionService().reset_all_sessions()
+    return {'status': 'success', 'count': deleted}

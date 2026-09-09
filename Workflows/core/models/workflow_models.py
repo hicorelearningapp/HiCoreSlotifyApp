@@ -62,16 +62,19 @@ class ConversationSession:
 
     def translate(self, key: str, default: str | None = None, **kwargs) -> str:
         import os, json
-        industry = self.WorkflowData.get("industry", "healthcare") if self.state else "healthcare"
-        locale_path = os.path.join(os.path.dirname(__file__), "..", "..", "industries", industry, "locales", "en.json")
+        industry = self.state.IndustryName or self.WorkflowData.get("industry", "healthcare") if self.state else "healthcare"
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        locale_path = os.path.abspath(os.path.join(base_dir, "..", "..", "industries", industry, "locales", "en.json"))
         template = default or key
         if os.path.exists(locale_path):
             try:
                 with open(locale_path, "r", encoding="utf-8") as f:
                     data = json.load(f)
                     template = data.get(key, default or key)
-            except Exception:
-                pass
+            except Exception as e:
+                print(f"[DEBUG] Error loading locale {locale_path}: {e}")
+        else:
+            print(f"[DEBUG] Locale file not found: {locale_path}")
         if kwargs:
             try:
                 return template.format(**kwargs)

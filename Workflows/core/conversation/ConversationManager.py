@@ -35,6 +35,7 @@ class ConversationManager:
         if message:
             logger.log_received(customer_phone, message.Text or message.InteractiveId)
 
+        print(f"[DEBUG MESSAGE] Phone: {message.PhoneNumber}, Text: {message.Text}, InteractiveId: {message.InteractiveId}")
         business_phone = message.BusinessPhoneNumber if message else None
         session = SessionService().load_session(message)
         sequenceManager = SequenceFactory.GetBaseSequenceManager(session.state.IndustryName)
@@ -42,17 +43,17 @@ class ConversationManager:
 
 
         try:
-            self.Sequence = sequenceManager.GetSequence(session.state.SequenceName, session.state.BusinessPhoneNumber)
+            self.Sequence = sequenceManager.GetSequence(session)
         except ValueError:
             SessionService().reset_session(customer_phone, business_phone)
-            session = SessionService().load_session(customer_phone, business_phone)
-            self.Sequence = SequenceFactory.Get(session.state.SequenceName, session.state.BusinessPhoneNumber)
+            session = SessionService().load_session(message)
+            self.Sequence = sequenceManager.GetSequence(session)
 
-        self.Workflows = self.Sequence.GetAll()
+        self.Workflows = self.Sequence.Workflows
         self.CurrentWorkflowIndex = session.state.WorkflowIndex
 
         while True:
-            seq = SequenceFactory.Get(session.state.SequenceName, session.state.BusinessPhoneNumber)
+            seq = sequenceManager.GetSequence(session)
             workflow_class = seq.Current(session.state.WorkflowIndex)
             if not workflow_class:
                 break
@@ -139,7 +140,8 @@ class ConversationManager:
             break
 
     def move_to_next_workflow(self, session) -> bool:
-        seq = SequenceFactory.Get(session.state.SequenceName, session.state.BusinessPhoneNumber)
+        sequenceManager = SequenceFactory.GetBaseSequenceManager(session.state.IndustryName)
+        seq = sequenceManager.GetSequence(session)
         next_workflow = seq.Next(session.state.WorkflowIndex)
         if next_workflow is None:
             return False  

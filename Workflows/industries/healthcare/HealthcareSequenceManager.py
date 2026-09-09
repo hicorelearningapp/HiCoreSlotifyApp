@@ -7,13 +7,15 @@ from core.models import ConversationSession
 class HealthcareSequenceManager(BaseSequenceManager):
     @classmethod
     def GetSequence(cls, sessionData : ConversationSession) -> Sequence:
-        config = SequenceManager.get_config(sessionData.business_phone)
+        import json
+        config_path = SequenceManager.get_config(sessionData.state.BusinessPhoneNumber)
+        config = json.load(open(config_path, "r", encoding="utf-8")) if config_path else {}
         sequences_dict = config.get("sequences", {})
 
-        if sessionData.sequence_name not in sequences_dict:
-            raise ValueError(f"Sequence '{sessionData.sequence_name}' not found in configuration.")
+        if sessionData.state.SequenceName not in sequences_dict:
+            raise ValueError(f"Sequence '{sessionData.state.SequenceName}' not found in configuration.")
 
-        workflow_names = sequences_dict[sessionData.sequence_name]
+        workflow_names = sequences_dict[sessionData.state.SequenceName]
         workflows = []
         for w_name in workflow_names:
             wf_class = WorkflowFactory.get_workflow(w_name)

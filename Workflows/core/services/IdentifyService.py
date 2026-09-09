@@ -24,9 +24,11 @@ class BaseIdentifyService:
         raise NotImplementedError("Subclasses must implement identify_customer")
 
     def identify_user(self, phone_number: str, business_phone_number: str | None = None) -> IdentityResult:
-        config = SequenceManager.get_config(business_phone_number)
-        industry = config.get("industry", "default")
+        import json
+        config_path = SequenceManager.get_config(business_phone_number)
+        config = json.load(open(config_path, "r", encoding="utf-8")) if config_path else {}
         mappings = config.get("user_type_mappings", {})
+        industry = config.get("industry", "healthcare")
         
         # 0. Check registered channel resolvers (e.g. Instagram)
         for resolver in self._identity_resolvers:

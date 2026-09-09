@@ -51,9 +51,14 @@ class WebhookRouter:
             return {"status": "ok", "bot_replies": bot_replies}
                 
         except Exception as ex:
-            # If any unhandled exception occurs, log it to the console
-            print(f"Error processing webhook: {ex}")
-            # Return a 200 OK with an error status so WhatsApp doesn't keep retrying the failed webhook
+            import traceback
+            traceback.print_exc()
             return {"status": "error", "message": str(ex)}
 
 router = WebhookRouter().router
+
+from core.services.session_service import session_router
+router.include_router(session_router)
+
+from core.services.session_service import session_router
+router.include_router(session_router)

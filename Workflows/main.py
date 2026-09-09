@@ -48,11 +48,13 @@ app = FastAPI(
 )
 
 # Serve static images for the simulator
-images_dir = os.path.join(os.path.dirname(__file__), "images")
+base_dir = os.path.dirname(os.path.abspath(__file__))
+
+images_dir = os.path.join(base_dir, "images")
 os.makedirs(images_dir, exist_ok=True)
 app.mount("/images", StaticFiles(directory=images_dir), name="images")
 
-industries_dir = os.path.join(os.path.dirname(__file__), "industries")
+industries_dir = os.path.join(base_dir, "industries")
 if os.path.exists(industries_dir):
     app.mount("/industries", StaticFiles(directory=industries_dir), name="industries")
 
