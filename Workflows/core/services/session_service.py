@@ -65,18 +65,15 @@ class SessionService:
 
         if not session or not session.StateData:
             industry = SequenceManager.get_industry(business_phone_number)
-            
-            from core.services.IdentifyService import IdentifyServiceFactory
-            identify_service = IdentifyServiceFactory.get_service(industry or "healthcare")
-            identity = identify_service.identify_user(phone_number, business_phone_number)
+
 
             initial_state = {
                 "IndustryName" : industry or "healthcare",
-                "SequenceName": identity.Sequence or "MainWorkSequence",
+                "SequenceName": "MainWorkSequence",
                 "CurrentFlow": "",
-                "WorkflowIndex": identity.WorkflowIndex,
-                "UserType": identity.UserType or "",
-                "WorkflowData": identity.WorkflowData or {},
+                "WorkflowIndex": 0,
+                "UserType": "",
+                "WorkflowData": "",
                 "Initialized": False,
                 "BusinessPhoneNumber": business_phone_number,
                 "ProductKey" : message.Text
