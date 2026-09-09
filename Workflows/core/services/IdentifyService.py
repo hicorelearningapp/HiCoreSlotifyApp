@@ -24,7 +24,7 @@ class BaseIdentifyService:
         raise NotImplementedError("Subclasses must implement identify_customer")
 
     def identify_user(self, phone_number: str, business_phone_number: str | None = None) -> IdentityResult:
-        config = SequenceManager.get_config(business_phone_number) if business_phone_number else SequenceManager._load_default_config()
+        config = SequenceManager.get_config(business_phone_number)
         industry = config.get("industry", "default")
         mappings = config.get("user_type_mappings", {})
         
@@ -64,7 +64,7 @@ class BaseIdentifyService:
 
 class IdentifyServiceFactory:
     @staticmethod
-    def get_service(industry: str) -> BaseIdentifyService:
+    def  get_service(industry: str) -> BaseIdentifyService:
         # Prevent completely invalid identifiers
         if not industry or not industry.isalnum():
             industry = "healthcare"

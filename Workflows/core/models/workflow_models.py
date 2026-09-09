@@ -20,6 +20,8 @@ class SessionState(BaseModel):
     Initialized: bool = False
     BusinessPhoneNumber: str = ""
     BusinessPhoneNumberId: str = ""
+    IndustryName : str = ""
+    ProductKey : str = ""
 
 class ConversationSession:
     def __init__(self, phone_number: str, state: SessionState):

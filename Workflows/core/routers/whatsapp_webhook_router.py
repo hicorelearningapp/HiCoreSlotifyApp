@@ -42,7 +42,7 @@ class WebhookRouter:
                 return {"status": "ignored"}
                 
             # Pass the parsed message to the ConversationManager to trigger the state machine / workflow logic
-            await ConversationManager().process(message.PhoneNumber, message)
+            await ConversationManager().process(message)
             
             # Retrieve all the outgoing payloads that the ConversationManager queued up to send during this request
             bot_replies = request_payloads.get()

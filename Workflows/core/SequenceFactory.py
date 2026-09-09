@@ -1,5 +1,7 @@
 from typing import List, Type
 from core.SequenceManager import SequenceManager
+from core.models import ConversationSession
+
 
 class Sequence:
     def __init__(self, name: str, workflows: List[Type]):
@@ -32,27 +34,27 @@ class Sequence:
 
 class BaseSequenceManager:
     """Interface for industry-specific sequence managers."""
-    @classmethod
-    def get_setting(cls, business_phone: str | None = None, setting_key: str = "", default_value=None):
+    # @classmethod
+    # def get_setting(cls, business_phone: str | None = None, setting_key: str = "", default_value=None):
+    #     raise NotImplementedError()
+    #
+
+    def GetSequence(self, sessionData : ConversationSession) -> Sequence:
         raise NotImplementedError()
-        
-    @classmethod
-    def GetSequenceName(cls, user_type: str, business_phone: str | None = None) -> str:
-        raise NotImplementedError()
-        
-    @classmethod
-    def Get(cls, name: str, business_phone: str | None = None) -> Sequence:
-        raise NotImplementedError()
+
+    # @classmethod
+    # def GetSequenceName(cls, productkey: str | None = None) -> str:
+    #     raise NotImplementedError()
+    # #
+    # @classmethod
+    # def Get(cls, name: str, business_phone: str | None = None) -> Sequence:
+    #     raise NotImplementedError()
 
 
 class SequenceFactory:
-    """
-    Factory that delegates sequence creation to industry-specific factories.
-    """
+
     @classmethod
-    def _get_factory(cls, business_phone: str | None = None) -> Type['BaseSequenceManager']:
-        industry = SequenceManager.get_industry(business_phone)
-        
+    def GetBaseSequenceManager(cls, industry: str):
         if industry == "ecommerce":
             from industries.ecommerce.EcommerceSequenceManager import EcommerceSequenceManager
             return EcommerceSequenceManager
@@ -62,14 +64,22 @@ class SequenceFactory:
         else:
             raise ValueError(f"No sequence factory registered for industry '{industry}'.")
 
+    """
+    Factory that delegates sequence creation to industry-specific factories.
+    """
     @classmethod
-    def get_setting(cls, business_phone: str | None = None, setting_key: str = "", default_value=None):
-        return cls._get_factory(business_phone).get_setting(business_phone, setting_key, default_value)
+    def _get_factory(cls, business_phone: str | None = None) -> Type['BaseSequenceManager']:
+        industry = SequenceManager.get_industry(business_phone)
+        return cls.GetBaseSequenceManager(industry)
 
-    @classmethod
-    def GetSequenceName(cls, user_type: str, business_phone: str | None = None) -> str:
-        return cls._get_factory(business_phone).GetSequenceName(user_type, business_phone)
-
-    @classmethod
-    def Get(cls, name: str, business_phone: str | None = None) -> Sequence:
-        return cls._get_factory(business_phone).Get(name, business_phone)
+    # @classmethod
+    # def get_setting(cls, business_phone: str | None = None, setting_key: str = "", default_value=None):
+    #     return cls._get_factory(business_phone).get_setting(business_phone, setting_key, default_value)
+    #
+    # @classmethod
+    # def GetSequenceName(cls,  business_phone: str | None = None) -> str:
+    #     return cls._get_factory(business_phone).GetSequenceName(business_phone)
+    #
+    # @classmethod
+    # def Get(cls, name: str, business_phone: str | None = None) -> Sequence:
+    #     return cls._get_factory(business_phone).Get(name, business_phone)
