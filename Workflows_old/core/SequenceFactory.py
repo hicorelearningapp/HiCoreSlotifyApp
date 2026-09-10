@@ -1,5 +1,7 @@
 from typing import List, Type
 from core.SequenceManager import SequenceManager
+from industries.ecommerce.EcommerceSequenceManager import EcommerceSequenceManager
+from industries.healthcare.HealthcareSequenceManager import HealthcareSequenceManager
 
 class Sequence:
     def __init__(self, name: str, workflows: List[Type]):
