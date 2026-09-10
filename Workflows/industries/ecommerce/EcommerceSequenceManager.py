@@ -16,7 +16,7 @@ class EcommerceSequenceManager(BaseSequenceManager):
     @classmethod
     def GetSequence(self, sessionData : ConversationSession) -> Sequence:
         config = BackendAPIClient().get_industry_config_by_phone(str(sessionData.state.ProductKey))
-        industry = config.get("Industry")
+        industry = config.get("industry")
         sequences_dict = config.get("sequences", {})
 
         workflow_names = sequences_dict.get(sessionData.state.SequenceName, [])
