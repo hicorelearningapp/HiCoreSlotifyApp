@@ -18,27 +18,29 @@ from industries.ecommerce.workflows.owner.owner_menu_workflow import OwnerMenuWo
 from industries.ecommerce.workflows.owner.view_pending_orders_workflow import ViewPendingOrdersWorkflow
 from industries.ecommerce.workflows.owner.update_order_status_workflow import UpdateOrderStatusWorkflow
 
+industry = "Ecommerce"
+
 # Self-register at import time
-WorkflowFactory.register("OrderingMainMenuWorkflow", EcommerceMainMenuWorkflow)
-WorkflowFactory.register("SelectCategoryWorkflow", SelectCategoryWorkflow)
-WorkflowFactory.register("SelectProductWorkflow", SelectProductWorkflow)
-WorkflowFactory.register("SelectVariantWorkflow", SelectVariantWorkflow)
-WorkflowFactory.register("SelectQuantityWorkflow", SelectQuantityWorkflow)
-WorkflowFactory.register("CollectNameWorkflow", CollectNameWorkflow)
-WorkflowFactory.register("CollectPhoneWorkflow", CollectPhoneWorkflow)
-WorkflowFactory.register("CollectAddressWorkflow", CollectAddressWorkflow)
-WorkflowFactory.register("SelectDeliverySlotWorkflow", SelectDeliverySlotWorkflow)
-WorkflowFactory.register("EcommerceSelectDateWorkflow", EcommerceSelectDateWorkflow)
-WorkflowFactory.register("SelectPaymentWorkflow", SelectPaymentWorkflow)
-WorkflowFactory.register("ConfirmOrderWorkflow", ConfirmOrderWorkflow)
-WorkflowFactory.register("TrackOrderWorkflow", TrackOrderWorkflow)
-WorkflowFactory.register("HandoffToWhatsAppWorkflow", HandoffToWhatsAppWorkflow)
-WorkflowFactory.register("OwnerMenuWorkflow", OwnerMenuWorkflow)
-WorkflowFactory.register("ViewPendingOrdersWorkflow", ViewPendingOrdersWorkflow)
-WorkflowFactory.register("UpdateOrderStatusWorkflow", UpdateOrderStatusWorkflow)
+WorkflowFactory.register(industry+"OrderingMainMenuWorkflow", EcommerceMainMenuWorkflow)
+WorkflowFactory.register(industry+"SelectCategoryWorkflow", SelectCategoryWorkflow)
+WorkflowFactory.register(industry+"SelectProductWorkflow", SelectProductWorkflow)
+WorkflowFactory.register(industry+"SelectVariantWorkflow", SelectVariantWorkflow)
+WorkflowFactory.register(industry+"SelectQuantityWorkflow", SelectQuantityWorkflow)
+WorkflowFactory.register(industry+"CollectNameWorkflow", CollectNameWorkflow)
+WorkflowFactory.register(industry+"CollectPhoneWorkflow", CollectPhoneWorkflow)
+WorkflowFactory.register(industry+"CollectAddressWorkflow", CollectAddressWorkflow)
+WorkflowFactory.register(industry+"SelectDeliverySlotWorkflow", SelectDeliverySlotWorkflow)
+WorkflowFactory.register(industry+"EcommerceSelectDateWorkflow", EcommerceSelectDateWorkflow)
+WorkflowFactory.register(industry+"SelectPaymentWorkflow", SelectPaymentWorkflow)
+WorkflowFactory.register(industry+"ConfirmOrderWorkflow", ConfirmOrderWorkflow)
+WorkflowFactory.register(industry+"TrackOrderWorkflow", TrackOrderWorkflow)
+WorkflowFactory.register(industry+"HandoffToWhatsAppWorkflow", HandoffToWhatsAppWorkflow)
+WorkflowFactory.register(industry+"OwnerMenuWorkflow", OwnerMenuWorkflow)
+WorkflowFactory.register(industry+"ViewPendingOrdersWorkflow", ViewPendingOrdersWorkflow)
+WorkflowFactory.register(industry+"UpdateOrderStatusWorkflow", UpdateOrderStatusWorkflow)
 
 from industries.ecommerce.workflows.common.GreetingMessageWorkflow import GreetingMessageWorkflow
 from industries.ecommerce.workflows.common.ExitWorkflow import ExitWorkflow
 
-WorkflowFactory.register("GreetingMessageWorkflow", GreetingMessageWorkflow)
-WorkflowFactory.register("ExitWorkflow", ExitWorkflow)
+WorkflowFactory.register(industry+"GreetingMessageWorkflow", GreetingMessageWorkflow)
+WorkflowFactory.register(industry+"ExitWorkflow", ExitWorkflow)

@@ -16,33 +16,14 @@ class EcommerceSequenceManager(BaseSequenceManager):
     @classmethod
     def GetSequence(self, sessionData : ConversationSession) -> Sequence:
         config = BackendAPIClient().get_industry_config_by_phone(str(sessionData.state.ProductKey))
+        industry = config.get("Industry")
         sequences_dict = config.get("sequences", {})
 
         workflow_names = sequences_dict.get(sessionData.state.SequenceName, [])
         workflows = []
         for w_name in workflow_names:
-            wf_class = WorkflowFactory.get_workflow(w_name)
+            wf_class = WorkflowFactory.get_workflow(industry + "." + w_name)
             if wf_class:
                 workflows.append(wf_class)
 
         return Sequence(sessionData.state.SequenceName, workflows)
-
-#
-# @classmethod
-#     def Get(cls, name: str, business_phone: str | None = None) -> Sequence:
-#         config = SequenceManager.get_config(business_phone)
-#         sequences_dict = config.get("sequences", {})
-#
-#         if name not in sequences_dict:
-#             raise ValueError(f"Sequence '{name}' not found in configuration.")
-#
-#         workflow_names = sequences_dict[name]
-#         workflows = []
-#         for w_name in workflow_names:
-#             wf_class = WorkflowFactory.get_workflow(w_name)
-#             if wf_class:
-#                 workflows.append(wf_class)
-#
-#         return Sequence(name, workflows)
-#
-
