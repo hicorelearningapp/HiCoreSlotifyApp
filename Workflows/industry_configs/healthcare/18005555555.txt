@@ -30,7 +30,7 @@
         ]
     },
     "sequences": {
-        "PatientMainWorkSequence": [
+        "MainWorkSequence": [
             "GreetingMessageWorkflow",
             "MainMenuWorkflow"
         ],

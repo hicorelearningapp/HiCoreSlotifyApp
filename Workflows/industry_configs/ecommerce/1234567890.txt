@@ -26,12 +26,17 @@
     ]
   },
   "sequences": {
-    "OrderingMainMenuWorkflow": [
-      "OrderingMainMenuWorkflow",
-      "ExitWorkflow"
-    ],
-    "CustomerOrderSequence": [
+    "MainWorkSequence": [
       "GreetingMessageWorkflow",
+      "OrderingMainMenuWorkflow",
+      "SelectCategoryWorkflow",
+      "SelectProductWorkflow",
+      "SelectVariantWorkflow",
+      "EcommerceSelectDateWorkflow",
+      "CollectNameWorkflow",
+      "CollectPhoneWorkflow",
+      "SelectPaymentWorkflow",
+      "ConfirmOrderWorkflow",
       "OrderingMainMenuWorkflow",
       "SelectCategoryWorkflow",
       "SelectProductWorkflow",
