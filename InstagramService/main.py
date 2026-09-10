@@ -32,7 +32,7 @@ from db import Base, db_session, engine, request_context  # noqa: E402
 
 # Import the models so create_all sees them.
 import models.connection  # noqa: E402,F401
-from routers import connections, legal, webhook  # noqa: E402
+from routers import connections, legal, reels, webhook  # noqa: E402
 from services.dedup_guard import dedup_guard  # noqa: E402
 from services import graph_admin  # noqa: E402
 from services.reply_queue import reply_queue  # noqa: E402
@@ -150,6 +150,7 @@ async def startup_event():
 
 app.include_router(webhook.router)
 app.include_router(connections.router)
+app.include_router(reels.router)
 app.include_router(legal.router)
 
 
