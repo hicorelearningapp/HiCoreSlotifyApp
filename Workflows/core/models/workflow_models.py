@@ -7,7 +7,6 @@ class Message:
         self.Text = text
         self.InteractiveId = interactive_id
         self.BusinessPhoneNumber = business_phone_number
-        self.BusinessPhoneNumberId = business_phone_number_id
 
 from pydantic import BaseModel, Field
 
@@ -19,7 +18,6 @@ class SessionState(BaseModel):
     WorkflowData: dict = Field(default_factory=dict)
     Initialized: bool = False
     BusinessPhoneNumber: str = ""
-    BusinessPhoneNumberId: str = ""
     IndustryName : str = ""
     ProductKey : str = ""
 

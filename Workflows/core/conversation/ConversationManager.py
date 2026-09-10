@@ -38,16 +38,14 @@ class ConversationManager:
         print(f"[DEBUG MESSAGE] Phone: {message.PhoneNumber}, Text: {message.Text}, InteractiveId: {message.InteractiveId}")
         business_phone = message.BusinessPhoneNumber if message else None
         session = SessionService().load_session(message)
-        sequenceManager = SequenceFactory.GetBaseSequenceManager(session.state.IndustryName)
-        # sequenceManager.GetSequenceName(session)
-
+        sequenceManager = SequenceFactory.GetSequenceManager(session.state.IndustryName)
 
         try:
             self.Sequence = sequenceManager.GetSequence(session)
         except ValueError:
             SessionService().reset_session(customer_phone, business_phone)
-            session = SessionService().load_session(message)
-            self.Sequence = sequenceManager.GetSequence(session)
+            # session = SessionService().load_session(message)
+            # self.Sequence = sequenceManager.GetSequence(session)
 
         self.Workflows = self.Sequence.Workflows
         self.CurrentWorkflowIndex = session.state.WorkflowIndex

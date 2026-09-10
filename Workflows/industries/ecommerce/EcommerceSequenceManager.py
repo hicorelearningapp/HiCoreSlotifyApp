@@ -1,8 +1,8 @@
 from typing import List
 
-from core.SequenceManager import SequenceManager
 from core.SequenceFactory import Sequence, BaseSequenceManager
 from core.WorkflowFactory import WorkflowFactory
+from core.api_client import BackendAPIClient
 from core.models import ConversationSession
 
 
@@ -15,9 +15,7 @@ class EcommerceSequenceManager(BaseSequenceManager):
 
     @classmethod
     def GetSequence(self, sessionData : ConversationSession) -> Sequence:
-        import json
-        config_path = SequenceManager.get_config(sessionData.state.ProductKey)
-        config = json.load(open(config_path, "r", encoding="utf-8")) if config_path else {}
+        config = BackendAPIClient().get_industry_config_by_phone(str(sessionData.state.ProductKey))
         sequences_dict = config.get("sequences", {})
 
         workflow_names = sequences_dict.get(sessionData.state.SequenceName, [])

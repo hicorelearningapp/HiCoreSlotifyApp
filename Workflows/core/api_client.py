@@ -33,6 +33,12 @@ class BackendAPIClient:
         
     def get_customer_by_phone(self, phone_number: str):
         return self._request("GET", f"/customers/by-phone/{phone_number}")
+
+    def get_industry_config_by_phone(self, phone_number: str):
+        return self._request("GET", f"/bussiness/config/{phone_number}")
+
+    def get_industry_by_phone(self, phone_number: str):
+        return self._request("GET", f"/bussiness/industry/{phone_number}")
         
     def get_profiles_by_phone(self, phone_number: str):
         return self._request("GET", f"/customers/by-phone/{phone_number}/patients")

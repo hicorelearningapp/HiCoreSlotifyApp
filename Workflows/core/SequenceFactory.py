@@ -1,5 +1,7 @@
 from typing import List, Type
-from core.SequenceManager import SequenceManager
+
+from core.api_client import BackendAPIClient
+# from core.SequenceManager import SequenceManager
 from core.models import ConversationSession
 
 
@@ -54,7 +56,7 @@ class BaseSequenceManager:
 class SequenceFactory:
 
     @classmethod
-    def GetBaseSequenceManager(cls, industry: str):
+    def GetSequenceManager(cls, industry: str):
         if industry == "ecommerce":
             from industries.ecommerce.EcommerceSequenceManager import EcommerceSequenceManager
             return EcommerceSequenceManager
@@ -68,20 +70,21 @@ class SequenceFactory:
     Factory that delegates sequence creation to industry-specific factories.
     """
     @classmethod
-    def _get_factory(cls, business_phone: str | None = None) -> Type['BaseSequenceManager']:
-        industry = SequenceManager.get_industry(business_phone)
-        return cls.GetBaseSequenceManager(industry)
+    def getIndustry (cls, business_phone: str | None = None) ->  str :
 
-    @classmethod
-    def get_setting(cls, business_phone: str | None = None, setting_key: str = "", default_value=None):
-        import json
-        config_path = SequenceManager.get_config(business_phone)
-        if config_path:
-            config = json.load(open(config_path, "r", encoding="utf-8"))
-            settings = config.get("settings", {})
-            return settings.get(setting_key, default_value)
-        return default_value
-    #
+        industry = BackendAPIClient().get_industry_by_phone(str(business_phone))
+        return industry
+
+    # @classmethod
+    # def get_setting(cls, business_phone: str | None = None, setting_key: str = "", default_value=None):
+    #     import json
+    #     config_path = SequenceManager.get_config(business_phone)
+    #     if config_path:
+    #         config = json.load(open(config_path, "r", encoding="utf-8"))
+    #         settings = config.get("settings", {})
+    #         return settings.get(setting_key, default_value)
+    #     return default_value
+    # #
     # @classmethod
     # def GetSequenceName(cls,  business_phone: str | None = None) -> str:
     #     return cls._get_factory(business_phone).GetSequenceName(business_phone)
