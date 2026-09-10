@@ -68,7 +68,7 @@ class SessionService:
 
 
             initial_state = {
-                "IndustryName" : industry or "healthcare",
+                "IndustryName" : industry,
                 "SequenceName": "MainWorkSequence",
                 "CurrentFlow": "",
                 "WorkflowIndex": 0,
@@ -76,7 +76,7 @@ class SessionService:
                 "WorkflowData": {},
                 "Initialized": False,
                 "BusinessPhoneNumber": business_phone_number,
-                "ProductKey" : message.Text or ""
+                "ProductKey" : msg
             }
             session_create = schemas.SessionCreate(
                     PhoneNumber=phone_number,
@@ -97,69 +97,6 @@ class SessionService:
                 phone_number=str(session.PhoneNumber),
                 state=state
             )
-
-    # def load_session(self, phone_number: str, business_phone_number: Optional[str] = None) -> DomainConversationSession:
-    #     biz_key = business_phone_number or ""
-    #     session = self.get_session(phone_number, biz_key)
-    #
-    #     if not session or not session.StateData:
-    #         config = SequenceManager.get_config(business_phone_number)
-    #         industry = config.get("industry")
-    #
-    #         from core.SequenceFactory import SequenceFactory
-    #         sequence_name = SequenceFactory.GetSequenceName(biz_key)
-    #         if not sequence_name:
-    #             # The business config has no mapping for this user type. The
-    #             # IdentifyService already worked out a sensible sequence for it,
-    #             # so use that rather than handing SequenceFactory a None it can
-    #             # only raise on.
-    #             sequence_name = user.Sequence
-    #             logging.getLogger("uvicorn").warning(
-    #                 "No user_type_mapping for %s on business %s; falling back to %s",
-    #                 user.UserType, biz_phone or "<default>", sequence_name,
-    #             )
-    #         seq = SequenceFactory.Get(sequence_name, biz_phone)
-    #         first_workflow_class = seq.Current(0)
-    #         current_workflow = first_workflow_class.__name__ if first_workflow_class else ""
-    #
-    #         initial_state = {
-    #             "SequenceName": sequence_name,
-    #             "CurrentFlow": current_workflow,
-    #             "WorkflowIndex": 0,
-    #             "UserType": user.UserType,
-    #             "WorkflowData": user.WorkflowData,
-    #             "Initialized": False,
-    #             "BusinessPhoneNumber": business_phone_number or ""
-    #         }
-    #
-    #         if not session:
-    #             session_create = schemas.SessionCreate(
-    #                 PhoneNumber=phone_number,
-    #                 BusinessPhoneNumber=biz_key,
-    #                 StateData=initial_state,
-    #             )
-    #             session = self.create_session(session_create)
-    #         else:
-    #             session.StateData = initial_state
-    #             self.db.commit()
-    #             self.db.refresh(session)
-    #
-    #     assert session is not None, "Session must exist at this point"
-    #     data = session.StateData or {}
-    #     if isinstance(data, str):
-    #         try:
-    #             data = json.loads(data)
-    #             if isinstance(data, str):  # in case it was double-encoded
-    #                 data = json.loads(data)
-    #         except json.JSONDecodeError:
-    #             data = {}
-    #
-    #     state = SessionState.model_validate(data)
-    #
-    #     return DomainConversationSession(
-    #         phone_number=str(session.PhoneNumber),
-    #         state=state
-    #     )
 
     def update_session_by_id_or_phone(self, identifier: str, session_update: schemas.SessionUpdate) -> Optional[models.ConversationSessionDB]:
         session_obj = self.get_session_by_id_or_phone(identifier)
