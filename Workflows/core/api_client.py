@@ -35,10 +35,10 @@ class BackendAPIClient:
         return self._request("GET", f"/customers/by-phone/{phone_number}")
 
     def get_industry_config_by_phone(self, phone_number: str):
-        return self._request("GET", f"/businesses/config/industry/{phone_number}")
+        return self._request("GET", f"/businesses/config/{phone_number}")
 
     def get_industry_by_phone(self, phone_number: str):
-        return self._request("GET", f"/businesses/config/{phone_number}")
+        return self._request("GET", f"/businesses/config/industry/{phone_number}")
         
     def get_profiles_by_phone(self, phone_number: str):
         return self._request("GET", f"/customers/by-phone/{phone_number}/patients")

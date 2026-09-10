@@ -52,7 +52,10 @@ class BusinessWorkflowConfigService:
         backend_dir = os.path.dirname(
             os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         )
-        target_dir = os.path.join(backend_dir, "industry_configs", industry)
+        if industry and str(industry).lower() in ["ecommerce", "e_commerce", "ecom"]:
+            target_dir = os.path.join(backend_dir, "industry_configs", "Ecommerce", "Businesses")
+        else:
+            target_dir = os.path.join(backend_dir, "industry_configs", industry)
         os.makedirs(target_dir, exist_ok=True)
         return target_dir
 
