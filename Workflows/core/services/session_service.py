@@ -73,10 +73,10 @@ class SessionService:
                 "CurrentFlow": "",
                 "WorkflowIndex": 0,
                 "UserType": "",
-                "WorkflowData": "",
+                "WorkflowData": {},
                 "Initialized": False,
                 "BusinessPhoneNumber": business_phone_number,
-                "ProductKey" : message.Text
+                "ProductKey" : message.Text or ""
             }
             session_create = schemas.SessionCreate(
                     PhoneNumber=phone_number,
@@ -235,6 +235,7 @@ class SessionService:
 
             business_phone = data.get("BusinessPhoneNumber", "")
 
+            from core.SequenceFactory import SequenceFactory
             time_out_enabled = SequenceFactory.get_setting(business_phone, "time_out_enabled", True)
             if not time_out_enabled:
                 continue

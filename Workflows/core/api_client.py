@@ -94,6 +94,12 @@ class BackendAPIClient:
     def get_doctor(self, doctor_id: str):
         return self._request("GET", f"/doctors/{doctor_id}")
         
+    def get_doctor_full_name(self, doctor_id: str) -> str | None:
+        doc = self.get_doctor(doctor_id)
+        if doc and "FullName" in doc:
+            return doc["FullName"]
+        return None
+        
     def get_doctor_first_name(self, doctor_id: str) -> str:
         doc = self.get_doctor(doctor_id)
         if not doc or "FullName" not in doc:

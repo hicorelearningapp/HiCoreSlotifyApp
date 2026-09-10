@@ -14,10 +14,6 @@ class SelectAppointmentToCancelWorkflow(Workflow):
             res = api_client.list_appointments(patient_id=pid)
             if res and isinstance(res, dict) and "Appointments" in res:
                 all_appointments.extend(res["Appointments"])
-            elif res and isinstance(res, dict) and "items" in res:
-                all_appointments.extend(res["items"])
-            elif isinstance(res, list):
-                all_appointments.extend(res)
             
         all_appointments.sort(key=lambda x: (x.get("Date", ""), x.get("SlotTime", "")))
         
@@ -26,7 +22,7 @@ class SelectAppointmentToCancelWorkflow(Workflow):
             
         rows = []
         for appt in all_appointments[:10]:
-            doc_name = appt.get("DoctorName") or (appt.get("doctor", {}).get("FullName") if appt.get("doctor") else 'Unknown')
+            doc_name = appt.get("DoctorName") or (appt.get("doctor", {}).get("FullName") if appt.get("doctor") else None) or (api_client.get_doctor_full_name(appt.get("DoctorId")) if appt.get("DoctorId") else None) or "Unknown"
             pat_name = appt.get("patient", {}).get("Name") if appt.get("patient") else 'Unknown'
             date_str = appt.get("Date") if appt.get("Date") else 'N/A'
             time_str = appt.get("SlotTime") if appt.get("SlotTime") else 'N/A'

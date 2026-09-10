@@ -25,7 +25,7 @@ class ViewAppointmentsWorkflow(Workflow):
         msg = session.translate("view_upcoming_appointments")
         for idx, appt in enumerate(all_appointments, 1):
             pat_name = appt.get("patient", {}).get("PatientName") if appt.get("patient") else "Unknown"
-            doc_name = appt.get("doctor", {}).get("FullName") if appt.get("doctor") else "Unknown Doctor"
+            doc_name = appt.get("doctor", {}).get("FullName") if appt.get("doctor") else (api_client.get_doctor_full_name(appt.get("DoctorId")) if appt.get("DoctorId") else None) or "Unknown Doctor"
             date_str = appt.get("Date", "Unknown Date")
             time_str = appt.get("SlotTime", "Unknown Time")
             

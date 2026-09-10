@@ -1,14 +1,15 @@
 from core.workflows.BaseWorkflow import Workflow
 from core.models.workflow_models import ConversationSession, Message, WorkflowResult, Reply
 from config import SERVER_BASE_URL
+from core.api_client import api_client
 import urllib.parse
 
 class GreetingMessageWorkflow(Workflow):
     def Initialize(self, session: ConversationSession) -> WorkflowResult:
         from core.SequenceFactory import SequenceFactory
         role = session.WorkflowData.get("role", "customer")
-        user_name = session.WorkflowData.get("name")
-        
+        user_name = session.WorkflowData.get("name") or ((c := api_client.get_customer_by_phone(session.PhoneNumber)) and (c.get("CustomerName") or c.get("PatientName")))
+
         if role == "admin":
             greeting = session.translate("greeting_admin")
         elif role != "customer" and user_name:
