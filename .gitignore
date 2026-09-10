@@ -83,3 +83,4 @@ scripts/
 # Holds a real .env and appointments.db, so never commit it.
 hicore_platform/
 Backend/images/
+Workflows_old/
