@@ -1,6 +1,6 @@
 {
-  "Industry": "DoctorAppointment",
-  "Settings": {
+  "industry": "DoctorAppointment",
+  "settings": {
     "welcome_message_override": "Welcome to City Care Clinic f0ca51!",
     "welcome_image_filename": "Welcome to HiCore Image English.jpeg",
     "business_hours": {

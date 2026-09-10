@@ -61,16 +61,16 @@ class BusinessWorkflowConfigService:
         """
         Builds empty template for non-DoctorAppointment industries:
         {
-          "Industry": "<IndustryName>",
-          "Settings": {},
+          "industry": "<IndustryName>",
+          "settings": {},
           "user_type_mappings": {},
           "number": {},
           "sequences": {}
         }
         """
         return {
-            "Industry": industry_pascal,
-            "Settings": {},
+            "industry": industry_pascal,
+            "settings": {},
             "user_type_mappings": {},
             "number": {},
             "sequences": {}
@@ -83,7 +83,7 @@ class BusinessWorkflowConfigService:
         db: Optional[Session] = None
     ) -> Dict[str, Any]:
         """
-        Builds the PascalCase DoctorAppointment / Healthcare workflow configuration dictionary.
+        Builds the DoctorAppointment / Healthcare workflow configuration dictionary.
         """
         b_data = getattr(business, "BusinessData", None) or {}
         if not isinstance(b_data, dict):
@@ -153,8 +153,8 @@ class BusinessWorkflowConfigService:
         nlu_en = bool(b_data.get("nlu_enabled", False))
 
         config_data = {
-            "Industry": "DoctorAppointment",
-            "Settings": {
+            "industry": "DoctorAppointment",
+            "settings": {
                 "welcome_message_override": welcome_override,
                 "welcome_image_filename": welcome_image,
                 "business_hours": {
