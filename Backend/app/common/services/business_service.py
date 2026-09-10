@@ -48,12 +48,18 @@ class BusinessService:
         self.db.add(new_business)
         self.db.commit()
         self.db.refresh(new_business)
+
+        # Generate and store workflow configuration file named with business phone number
+        try:
+            from app.common.services.business_workflow_config_service import BusinessWorkflowConfigService
+            BusinessWorkflowConfigService.generate_and_save_config(new_business, self.db)
+        except Exception as e:
+            import logging
+            logging.getLogger("uvicorn").error(f"Error generating workflow config for business {new_business.BusinessName}: {e}")
+
         return new_business
 
     def login_business(self, login_data: schemas.BusinessLogin) -> dict:
-        req_ind = login_data.IndustryType.value if hasattr(login_data.IndustryType, "value") else str(login_data.IndustryType)
-        clean_req = req_ind.lower().replace("_", "").replace("-", "").replace(" ", "")
-
         business = (
             self.db.query(models.Business)
             .filter(
@@ -68,12 +74,15 @@ class BusinessService:
                 detail="Invalid username, industry type, or password."
             )
 
-        biz_ind = (business.IndustryType or "").lower().replace("_", "").replace("-", "").replace(" ", "")
-        if biz_ind != clean_req:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid username, industry type, or password."
-            )
+        if login_data.IndustryType:
+            req_ind = login_data.IndustryType.value if hasattr(login_data.IndustryType, "value") else str(login_data.IndustryType)
+            clean_req = req_ind.lower().replace("_", "").replace("-", "").replace(" ", "")
+            biz_ind = (business.IndustryType or "").lower().replace("_", "").replace("-", "").replace(" ", "")
+            if biz_ind != clean_req:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Invalid username, industry type, or password."
+                )
 
         token = create_access_token({
             "sub": business.Id,

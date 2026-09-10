@@ -58,6 +58,20 @@ class BusinessRouter:
             summary="Get details of a registered business by BusinessPhoneNumber"
         )
         self.router.add_api_route(
+            "/config/industry/{phone_number}",
+            self.get_business_industry_by_phone,
+            methods=["GET"],
+            status_code=status.HTTP_200_OK,
+            summary="Get industry type from workflow config by BusinessPhoneNumber"
+        )
+        self.router.add_api_route(
+            "/config/{phone_number}",
+            self.get_business_config_by_phone,
+            methods=["GET"],
+            status_code=status.HTTP_200_OK,
+            summary="Get full workflow config JSON data by BusinessPhoneNumber"
+        )
+        self.router.add_api_route(
             "/{business_id}",
             self.update_business,
             methods=["PUT"],
@@ -172,6 +186,14 @@ class BusinessRouter:
 
     def get_business_by_phone(self, phone_number: str):
         return self.business_svc.get_business_by_phone(phone_number)
+
+    def get_business_industry_by_phone(self, phone_number: str):
+        from app.common.services.business_workflow_config_service import BusinessWorkflowConfigService
+        return BusinessWorkflowConfigService.get_industry_by_phone(phone_number, self.business_svc.db)
+
+    def get_business_config_by_phone(self, phone_number: str):
+        from app.common.services.business_workflow_config_service import BusinessWorkflowConfigService
+        return BusinessWorkflowConfigService.get_config_by_phone(phone_number, self.business_svc.db)
 
     async def update_business(
         self,

@@ -1,0 +1,107 @@
+{
+  "Industry": "DoctorAppointment",
+  "Settings": {
+    "welcome_message_override": "Welcome to HiCore Slotify App!",
+    "welcome_image_filename": "Welcome to HiCore Image English.jpeg",
+    "business_hours": {
+      "open": "09:00",
+      "close": "17:00"
+    },
+    "appointment_interval_minutes": 10,
+    "max_bookings_per_slot": 1,
+    "customer_appointment_buffer_minutes": 60,
+    "language_selection_enabled": false,
+    "time_out_enabled": true,
+    "session_timeout_minutes": 10,
+    "nlu_enabled": false,
+    "order_handoff_sequence": "SareeOrderSequence",
+    "product_order_sequences": {
+      "6d79cfa6-feb7-42dc-bc0f-600d693e07f7": "SareeOrderSequence",
+      "0646d4bd-6607-4261-9ae8-d8135e6bf209": "SareeOrderSequence",
+      "218ff355-bc5d-4b62-8af5-da0d887db6df": "RingOrderSequence"
+    }
+  },
+  "user_type_mappings": {
+    "ADMIN": "AdminFlow",
+    "DOCTOR": "DoctorFlow",
+    "PATIENT": "PatientMainWorkSequence"
+  },
+  "number": {
+    "doctor": [
+      "15554445555",
+      "15554446666",
+      "919876543210",
+      "919876543211",
+      "919876543212",
+      "919876543213",
+      "919876543214"
+    ],
+    "admin": [
+      "917550175964",
+      "15559990000"
+    ]
+  },
+  "sequences": {
+    "PatientMainWorkSequence": [
+      "GreetingMessageWorkflow",
+      "MainMenuWorkflow"
+    ],
+    "PatientRegisterAndBookSequence": [
+      "RegisterPatientWorkflow",
+      "SelectPatientWorkflow",
+      "SelectDoctorWorkflow",
+      "SelectConsultationWorkflow",
+      "SelectDateWorkflow",
+      "SelectTimeSlotWorkflow",
+      "CollectEmailWorkflow",
+      "ConfirmBookingWorkflow",
+      "ExitWorkflow"
+    ],
+    "PatientViewSequence": [
+      "ViewAppointmentsWorkflow",
+      "ExitWorkflow"
+    ],
+    "PatientCancelSequence": [
+      "SelectAppointmentToCancelWorkflow",
+      "ConfirmCancellationWorkflow",
+      "ExitWorkflow"
+    ],
+    "DoctorFlow": [
+      "GreetingMessageWorkflow",
+      "DoctorMenuWorkflow"
+    ],
+    "DoctorScheduleFlow": [
+      "DoctorViewScheduleWorkflow",
+      "ExitWorkflow"
+    ],
+    "DoctorCancelFlow": [
+      "DoctorSelectAppointmentsToCancelWorkflow",
+      "DoctorCancelAppointmentsWorkflow",
+      "DoctorCancellationConfirmationWorkflow",
+      "ExitWorkflow"
+    ],
+    "DoctorRefundFlow": [
+      "DoctorViewRefundsWorkflow",
+      "DoctorProcessRefundWorkflow",
+      "ExitWorkflow"
+    ],
+    "AdminFlow": [
+      "GreetingMessageWorkflow",
+      "AdminMenuWorkflow"
+    ],
+    "SareeOrderSequence": [
+      "SelectVariantWorkflow",
+      "EcommerceSelectDateWorkflow",
+      "SelectPaymentWorkflow",
+      "ConfirmOrderWorkflow",
+      "ExitWorkflow"
+    ],
+    "RingOrderSequence": [
+      "SelectVariantWorkflow",
+      "EcommerceSelectDateWorkflow",
+      "SelectPaymentWorkflow",
+      "ConfirmOrderWorkflow",
+      "ExitWorkflow"
+    ]
+  }
+}
