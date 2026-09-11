@@ -18,6 +18,7 @@ class SessionState(BaseModel):
     WorkflowData: dict = Field(default_factory=dict)
     Initialized: bool = False
     BusinessPhoneNumber: str = ""
+    BusinessPhoneNumberId: str = ""
     IndustryName : str = ""
     ProductKey : str = ""
 

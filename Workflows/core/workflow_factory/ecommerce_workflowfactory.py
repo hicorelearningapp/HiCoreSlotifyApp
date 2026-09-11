@@ -1,164 +1,68 @@
 from core.workflow_factory.workflow_factory_base import WorkflowFactory
 
-from industries.ecommerce.workflows.customer.main_menu_workflow import (
-    MainMenuWorkflow as EcommerceMainMenuWorkflow
-)
-from industries.ecommerce.workflows.customer.select_category_workflow import (
-    SelectCategoryWorkflow
-)
-from industries.ecommerce.workflows.customer.select_product_workflow import (
-    SelectProductWorkflow
-)
-from industries.ecommerce.workflows.customer.select_variant_workflow import (
-    SelectVariantWorkflow
-)
-from industries.ecommerce.workflows.customer.select_quantity_workflow import (
-    SelectQuantityWorkflow
-)
-from industries.ecommerce.workflows.customer.collect_name_workflow import (
-    CollectNameWorkflow
-)
-from industries.ecommerce.workflows.customer.collect_phone_workflow import (
-    CollectPhoneWorkflow
-)
-from industries.ecommerce.workflows.customer.collect_address_workflow import (
-    CollectAddressWorkflow
-)
-from industries.ecommerce.workflows.customer.select_delivery_slot_workflow import (
-    SelectDeliverySlotWorkflow
-)
-from industries.ecommerce.workflows.customer.select_date_workflow import (
-    SelectDateWorkflow as EcommerceSelectDateWorkflow
-)
-from industries.ecommerce.workflows.customer.select_payment_workflow import (
-    SelectPaymentWorkflow
-)
-from industries.ecommerce.workflows.customer.confirm_order_workflow import (
-    ConfirmOrderWorkflow
-)
-from industries.ecommerce.workflows.customer.track_order_workflow import (
-    TrackOrderWorkflow
-)
-from industries.ecommerce.workflows.customer.handoff_to_whatsapp_workflow import (
-    HandoffToWhatsAppWorkflow
-)
-
-from industries.ecommerce.workflows.owner.owner_menu_workflow import (
-    OwnerMenuWorkflow
-)
-from industries.ecommerce.workflows.owner.view_pending_orders_workflow import (
-    ViewPendingOrdersWorkflow
-)
-from industries.ecommerce.workflows.owner.update_order_status_workflow import (
-    UpdateOrderStatusWorkflow
-)
-
-from industries.ecommerce.workflows.common.GreetingMessageWorkflow import (
-    GreetingMessageWorkflow
-)
-from industries.ecommerce.workflows.common.ExitWorkflow import (
-    ExitWorkflow
-)
+from industries.ecommerce.workflows.common.GreetingMessageWorkflow import GreetingMessageWorkflow
+from industries.ecommerce.workflows.customer.get_param_workflow import create_get_param_workflow
+from industries.ecommerce.workflows.customer.select_quantity_workflow import SelectQuantityWorkflow
+from industries.ecommerce.workflows.customer.collect_address_workflow import CollectAddressWorkflow
+from industries.ecommerce.workflows.customer.order_workflow import OrderWorkFlow
+from industries.ecommerce.workflows.customer.select_payment_workflow import SelectPaymentWorkflow
+from industries.ecommerce.workflows.customer.confirm_order_workflow import ConfirmOrderWorkflow
+from industries.ecommerce.workflows.common.ExitWorkflow import ExitWorkflow
 
 
 class EcommerceWorkflowFactory(WorkflowFactory):
 
     WORKFLOW_REGISTRY = {}
+    _INITIALIZED = False
 
     @classmethod
     def register_workflows(cls):
+        if cls._INITIALIZED:
+            return
 
-        cls.register(
-            "OrderingMainMenuWorkflow",
-            EcommerceMainMenuWorkflow
-        )
+        cls.register("GreetingWorkFlow", GreetingMessageWorkflow)
+        cls.register("QuantityWorkFlow", SelectQuantityWorkflow)
+        cls.register("AddressWorkFlow", CollectAddressWorkflow)
+        cls.register("OrderWorkFlow", OrderWorkFlow)
+        cls.register("PaymentWorkFlow", SelectPaymentWorkflow)
+        cls.register("ConfirmWorkFLow", ConfirmOrderWorkflow)
+        cls.register("ExitWorkflow", ExitWorkflow)
 
-        cls.register(
-            "SelectCategoryWorkflow",
-            SelectCategoryWorkflow
-        )
+        cls._INITIALIZED = True
 
-        cls.register(
-            "SelectProductWorkflow",
-            SelectProductWorkflow
-        )
+    @classmethod
+    def get_workflow(cls, name: str):
+        cls.register_workflows()
 
-        cls.register(
-            "SelectVariantWorkflow",
-            SelectVariantWorkflow
-        )
+        if not name:
+            return None
 
-        cls.register(
-            "SelectQuantityWorkflow",
-            SelectQuantityWorkflow
-        )
+        # Clean prefix if industry namespace is prepended (e.g. 'Ecommerce.GreetingWorkFlow')
+        clean_name = name
+        if clean_name.startswith("Ecommerce."):
+            clean_name = clean_name[len("Ecommerce."):]
 
-        cls.register(
-            "CollectNameWorkflow",
-            CollectNameWorkflow
-        )
+        # Handle dynamic GetParam workflow: GetParam;{ParamName};{Options}
+        if clean_name.startswith("GetParam;") or clean_name.startswith("GetParam:"):
+            parts = clean_name.split(";", 2) if ";" in clean_name else clean_name.split(":", 2)
+            param_name = parts[1].strip() if len(parts) > 1 else "Option"
+            options = [x.strip() for x in parts[2].split(",") if x.strip()] if len(parts) > 2 else []
+            return create_get_param_workflow(param_name, options)
 
-        cls.register(
-            "CollectPhoneWorkflow",
-            CollectPhoneWorkflow
-        )
+        # Direct registry lookup
+        if clean_name in cls.WORKFLOW_REGISTRY:
+            return cls.WORKFLOW_REGISTRY[clean_name]
 
-        cls.register(
-            "CollectAddressWorkflow",
-            CollectAddressWorkflow
-        )
+        # Case-insensitive / normalized lookup
+        for reg_key, wf_class in cls.WORKFLOW_REGISTRY.items():
+            if reg_key.lower().replace("_", "") == clean_name.lower().replace("_", ""):
+                return wf_class
 
-        cls.register(
-            "SelectDeliverySlotWorkflow",
-            SelectDeliverySlotWorkflow
-        )
+        print(f"[WARNING] Workflow '{name}' (cleaned: '{clean_name}') not found in Ecommerce registry.")
+        return None
 
-        cls.register(
-            "SelectDateWorkflow",
-            EcommerceSelectDateWorkflow
-        )
 
-        cls.register(
-            "SelectPaymentWorkflow",
-            SelectPaymentWorkflow
-        )
-
-        cls.register(
-            "ConfirmOrderWorkflow",
-            ConfirmOrderWorkflow
-        )
-
-        cls.register(
-            "TrackOrderWorkflow",
-            TrackOrderWorkflow
-        )
-
-        cls.register(
-            "HandoffToWhatsAppWorkflow",
-            HandoffToWhatsAppWorkflow
-        )
-
-        cls.register(
-            "OwnerMenuWorkflow",
-            OwnerMenuWorkflow
-        )
-
-        cls.register(
-            "ViewPendingOrdersWorkflow",
-            ViewPendingOrdersWorkflow
-        )
-
-        cls.register(
-            "UpdateOrderStatusWorkflow",
-            UpdateOrderStatusWorkflow
-        )
-
-        cls.register(
-            "GreetingMessageWorkflow",
-            GreetingMessageWorkflow
-        )
-
-        cls.register(
-            "ExitWorkflow",
-            ExitWorkflow
-        )
+# Auto-register upon import
+from core.workflow_factory.workflow_factory_base import WorkflowFactoryProvider
+EcommerceWorkflowFactory.register_workflows()
+WorkflowFactoryProvider.register("Ecommerce", EcommerceWorkflowFactory)

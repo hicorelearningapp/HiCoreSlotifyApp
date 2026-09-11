@@ -1,48 +1,83 @@
-from core.models.workflow_models import WorkflowResult, Reply, WorkflowStatus
+import re
+from core.models.workflow_models import WorkflowResult, Reply, WorkflowStatus, ConversationSession, Message
+
+
+WORD_TO_NUMBER = {
+    "one": 1, "two": 2, "three": 3, "four": 4, "five": 5,
+    "six": 6, "seven": 7, "eight": 8, "nine": 9, "ten": 10
+}
+
 
 class SelectQuantityWorkflow:
-    def Initialize(self, session):
-        rows = [
+    """
+    Workflow to collect item quantity from customer and compute order total.
+    """
+
+    def Initialize(self, session: ConversationSession) -> WorkflowResult:
+        if session.WorkflowData.get("quantity"):
+            return WorkflowResult.completed()
+
+        options = [
             {"id": "QTY_1", "title": "1"},
             {"id": "QTY_2", "title": "2"},
             {"id": "QTY_3", "title": "3"},
-            {"id": "QTY_4", "title": "4"},
-            {"id": "QTY_5", "title": "5"}
         ]
-        
-        sections = [
-            {
-                "title": "Select Quantity",
-                "rows": rows
-            }
-        ]
-        
-        reply = Reply("list", "How many would you like?", sections=sections)
+
+        reply = Reply(
+            "buttons",
+            "🔢 *Select Quantity*\n\nHow many units would you like to order?\n(Reply with *1*, *2*, *3*, or type any number like *5*)",
+            options=options
+        )
         return WorkflowResult.waiting(reply)
 
-    def Process(self, session, message):
+    def Process(self, session: ConversationSession, message: Message) -> WorkflowResult:
         quantity = None
-        if message.InteractiveId and message.InteractiveId.startswith("QTY_"):
-            quantity = int(message.InteractiveId.split("_")[1])
-        elif message.Text and message.Text.isdigit():
-            quantity = int(message.Text)
-            
-        if quantity is not None and quantity > 0:
-            from core.api_client import api_client as product_service
-                        
-            product_id = session.WorkflowData.get("product_id")
-            variant_id = session.WorkflowData.get("variant_id")
-            
-            if variant_id:
-                variants = product_service.get_variants_by_product_id(product_id)
-                selected_variant = next((v for v in variants if v.get('id') == variant_id), None)
-                if selected_variant and quantity > selected_variant.get('stock_quantity', 0):
-                    return WorkflowResult.waiting(Reply("text", f"Sorry, only {selected_variant.get('stock_quantity')} units of this variation are currently in stock. Please enter a lower quantity."))
-                    
-            session.WorkflowData["quantity"] = quantity
-            return WorkflowResult.completed()
-            
-        return WorkflowResult.waiting(Reply("text", "Please enter a valid positive number or select from the options."))
 
-    def Complete(self, session):
+        # 1. Match from Interactive Button ID
+        if message.InteractiveId:
+            if message.InteractiveId.startswith("QTY_"):
+                try:
+                    quantity = int(message.InteractiveId.split("_")[1])
+                except (ValueError, IndexError):
+                    pass
+            elif message.InteractiveId.isdigit():
+                quantity = int(message.InteractiveId)
+
+        # 2. Match from Text input
+        if quantity is None and message.Text:
+            raw_text = message.Text.strip().lower()
+
+            if raw_text.isdigit():
+                quantity = int(raw_text)
+            elif raw_text in WORD_TO_NUMBER:
+                quantity = WORD_TO_NUMBER[raw_text]
+            else:
+                # Extract any number from phrase (e.g. "2 pcs", "qty 3", "5 shirts")
+                match = re.search(r"\b(\d+)\b", raw_text)
+                if match:
+                    try:
+                        quantity = int(match.group(1))
+                    except ValueError:
+                        pass
+
+        # 3. Validate positive quantity
+        if quantity is not None and quantity > 0:
+            product_info = session.WorkflowData.get("product_info", {})
+            price = product_info.get("price") or session.WorkflowData.get("product_price", 0.0)
+            total = float(price) * quantity
+
+            session.WorkflowData["quantity"] = quantity
+            session.WorkflowData["total"] = total
+
+            if hasattr(session, "state") and hasattr(session.state, "WorkflowData"):
+                session.state.WorkflowData["quantity"] = quantity
+                session.state.WorkflowData["total"] = total
+
+            return WorkflowResult.completed()
+
+        return WorkflowResult.waiting(
+            Reply("text", "Please enter a valid positive quantity (e.g. *1*, *2*, *5*) or choose from the buttons.")
+        )
+
+    def Complete(self, session: ConversationSession) -> WorkflowResult:
         return WorkflowResult.completed()

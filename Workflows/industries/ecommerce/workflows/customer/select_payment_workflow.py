@@ -1,29 +1,46 @@
-from core.models.workflow_models import WorkflowResult, Reply, WorkflowStatus
+from core.models.workflow_models import WorkflowResult, Reply, WorkflowStatus, ConversationSession, Message
+
 
 class SelectPaymentWorkflow:
-    def Initialize(self, session):
+    """
+    Workflow to choose payment method (COD or Pay Online).
+    """
+
+    def Initialize(self, session: ConversationSession) -> WorkflowResult:
+        if session.WorkflowData.get("payment_method"):
+            return WorkflowResult.completed()
+
         options = [
-            {"id": "cod", "title": "Cash on Delivery"},
-            {"id": "online", "title": "Pay Online"}
+            {"id": "PAY_COD", "title": "Cash on Delivery"},
+            {"id": "PAY_ONLINE", "title": "Pay Online (UPI)"}
         ]
         return WorkflowResult.waiting(
-            Reply("buttons", "How would you like to pay for this order?", options=options)
-        )
-        
-    def Process(self, session, message):
-        text = message.Text.strip().lower() if message.Text else ""
-        print(f"[DEBUG] SelectPaymentWorkflow processed message. Text='{text}', InteractiveId='{message.InteractiveId}'")
-        
-        if text in ["cod", "cash on delivery", "cash", "1"] or message.InteractiveId == "cod":
-            session.state.WorkflowData["payment_method"] = "Cash on Delivery"
-            return WorkflowResult.completed()
-        elif text in ["online", "pay online", "2"] or message.InteractiveId == "online":
-            session.state.WorkflowData["payment_method"] = "Pay Online"
-            return WorkflowResult.completed()
-            
-        return WorkflowResult.waiting(
-            Reply("text", "Please select a valid payment method from the options above.")
+            Reply("buttons", "💳 *Payment Method*\n\nHow would you like to pay for your order?", options=options)
         )
 
-    def Complete(self, session):
+    def Process(self, session: ConversationSession, message: Message) -> WorkflowResult:
+        text = message.Text.strip().lower() if message.Text else ""
+
+        if (
+            text in ["cod", "cash on delivery", "cash", "1"]
+            or message.InteractiveId in ["PAY_COD", "cod"]
+        ):
+            session.WorkflowData["payment_method"] = "Cash on Delivery"
+            if hasattr(session, "state") and hasattr(session.state, "WorkflowData"):
+                session.state.WorkflowData["payment_method"] = "Cash on Delivery"
+            return WorkflowResult.completed()
+        elif (
+            text in ["online", "pay online", "upi", "pay online (upi)", "2"]
+            or message.InteractiveId in ["PAY_ONLINE", "online"]
+        ):
+            session.WorkflowData["payment_method"] = "Pay Online"
+            if hasattr(session, "state") and hasattr(session.state, "WorkflowData"):
+                session.state.WorkflowData["payment_method"] = "Pay Online"
+            return WorkflowResult.completed()
+
+        return WorkflowResult.waiting(
+            Reply("text", "Please choose a valid payment method:\n1. Cash on Delivery (COD)\n2. Pay Online (UPI)")
+        )
+
+    def Complete(self, session: ConversationSession) -> WorkflowResult:
         return WorkflowResult.completed()

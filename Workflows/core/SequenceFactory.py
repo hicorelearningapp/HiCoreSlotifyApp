@@ -60,6 +60,22 @@ class SequenceFactory:
             raise ValueError(f"No sequence factory registered for industry '{industry}'.")
         return factory
 
+    @classmethod
+    def GetBaseSequenceManager(cls, industry: str) -> type[BaseSequenceManager]:
+        """Alias for GetSequenceManager for backwards compatibility."""
+        return cls.GetSequenceManager(industry)
+
+    @classmethod
+    def get_setting(cls, business_phone: str | None = None, setting_key: str = "", default_value=None):
+        """Fetches a setting value from the industry configuration for a business phone."""
+        if not business_phone:
+            return default_value
+        try:
+            config = BackendAPIClient().get_industry_config_by_phone(str(business_phone)) or {}
+            return config.get(setting_key, default_value)
+        except Exception:
+            return default_value
+
     """
     Factory that delegates sequence creation to industry-specific factories.
     """
@@ -77,3 +93,4 @@ class SequenceFactory:
             raise ValueError(f"No industry found for business phone '{business_phone}'.")
 
         return industry
+

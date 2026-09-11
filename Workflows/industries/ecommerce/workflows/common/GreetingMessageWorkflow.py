@@ -2,42 +2,66 @@ from core.workflows.BaseWorkflow import Workflow
 from core.models.workflow_models import ConversationSession, Message, WorkflowResult, Reply
 from config import SERVER_BASE_URL
 import urllib.parse
-from core.api_client import api_client
+
 
 class GreetingMessageWorkflow(Workflow):
+    """
+    Initial greeting workflow for Ecommerce.
+    - If valid product found: Showcases product details (image, name, description, price, compare-at price)
+      and smoothly continues the order booking sequence.
+    - If invalid product ID: Sends a clear warning message and resets session so the customer can retry.
+    """
+
     def Initialize(self, session: ConversationSession) -> WorkflowResult:
-        from core.SequenceFactory import SequenceFactory
-        role = session.WorkflowData.get("role", "customer")
-        user_name = session.WorkflowData.get("name") or ((c := api_client.get_customer_by_phone(session.PhoneNumber)) and (c.get("CustomerName")))
+        product_info = session.WorkflowData.get("product_info") or {}
+        product_name = product_info.get("name") or session.WorkflowData.get("product_name")
 
-        if role == "admin":
-            greeting = session.translate("greeting_admin")
-        elif role != "customer" and user_name:
-            greeting = session.translate("greeting_staff", staff_name=user_name, role=role)
-        elif user_name:
-            greeting = session.translate("greeting_customer", user_name=user_name)
-        else:
-            greeting = session.translate("greeting_image_caption")
-            
-        business_phone = session.state.BusinessPhoneNumber
-        welcome_message_override = SequenceFactory.get_setting(business_phone, "welcome_message_override")
-        if welcome_message_override and not user_name:
-            greeting = welcome_message_override
+        # 1. Valid Product Found -> Display Product Showcase & Continue Flow
+        if product_info and product_name:
+            category = product_info.get("category")
+            price = product_info.get("price")
+            compare_at = product_info.get("compare_at_price")
+            description = product_info.get("description")
+            images = product_info.get("images") or []
 
-        if role != "admin":
-            image_filename = SequenceFactory.get_setting(business_phone, "welcome_image_filename", "Welcome to HiCore Image English.jpeg")
-            if not image_filename:
-                return WorkflowResult.completed(
-                    reply=Reply(message_type="text", text=greeting)
-                )
-            industry = session.WorkflowData.get("industry", "healthcare")
-            image_url = f"{SERVER_BASE_URL}/industries/{industry}/images/{urllib.parse.quote(image_filename)}"
-            return WorkflowResult.completed(
-                reply=Reply(message_type="image", text=greeting, image_url=image_url)
+            price_str = f"₹{float(price):,.2f}" if price is not None else ""
+            compare_str = f" (~₹{float(compare_at):,.2f}~)" if compare_at else ""
+
+            greeting_text = (
+                f"👋 *Welcome to our Store!*\n\n"
+                f"🛍️ *{product_name}*\n"
+                f"{f'📂 Category: {category}\n' if category else ''}"
+                f"{f'📝 {description}\n' if description else ''}\n"
+                f"{f'💰 *Price:* {price_str}{compare_str}\n\n' if price_str else ''}"
+                f"Let's configure your order 👇"
             )
 
-        return WorkflowResult.completed(
-            reply=Reply(message_type="text", text=greeting)
+            if images and len(images) > 0:
+                first_image = images[0]
+                if first_image.startswith("http://") or first_image.startswith("https://"):
+                    image_url = first_image
+                elif first_image.startswith("/"):
+                    image_url = f"{SERVER_BASE_URL.rstrip('/')}{first_image}"
+                else:
+                    image_url = f"{SERVER_BASE_URL.rstrip('/')}/images/products/{urllib.parse.quote(first_image)}"
+
+                return WorkflowResult.completed(
+                    reply=Reply(message_type="image", text=greeting_text, image_url=image_url)
+                )
+
+            return WorkflowResult.completed(
+                reply=Reply(message_type="text", text=greeting_text)
+            )
+
+        # 2. Invalid / Wrong Product ID -> Send Warning & Finish Session
+        product_id = session.WorkflowData.get("product_id") or session.state.ProductKey or "Unknown"
+        warning_text = (
+            f"⚠️ *Product Not Found*\n\n"
+            f"We couldn't find any product matching ID:\n👉 *{product_id}*\n\n"
+            f"Please check the Product ID or link and try again."
+        )
+        return WorkflowResult.finished(
+            reply=Reply(message_type="text", text=warning_text)
         )
 
     def Process(self, session: ConversationSession, message: Message) -> WorkflowResult:
