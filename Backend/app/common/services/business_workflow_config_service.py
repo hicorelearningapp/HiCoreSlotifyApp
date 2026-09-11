@@ -325,8 +325,8 @@ class BusinessWorkflowConfigService:
             from app.common.models.business import Business
             from app.core.phone_utils import build_phone_filter
             biz = db.query(Business).filter(
-                build_phone_filter(Business.BusinessPhoneNumber, clean)
-                | build_phone_filter(Business.MobileNumber, clean)
+                build_phone_filter(Business.BusinessPhoneNumber, clean),
+                build_phone_filter(Business.MobileNumber, clean)
             ).first()
             if biz:
                 generated = cls.generate_and_save_config(biz, db)
