@@ -1,4 +1,4 @@
-from core.SequenceFactory import Sequence, BaseSequenceManager
+from core.SequenceFactory import Sequence, BaseSequenceManager, SequenceFactory
 from core.workflow_factory.workflow_factory_base import WorkflowFactory
 from core.api_client import BackendAPIClient
 from core.models import ConversationSession
@@ -6,8 +6,7 @@ from core.models import ConversationSession
 
 class HealthcareSequenceManager(BaseSequenceManager):
     @classmethod
-    def GetSequence(cls, sessionData : ConversationSession) -> Sequence:
-
+    def GetSequence(cls, sessionData: ConversationSession) -> Sequence:
         config = BackendAPIClient().get_industry_config_by_phone(str(sessionData.state.BusinessPhoneNumber))
 
         sequences_dict = config.get("sequences", {})
@@ -25,5 +24,9 @@ class HealthcareSequenceManager(BaseSequenceManager):
                 workflows.append(wf_class)
 
         return Sequence(sessionData.sequence_name, workflows)
+
+
+# Self-register with SequenceFactory
+SequenceFactory.register("HealthcareDoctorAppointment", HealthcareSequenceManager)
 
 

@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from config import ADMIN_PHONE_NUMBER
-from core.SequenceManager import SequenceManager
+from core.api_client import BackendAPIClient
 
 
 @dataclass
@@ -24,9 +24,9 @@ class BaseIdentifyService:
         raise NotImplementedError("Subclasses must implement identify_customer")
 
     def identify_user(self, phone_number: str, business_phone_number: str | None = None) -> IdentityResult:
-        import json
-        config_path = SequenceManager.get_config(business_phone_number)
-        config = json.load(open(config_path, "r", encoding="utf-8")) if config_path else {}
+        config = BackendAPIClient().get_industry_config_by_phone(str(business_phone_number)) if business_phone_number else {}
+        if not config:
+            config = {}
         mappings = config.get("user_type_mappings", {})
         industry = config.get("industry", "healthcare")
         

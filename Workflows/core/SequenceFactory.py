@@ -44,23 +44,46 @@ class BaseSequenceManager:
     def GetSequence(cls, sessionData : ConversationSession) -> Sequence:
         raise NotImplementedError()
 
-from industries.ecommerce.EcommerceSequenceManager import EcommerceSequenceManager
-from industries.healthcare.HealthcareSequenceManager import HealthcareSequenceManager
-
-
-
 class SequenceFactory:
-    factories = {
-        "Ecommerce": EcommerceSequenceManager,
-        "DoctorAppointment": HealthcareSequenceManager,
-    }
-    @classmethod
-    def GetSequenceManager(cls, industry: str):
+    """
+    Factory Pattern implementation for Sequence Managers.
+    Maintains a dynamic registry of industry sequence managers and retrieves them.
+    """
+    _REGISTRY: dict[str, type[BaseSequenceManager]] = {}
 
-        factory = cls.factories.get(industry)
-        if not factory:
-            raise ValueError(f"No sequence factory registered for industry '{industry}'.")
-        return factory
+    @classmethod
+    def register(cls, industry: str, manager_cls: type[BaseSequenceManager]):
+        """Registers a sequence manager dynamically."""
+        cls._REGISTRY[industry] = manager_cls
+
+    @classmethod
+    def _ensure_registered(cls, industry: str):
+        """Auto-registers standard industry sequence managers if not yet loaded."""
+        if industry in cls._REGISTRY:
+            return
+
+        industry_modules = {
+            "Ecommerce": ("industries.ecommerce.EcommerceSequenceManager", "EcommerceSequenceManager"),
+            "HealthcareDoctorAppointment": ("industries.healthcare.HealthcareSequenceManager", "HealthcareSequenceManager"),            
+        }
+
+        if industry in industry_modules:
+            mod_name, cls_name = industry_modules[industry]
+            mod = __import__(mod_name, fromlist=[cls_name])
+            manager_cls = getattr(mod, cls_name)
+            cls.register(industry, manager_cls)
+
+    @classmethod
+    def GetSequenceManager(cls, industry: str) -> type[BaseSequenceManager]:
+        """Factory method to resolve the sequence manager for the given industry."""
+        cls._ensure_registered(industry)
+        manager = cls._REGISTRY.get(industry)
+        if not manager:
+            raise ValueError(
+                f"No sequence factory registered for industry '{industry}'. "
+                f"Registered industries: {list(cls._REGISTRY.keys())}"
+            )
+        return manager
 
     """
     Factory that delegates sequence creation to industry-specific factories.
