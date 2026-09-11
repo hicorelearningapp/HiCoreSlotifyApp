@@ -7,11 +7,10 @@ import core.models as models
 import core.schemas as schemas
 from core.models.workflow_models import ConversationSession as DomainConversationSession, Message, ConversationSession
 from core.models.workflow_models import SessionState
+from core.api_client import BackendAPIClient
 from core.database import db_session
 from core.services.whatsapp_service import whatsapp
 from core.services.message_logger import MessageLogger
-from core.SequenceManager import SequenceManager
-from core.services.IdentifyService import IdentifyServiceFactory
 
 from fastapi import APIRouter
 session_router = APIRouter(tags=['sessions'])
@@ -63,7 +62,6 @@ class SessionService:
         session = self.get_session(phone_number, business_phone_number)
 
         if not session or not session.StateData:
-            from core.SequenceFactory import SequenceFactory
             industry = SequenceFactory().getIndustry(business_phone_number)
 
             initial_state = {
@@ -171,12 +169,14 @@ class SessionService:
 
             business_phone = data.get("BusinessPhoneNumber", "")
 
-            from core.SequenceFactory import SequenceFactory
-            time_out_enabled = SequenceFactory.get_setting(business_phone, "time_out_enabled", True)
+            config = BackendAPIClient().get_industry_config_by_phone(business_phone)
+            settings = config.get("settings", {})
+
+            time_out_enabled = settings.get("time_out_enabled", True)
             if not time_out_enabled:
                 continue
 
-            session_timeout_minutes = SequenceFactory.get_setting(business_phone, "session_timeout_minutes", 10)
+            session_timeout_minutes = settings.get("session_timeout_minutes", 10)
             timeout_delta = timedelta(minutes=session_timeout_minutes)
 
             updated_at = cast(datetime, session.UpdatedAt)
