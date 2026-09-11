@@ -1,7 +1,5 @@
-from typing import List
-
 from core.SequenceFactory import Sequence, BaseSequenceManager
-from core.WorkflowFactory import WorkflowFactory
+from core.workflow_factory.workflow_factory_base import WorkflowFactoryProvider
 from core.api_client import BackendAPIClient
 from core.models import ConversationSession
 
@@ -21,8 +19,10 @@ class EcommerceSequenceManager(BaseSequenceManager):
 
         workflow_names = sequences_dict.get(sessionData.state.SequenceName, [])
         workflows = []
+
+
         for w_name in workflow_names:
-            wf_class = WorkflowFactory.get_workflow(industry + "." + w_name)
+            wf_class = WorkflowFactoryProvider.get_factory(industry).get_workflow(industry + "." + w_name)
             if wf_class:
                 workflows.append(wf_class)
 

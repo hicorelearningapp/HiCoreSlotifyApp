@@ -17,3 +17,26 @@ class WorkflowFactory:
             return cls.WORKFLOW_REGISTRY[name]
         print(f"[WARNING] Workflow '{name}' not found in registry.")
         return None
+
+from core.workflow_factory.ecommerce_workflowfactory import EcommerceWorkflowFactory
+from core.workflow_factory.healthcare_workflowfactory import HealthcareWorkflowFactory
+
+
+class WorkflowFactoryProvider:
+
+    FACTORIES = {
+        "Healthcare": HealthcareWorkflowFactory,
+        "Ecommerce": EcommerceWorkflowFactory,
+    }
+
+    @classmethod
+    def get_factory(cls, industry: str):
+
+        factory = cls.FACTORIES.get(industry)
+
+        if factory is None:
+            raise ValueError(
+                f"Unsupported industry: {industry}"
+            )
+
+        return factory

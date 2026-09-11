@@ -3,7 +3,6 @@ import json
 import logging
 from datetime import datetime, timedelta
 from datetime import timezone
-from core.SequenceFactory import SequenceFactory as sequenceFactory, SequenceFactory
 import core.models as models
 import core.schemas as schemas
 from core.models.workflow_models import ConversationSession as DomainConversationSession, Message, ConversationSession
@@ -64,6 +63,7 @@ class SessionService:
         session = self.get_session(phone_number, business_phone_number)
 
         if not session or not session.StateData:
+            from core.SequenceFactory import SequenceFactory
             industry = SequenceFactory().getIndustry(business_phone_number)
 
             initial_state = {

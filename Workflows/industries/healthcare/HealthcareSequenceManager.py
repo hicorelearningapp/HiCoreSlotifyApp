@@ -1,5 +1,5 @@
 from core.SequenceFactory import Sequence, BaseSequenceManager
-from core.WorkflowFactory import WorkflowFactory
+from core.workflow_factory.workflow_factory_base import WorkflowFactory
 from core.api_client import BackendAPIClient
 from core.models import ConversationSession
 
@@ -7,7 +7,6 @@ from core.models import ConversationSession
 class HealthcareSequenceManager(BaseSequenceManager):
     @classmethod
     def GetSequence(cls, sessionData : ConversationSession) -> Sequence:
-        import json
 
         config = BackendAPIClient().get_industry_config_by_phone(str(sessionData.state.BusinessPhoneNumber))
 

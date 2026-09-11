@@ -3,8 +3,7 @@ from typing import List, Type
 from core.api_client import BackendAPIClient
 # from core.SequenceManager import SequenceManager
 from core.models import ConversationSession
-from industries.ecommerce.EcommerceSequenceManager import EcommerceSequenceManager
-from industries.healthcare.HealthcareSequenceManager import HealthcareSequenceManager
+
 
 class Sequence:
     def __init__(self, name: str, workflows: List[Type]):
@@ -41,28 +40,24 @@ class BaseSequenceManager:
     # def get_setting(cls, business_phone: str | None = None, setting_key: str = "", default_value=None):
     #     raise NotImplementedError()
     #
-
-    def GetSequence(self, sessionData : ConversationSession) -> Sequence:
+    @classmethod
+    def GetSequence(cls, sessionData : ConversationSession) -> Sequence:
         raise NotImplementedError()
 
-    # @classmethod
-    # def GetSequenceName(cls, productkey: str | None = None) -> str:
-    #     raise NotImplementedError()
-    # #
-    # @classmethod
-    # def Get(cls, name: str, business_phone: str | None = None) -> Sequence:
-    #     raise NotImplementedError()
+from industries.ecommerce.EcommerceSequenceManager import EcommerceSequenceManager
+from industries.healthcare.HealthcareSequenceManager import HealthcareSequenceManager
+
 
 
 class SequenceFactory:
-
+    factories = {
+        "Ecommerce": EcommerceSequenceManager,
+        "DoctorAppointment": HealthcareSequenceManager,
+    }
     @classmethod
     def GetSequenceManager(cls, industry: str):
-        factories = {
-            "Ecommerce": EcommerceSequenceManager,
-            "DoctorAppointment": HealthcareSequenceManager,
-        }
-        factory = factories.get(industry)
+
+        factory = cls.factories.get(industry)
         if not factory:
             raise ValueError(f"No sequence factory registered for industry '{industry}'.")
         return factory
@@ -84,21 +79,3 @@ class SequenceFactory:
             raise ValueError(f"No industry found for business phone '{business_phone}'.")
 
         return industry
-
-    # @classmethod
-    # def get_setting(cls, business_phone: str | None = None, setting_key: str = "", default_value=None):
-    #     import json
-    #     config_path = SequenceManager.get_config(business_phone)
-    #     if config_path:
-    #         config = json.load(open(config_path, "r", encoding="utf-8"))
-    #         settings = config.get("settings", {})
-    #         return settings.get(setting_key, default_value)
-    #     return default_value
-    # #
-    # @classmethod
-    # def GetSequenceName(cls,  business_phone: str | None = None) -> str:
-    #     return cls._get_factory(business_phone).GetSequenceName(business_phone)
-    #
-    # @classmethod
-    # def Get(cls, name: str, business_phone: str | None = None) -> Sequence:
-    #     return cls._get_factory(business_phone).Get(name, business_phone)
