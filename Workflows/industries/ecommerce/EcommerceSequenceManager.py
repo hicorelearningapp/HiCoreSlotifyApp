@@ -6,18 +6,13 @@ from core.models import ConversationSession
 
 class EcommerceSequenceManager(BaseSequenceManager):
     @classmethod
-<<<<<<< Updated upstream
-    def GetSequence(cls, sessionData: ConversationSession) -> Sequence:
-        config = BackendAPIClient().get_industry_config_by_phone(str(sessionData.state.ProductKey))
-=======
     def GetSequence(self, sessionData : ConversationSession) -> Sequence:
         config = BackendAPIClient().get_industry_config_by_phone(str(sessionData.state.BusinessPhoneNumber))
->>>>>>> Stashed changes
         industry = config.get("industry")
         sequences_dict = config.get("sequences", {})
 
         if sessionData.state.SequenceName == "":
-            sessionData.state.SequenceName = "CustomerMainWorkSequence"
+            sessionData.state.SequenceName = "MainWorkSequence"
 
         if sessionData.state.SequenceName not in sequences_dict:
             raise ValueError(f"Sequence '{sessionData.state.SequenceName}' not found in configuration.")
@@ -33,5 +28,4 @@ class EcommerceSequenceManager(BaseSequenceManager):
         return Sequence(sessionData.state.SequenceName, workflows)
 
 
-# Self-register with SequenceFactory
-SequenceFactory.register("Ecommerce", EcommerceSequenceManager)
+# Self-register with SequenceFactory removed

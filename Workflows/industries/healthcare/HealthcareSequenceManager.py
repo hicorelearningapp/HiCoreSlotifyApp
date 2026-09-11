@@ -26,7 +26,4 @@ class HealthcareSequenceManager(BaseSequenceManager):
         return Sequence(sessionData.sequence_name, workflows)
 
 
-# Self-register with SequenceFactory
-SequenceFactory.register("HealthcareDoctorAppointment", HealthcareSequenceManager)
-
-
+# Self-register with SequenceFactory removed
