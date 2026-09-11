@@ -45,17 +45,20 @@ class BaseSequenceManager:
         raise NotImplementedError()
 
 class SequenceFactory:
-
     @classmethod
     def GetSequenceManager(cls, industry: str):
-        if industry == "ecommerce" or industry == "Ecommerce": #will chnage after update
-            from industries.ecommerce.EcommerceSequenceManager import EcommerceSequenceManager
-            return EcommerceSequenceManager
-        elif industry == "healthcare" or industry == "Healthcare" or industry == "DoctorAppointment": #will chnage after update
-            from industries.healthcare.HealthcareSequenceManager import HealthcareSequenceManager
-            return HealthcareSequenceManager
-        else:
+        from industries.ecommerce.EcommerceSequenceManager import EcommerceSequenceManager
+        from industries.healthcare.HealthcareSequenceManager import HealthcareSequenceManager
+        
+        factories = {
+            "Ecommerce": EcommerceSequenceManager,
+            "DoctorAppointment": HealthcareSequenceManager,
+        }
+        
+        factory = factories.get(industry)
+        if not factory:
             raise ValueError(f"No sequence factory registered for industry '{industry}'.")
+        return factory
 
     """
     Factory that delegates sequence creation to industry-specific factories.
