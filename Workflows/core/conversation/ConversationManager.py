@@ -1,7 +1,6 @@
 from pyasn1_modules.rfc2985 import sequenceNumber
 
 from core.SequenceFactory import SequenceFactory, BaseSequenceManager
-from core.SequenceManager import SequenceManager
 from core.models.workflow_models import Message, WorkflowStatus, WorkflowResult, Reply
 from core.services.session_service import SessionService
 from core.services.channel_messenger import channel_messenger as ChannelMessenger

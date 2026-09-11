@@ -25,7 +25,7 @@ from core.workflow_factory.healthcare_workflowfactory import HealthcareWorkflowF
 class WorkflowFactoryProvider:
 
     FACTORIES = {
-        "Healthcare": HealthcareWorkflowFactory,
+        "HealthcareDoctorAppointment": HealthcareWorkflowFactory,
         "Ecommerce": EcommerceWorkflowFactory,
     }
 

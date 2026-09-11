@@ -9,8 +9,6 @@ from core.models.workflow_models import ConversationSession as DomainConversatio
 from core.models.workflow_models import SessionState
 from core.database import db_session
 from core.services.whatsapp_service import whatsapp
-from core.services.message_logger import MessageLogger
-from core.SequenceManager import SequenceManager
 from core.services.IdentifyService import IdentifyServiceFactory
 
 from fastapi import APIRouter
