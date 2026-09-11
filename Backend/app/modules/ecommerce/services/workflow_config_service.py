@@ -63,7 +63,11 @@ class WorkflowConfigService:
         if lower in ["materials", "material"]:
             return "Material"
         clean = re.sub(r"[^a-zA-Z0-9]", "", k)
-        return clean.capitalize() if clean else k
+        if clean:
+            if clean.islower():
+                return clean.capitalize()
+            return clean
+        return k
 
     @classmethod
     def extract_product_parameters(cls, product: Any) -> Dict[str, Any]:
@@ -84,7 +88,7 @@ class WorkflowConfigService:
                 if isinstance(v, list) and v:
                     params[norm_k] = [str(x).strip() for x in v if str(x).strip()]
                 elif isinstance(v, str) and v.strip():
-                    params[norm_k] = [v.strip()]
+                    params[norm_k] = [x.strip() for x in v.split(",") if x.strip()] if "," in v else [v.strip()]
         elif isinstance(raw_options, list):
             for opt in raw_options:
                 if isinstance(opt, dict):
@@ -95,11 +99,12 @@ class WorkflowConfigService:
                         if isinstance(v, list) and v:
                             params[norm_k] = [str(x).strip() for x in v if str(x).strip()]
                         elif isinstance(v, str) and v.strip():
-                            params[norm_k] = [v.strip()]
+                            params[norm_k] = [x.strip() for x in v.split(",") if x.strip()] if "," in v else [v.strip()]
 
         # 2. Check direct top-level ProductData keys
+        non_param_keys = ["options", "Options", "parameters", "Parameters", "variants", "Variants", "tags", "images", "photos", "specifications"]
         for key, val in p_data.items():
-            if key in ["options", "Options", "parameters", "Parameters", "variants", "Variants"]:
+            if key in non_param_keys or str(key).lower() in [x.lower() for x in non_param_keys]:
                 continue
             norm_k = cls._normalize_param_key(str(key))
             if norm_k not in params:
@@ -111,7 +116,34 @@ class WorkflowConfigService:
                     else:
                         params[norm_k] = [val.strip()]
 
+        # 3. Check variants if options/parameters not yet populated
+        raw_variants = p_data.get("variants") or p_data.get("Variants")
+        if isinstance(raw_variants, list):
+            for v in raw_variants:
+                if not isinstance(v, dict):
+                    continue
+                var_opts = v.get("options") or v.get("Options")
+                if isinstance(var_opts, dict):
+                    for vk, vv in var_opts.items():
+                        norm_k = cls._normalize_param_key(str(vk))
+                        if vv is not None and str(vv).strip():
+                            val_str = str(vv).strip()
+                            if norm_k not in params:
+                                params[norm_k] = []
+                            if val_str not in params[norm_k]:
+                                params[norm_k].append(val_str)
+
         return params
+
+    @classmethod
+    def _format_option_workflow(cls, opt_name: str, opt_vals: Any) -> str:
+        if isinstance(opt_vals, list):
+            vals_str = ",".join(str(v).strip() for v in opt_vals if str(v).strip() != "")
+        elif isinstance(opt_vals, str):
+            vals_str = opt_vals.strip()
+        else:
+            vals_str = str(opt_vals).strip() if opt_vals is not None else ""
+        return f"GetParam;{opt_name};{vals_str}"
 
     @classmethod
     def build_greeting_flow(cls) -> List[str]:
@@ -125,12 +157,12 @@ class WorkflowConfigService:
 
         for p_name in param_order:
             if p_name in product_params:
-                flow.append(f"{p_name}WorkFlow")
+                flow.append(cls._format_option_workflow(p_name, product_params[p_name]))
                 added_params.add(p_name)
 
         for p_name in sorted(product_params.keys()):
             if p_name not in added_params:
-                flow.append(f"{p_name}WorkFlow")
+                flow.append(cls._format_option_workflow(p_name, product_params[p_name]))
                 added_params.add(p_name)
 
         if is_booking:
