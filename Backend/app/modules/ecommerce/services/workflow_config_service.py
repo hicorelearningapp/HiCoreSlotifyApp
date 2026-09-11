@@ -254,18 +254,17 @@ class WorkflowConfigService:
                 confirm_flow
             )
 
+            # 3. Build customer-facing product info (excluding internal database/inventory fields like id, sku, reel_link, active)
             product_info_dict = {
-                "id": product_id,
                 "name": product.ProductName,
                 "category": product.Category,
                 "price": float(product.Price or 0.0),
                 "compare_at_price": float(product.CompareAtPrice) if product.CompareAtPrice is not None else None,
-                "sku": product.Sku,
                 "description": product.Description,
-                "reel_link": product.ReelLink,
-                "images": list(product.Images or []),
-                "active": bool(product.Active)
+                "images": list(product.Images or [])
             }
+            # Omit None values for cleaner customer display
+            product_info_dict = {k: v for k, v in product_info_dict.items() if v is not None}
 
             # 3. Build product workflow config containing industry, product_info and sequences
             product_config_data = {
