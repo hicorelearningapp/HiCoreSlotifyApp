@@ -74,9 +74,12 @@ from industries.healthcare.workflows.common.ExitWorkflow import (
 class HealthcareWorkflowFactory(WorkflowFactory):
 
     WORKFLOW_REGISTRY = {}
+    _INITIALIZED = False
 
     @classmethod
     def register_workflows(cls):
+        if cls._INITIALIZED:
+            return
 
         # Customer workflows
         cls.register(
@@ -201,3 +204,19 @@ class HealthcareWorkflowFactory(WorkflowFactory):
             "ExitWorkflow",
             ExitWorkflow
         )
+
+        cls._INITIALIZED = True
+
+    @classmethod
+    def get_workflow(cls, name: str):
+        cls.register_workflows()
+        
+        clean_name = name
+        if clean_name.startswith("DoctorAppointment."):
+            clean_name = clean_name[len("DoctorAppointment."):]
+            
+        if clean_name in cls.WORKFLOW_REGISTRY:
+            return cls.WORKFLOW_REGISTRY[clean_name]
+            
+        print(f"[WARNING] Workflow '{name}' not found in registry.")
+        return None

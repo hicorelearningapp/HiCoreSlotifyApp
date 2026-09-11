@@ -1,5 +1,5 @@
 from core.SequenceFactory import Sequence, BaseSequenceManager, SequenceFactory
-from core.workflow_factory.workflow_factory_base import WorkflowFactory
+from core.workflow_factory.workflow_factory_base import WorkflowFactoryProvider
 from core.api_client import BackendAPIClient
 from core.models import ConversationSession
 
@@ -11,7 +11,7 @@ class HealthcareSequenceManager(BaseSequenceManager):
 
         sequences_dict = config.get("sequences", {})
         if sessionData.state.SequenceName == "":
-            sessionData.state.SequenceName = "PatientMainWorkSequence"
+            sessionData.state.SequenceName = "MainWorkSequence"
 
         if sessionData.state.SequenceName not in sequences_dict:
             raise ValueError(f"Sequence '{sessionData.state.SequenceName}' not found in configuration.")
@@ -19,11 +19,8 @@ class HealthcareSequenceManager(BaseSequenceManager):
         workflow_names = sequences_dict[sessionData.state.SequenceName]
         workflows = []
         for w_name in workflow_names:
-            wf_class = WorkflowFactory.get_workflow(w_name)
+            wf_class = WorkflowFactoryProvider.get_factory("HealthcareDoctorAppointment").get_workflow(w_name)
             if wf_class:
                 workflows.append(wf_class)
 
         return Sequence(sessionData.sequence_name, workflows)
-
-
-# Self-register with SequenceFactory removed

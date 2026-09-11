@@ -11,7 +11,7 @@ from core.api_client import BackendAPIClient
 from core.database import db_session
 from core.services.whatsapp_service import whatsapp
 from core.services.message_logger import MessageLogger
-from core.services.IdentifyService import IdentifyServiceFactory
+
 
 from fastapi import APIRouter
 session_router = APIRouter(tags=['sessions'])
@@ -63,7 +63,7 @@ class SessionService:
         session = self.get_session(phone_number, business_phone_number)
 
         if not session or not session.StateData:
-            from core.SequenceFactory import SequenceFactory
+            
             industry = SequenceFactory().getIndustry(business_phone_number)
 
             initial_state = {

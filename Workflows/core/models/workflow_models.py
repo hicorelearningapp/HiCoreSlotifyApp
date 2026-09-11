@@ -62,8 +62,17 @@ class ConversationSession:
     def translate(self, key: str, default: str | None = None, **kwargs) -> str:
         import os, json
         industry = self.state.IndustryName or self.WorkflowData.get("industry", "healthcare") if self.state else "healthcare"
+        
+        # Map DB industry names to actual folder names
+        if industry == "DoctorAppointment":
+            folder_name = "healthcare"
+        elif industry == "Ecommerce":
+            folder_name = "ecommerce"
+        else:
+            folder_name = industry.lower()
+            
         base_dir = os.path.dirname(os.path.abspath(__file__))
-        locale_path = os.path.abspath(os.path.join(base_dir, "..", "..", "industries", industry, "locales", "en.json"))
+        locale_path = os.path.abspath(os.path.join(base_dir, "..", "..", "industries", folder_name, "locales", "en.json"))
         template = default or key
         if os.path.exists(locale_path):
             try:
