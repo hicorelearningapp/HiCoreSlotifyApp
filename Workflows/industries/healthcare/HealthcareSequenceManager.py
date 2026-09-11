@@ -1,4 +1,3 @@
-from core.SequenceManager import SequenceManager
 from core.SequenceFactory import Sequence, BaseSequenceManager
 from core.WorkflowFactory import WorkflowFactory
 from core.api_client import BackendAPIClient

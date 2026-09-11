@@ -3,7 +3,8 @@ from typing import List, Type
 from core.api_client import BackendAPIClient
 # from core.SequenceManager import SequenceManager
 from core.models import ConversationSession
-
+from industries.ecommerce.EcommerceSequenceManager import EcommerceSequenceManager
+from industries.healthcare.HealthcareSequenceManager import HealthcareSequenceManager
 
 class Sequence:
     def __init__(self, name: str, workflows: List[Type]):
@@ -57,22 +58,31 @@ class SequenceFactory:
 
     @classmethod
     def GetSequenceManager(cls, industry: str):
-        if industry == "ecommerce":
-            from industries.ecommerce.EcommerceSequenceManager import EcommerceSequenceManager
-            return EcommerceSequenceManager
-        elif industry == "healthcare":
-            from industries.healthcare.HealthcareSequenceManager import HealthcareSequenceManager
-            return HealthcareSequenceManager
-        else:
+        factories = {
+            "Ecommerce": EcommerceSequenceManager,
+            "DoctorAppointment": HealthcareSequenceManager,
+        }
+        factory = factories.get(industry)
+        if not factory:
             raise ValueError(f"No sequence factory registered for industry '{industry}'.")
+        return factory
 
     """
     Factory that delegates sequence creation to industry-specific factories.
     """
     @classmethod
-    def getIndustry (cls, business_phone: str | None = None) ->  str :
+    def getIndustry(cls, business_phone: str | None = None) -> str:
+        if not business_phone:
+            raise ValueError("Business phone number is required to retrieve industry.")
 
-        industry = BackendAPIClient().get_industry_by_phone(str(business_phone))
+        try:
+            industry = BackendAPIClient().get_industry_by_phone(str(business_phone))
+        except Exception as e:
+            raise RuntimeError(f"Failed to fetch industry for business phone '{business_phone}': {e}") from e
+
+        if not industry:
+            raise ValueError(f"No industry found for business phone '{business_phone}'.")
+
         return industry
 
     # @classmethod
