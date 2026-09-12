@@ -2,9 +2,7 @@ import os
 import requests
 from typing import Dict, Any, Optional
 
-BACKEND_API_URL = os.getenv("BACKEND_API_URL", "http://151.185.41.194:8003")
-
-# BACKEND_API_URL = "http://localhost:8000" 
+BACKEND_API_URL = os.getenv("BACKEND_API_URL")
 
 class BackendAPIClient:
     def __init__(self, base_url: str = BACKEND_API_URL):
