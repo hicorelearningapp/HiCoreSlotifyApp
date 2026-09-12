@@ -15,6 +15,19 @@ class GreetingMessageWorkflow(Workflow):
 
     def Initialize(self, session: ConversationSession) -> WorkflowResult:
         product_info = session.WorkflowData.get("product_info") or {}
+        
+        if not product_info:
+            product_id = session.WorkflowData.get("product_id") or session.state.ProductKey
+            if product_id:
+                try:
+                    product_data = api_client.get_product_config_by_phone(product_id)
+                    if product_data and "product_info" in product_data:
+                        product_info = product_data["product_info"]
+                        session.WorkflowData["product_info"] = product_info
+                        session.WorkflowData["product_id"] = product_id
+                except Exception as e:
+                    print(f"Error fetching product: {e}")
+
         product_name = product_info.get("name") or session.WorkflowData.get("product_name")
 
         # 1. Valid Product Found -> Display Product Showcase & Continue Flow
