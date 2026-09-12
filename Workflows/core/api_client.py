@@ -1,11 +1,10 @@
 import os
 import requests
 from typing import Dict, Any, Optional
-
-BACKEND_API_URL = os.getenv("BACKEND_API_URL")
+from config import SERVER_BASE_URL
 
 class BackendAPIClient:
-    def __init__(self, base_url: str = BACKEND_API_URL):
+    def __init__(self, base_url: str = SERVER_BASE_URL):
         self.base_url = base_url.rstrip("/")
         self.session = requests.Session()
         

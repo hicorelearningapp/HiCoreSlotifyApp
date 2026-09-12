@@ -1,8 +1,9 @@
 from core.workflows.BaseWorkflow import Workflow
 from core.models.workflow_models import ConversationSession, Message, WorkflowResult, Reply
-from config import SERVER_BASE_URL
+from config import PUBLIC_BASE_URL
 from core.api_client import api_client
 import urllib.parse
+
 
 class GreetingMessageWorkflow(Workflow):
     def Initialize(self, session: ConversationSession) -> WorkflowResult:
@@ -31,7 +32,7 @@ class GreetingMessageWorkflow(Workflow):
                     reply=Reply(message_type="text", text=greeting)
                 )
             industry = session.WorkflowData.get("industry", "healthcare")
-            image_url = f"{SERVER_BASE_URL}/industries/{industry}/images/{urllib.parse.quote(image_filename)}"
+            image_url = f"{PUBLIC_BASE_URL}/industries/{industry}/images/{urllib.parse.quote(image_filename)}"
             return WorkflowResult.completed(
                 reply=Reply(message_type="image", text=greeting, image_url=image_url)
             )
