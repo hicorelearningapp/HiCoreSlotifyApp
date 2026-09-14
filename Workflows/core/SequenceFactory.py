@@ -1,8 +1,8 @@
+from abc import ABC, abstractmethod
 from typing import List, Type
-
-from core.api_client import BackendAPIClient
-# from core.SequenceManager import SequenceManager
 from core.models import ConversationSession
+from industries.ecommerce.EcommerceSequenceManager import EcommerceSequenceManager
+from industries.healthcare.HealthcareSequenceManager import HealthcareSequenceManager
 
 
 class Sequence:
@@ -34,63 +34,24 @@ class Sequence:
     def __str__(self): return self.Name
 
 
-class BaseSequenceManager:
-    """Interface for industry-specific sequence managers."""
-    # @classmethod
-    # def get_setting(cls, business_phone: str | None = None, setting_key: str = "", default_value=None):
-    #     raise NotImplementedError()
-    #
-    @classmethod
+class BaseSequenceManager(ABC):
+   
+    @abstractmethod
     def GetSequence(cls, sessionData : ConversationSession) -> Sequence:
         raise NotImplementedError()
 
 class SequenceFactory:
-    @classmethod
-    def GetSequenceManager(cls, industry: str):
-        from industries.ecommerce.EcommerceSequenceManager import EcommerceSequenceManager
-        from industries.healthcare.HealthcareSequenceManager import HealthcareSequenceManager
-        
-        factories = {
+
+    SEQUENCE_FACTORY = {
             "Ecommerce": EcommerceSequenceManager,
             "DoctorAppointment": HealthcareSequenceManager,
-        }
-        
-        factory = factories.get(industry)
+            "HealthcareDoctorAppointment": HealthcareSequenceManager,
+    }
+
+    @classmethod
+    def GetSequenceManager(cls, industry: str) -> Type[BaseSequenceManager]:
+                
+        factory = cls.SEQUENCE_FACTORY.get(industry)
         if not factory:
             raise ValueError(f"No sequence factory registered for industry '{industry}'.")
         return factory
-
-    @classmethod
-    def GetBaseSequenceManager(cls, industry: str) -> type[BaseSequenceManager]:
-        """Alias for GetSequenceManager for backwards compatibility."""
-        return cls.GetSequenceManager(industry)
-
-    @classmethod
-    def get_setting(cls, business_phone: str | None = None, setting_key: str = "", default_value=None):
-        """Fetches a setting value from the industry configuration for a business phone."""
-        if not business_phone:
-            return default_value
-        try:
-            config = BackendAPIClient().get_industry_config_by_phone(str(business_phone)) or {}
-            return config.get(setting_key, default_value)
-        except Exception:
-            return default_value
-
-    """
-    Factory that delegates sequence creation to industry-specific factories.
-    """
-    @classmethod
-    def getIndustry(cls, business_phone: str | None = None) -> str:
-        if not business_phone:
-            raise ValueError("Business phone number is required to retrieve industry.")
-
-        try:
-            industry = BackendAPIClient().get_industry_by_phone(str(business_phone))
-        except Exception as e:
-            raise RuntimeError(f"Failed to fetch industry for business phone '{business_phone}': {e}") from e
-
-        if not industry:
-            raise ValueError(f"No industry found for business phone '{business_phone}'.")
-
-        return industry
-

@@ -20,7 +20,7 @@ class SessionState(BaseModel):
     BusinessPhoneNumber: str = ""
     BusinessPhoneNumberId: str = ""
     IndustryName : str = ""
-    ProductKey : str = ""
+    ProductId : str = ""
 
 class ConversationSession:
     def __init__(self, phone_number: str, state: SessionState):

@@ -1,3 +1,4 @@
+from Workflows.core.workflow_factory.workflow_factory_base import WorkflowFactory
 from core.SequenceFactory import Sequence, BaseSequenceManager, SequenceFactory
 from core.workflow_factory.workflow_factory_base import WorkflowFactoryProvider
 from core.api_client import BackendAPIClient
@@ -5,24 +6,34 @@ from core.models import ConversationSession
 
 
 class EcommerceSequenceManager(BaseSequenceManager):
-    @classmethod
-    def GetSequence(self, sessionData : ConversationSession) -> Sequence:
-        config = BackendAPIClient().get_industry_config_by_phone(str(sessionData.state.BusinessPhoneNumber))
-        industry = config.get("industry")
-        sequences_dict = config.get("sequences", {})
 
-        if sessionData.state.SequenceName == "":
+    @classmethod
+    def GetSequence(cls, sessionData: ConversationSession) -> Sequence:
+        config = BackendAPIClient().get_industry_config_by_product_id(
+            sessionData.state.ProductId
+        )
+
+        industry = config.get("industry")
+        sequences = config.get("sequences", {})
+
+        if not sessionData.state.SequenceName:
             sessionData.state.SequenceName = "MainWorkSequence"
 
-        if sessionData.state.SequenceName not in sequences_dict:
-            raise ValueError(f"Sequence '{sessionData.state.SequenceName}' not found in configuration.")
+        sequence_name = sessionData.state.SequenceName
 
-        workflow_names = sequences_dict.get(sessionData.state.SequenceName, [])
+        if sequence_name not in sequences:
+            raise ValueError(
+                f"Sequence '{sequence_name}' not found in configuration."
+            )
+
         workflows = []
 
-        for w_name in workflow_names:
-            wf_class = WorkflowFactoryProvider.get_factory(industry).get_workflow(industry + "." + w_name)
-            if wf_class:
-                workflows.append(wf_class)
+        for name in sequences[sequence_name]:
+            workflow = WorkflowFactory.get_workflow_factory(
+                industry
+            ).get_workflow(name)
 
-        return Sequence(sessionData.state.SequenceName, workflows)
+            if workflow:
+                workflows.append(workflow)
+
+        return Sequence(sequence_name, workflows)
