@@ -63,7 +63,7 @@ const AppContent = () => {
       {!shouldHideNavbar && <Navbar />}
 
       <Routes>
-        <Route path="/" element={<Home />} />
+        <Route path="/appointment" element={<Home />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/doctor" element={<DoctorHome />} />
@@ -73,7 +73,7 @@ const AppContent = () => {
 
         <Route path="/book-demo" element={<BookADemo />} />
 
-        <Route path="/ecommerce" element={<EcommerceHome />} />
+        <Route path="/" element={<EcommerceHome />} />
         <Route path="/ecommerce-register" element={<EcommerceRegister />} />
         <Route path="/ecommerce-login" element={<EcommerceLogin />} />
         <Route path="/ecommerce-dashboard" element={<Ecommercelayout />} />

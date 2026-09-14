@@ -5,25 +5,79 @@ import { FiBox, FiShoppingBag, FiMessageCircle, FiBarChart2, FiArrowLeft, FiX } 
 const EcommerceLogin = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
   
   // State for popups
   const [showTerms, setShowTerms] = useState(false);
   const [showPrivacy, setShowPrivacy] = useState(false);
-  const [showSuccess, setShowSuccess] = useState(false); // New state for login success
+  const [errorPopup, setErrorPopup] = useState({ show: false, message: '' });
   
   const navigate = useNavigate();
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
     
-    // Simulate login and token storage
-    if (username && password) {
-      localStorage.setItem('sellerToken', 'sample-seller-token-12345');
-      window.dispatchEvent(new Event('authChange'));
-      // Show success popup instead of navigating immediately
-      setShowSuccess(true);
-    } else {
-      alert('Please enter your username and password');
+    if (!username || !password) {
+      setErrorPopup({ show: true, message: 'Please enter your username and password.' });
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const apiBase = import.meta.env.VITE_API_BASE || "/api";
+
+      const response = await fetch(`${apiBase}/businesses/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+        body: JSON.stringify({
+          UserName: username,
+          Password: password,
+          IndustryType: "Ecommerce"
+        }),
+      });
+
+      const contentType = response.headers.get('content-type');
+      let data = {};
+
+      if (contentType && contentType.includes('application/json')) {
+        const text = await response.text();
+        data = text ? JSON.parse(text) : {};
+      }
+
+      if (response.ok) {
+        // Save Token
+        const token = data.access_token || data.token || 'mock-seller-token';
+        localStorage.setItem('sellerToken', token);
+        
+        // Save Business ID
+        if (data.business && data.business.Id) {
+          localStorage.setItem('sellerId', data.business.Id);
+        }
+        
+        // Save Complete Profile
+        localStorage.setItem('sellerProfile', JSON.stringify(data.business || data));
+        
+        // Dispatch Auth Event so the NavBar instantly updates without a reload
+        window.dispatchEvent(new Event('authChange'));
+        
+        // Navigate directly to dashboard on success
+        navigate('/ecommerce-dashboard');
+      } else {
+        // Show Error Popup
+        setErrorPopup({ 
+          show: true, 
+          message: data.message || data.detail || 'Login failed. Please check your credentials.' 
+        });
+      }
+    } catch (error) {
+      console.error('API Error:', error);
+      setErrorPopup({ show: true, message: 'An error occurred while connecting to the server. Please try again.' });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -33,8 +87,8 @@ const EcommerceLogin = () => {
       {/* Top Back Navigation */}
       <div className="w-full max-w-7xl mx-auto mb-4">
         <button 
-          onClick={() => navigate(-1)} 
-          className="flex items-center text-gray-600 hover:text-purple-700 font-semibold transition-colors cursor-pointer"
+          onClick={() => navigate('/')} 
+          className="flex items-center text-gray-600 hover:text-[#2A723D] font-semibold transition-colors cursor-pointer"
         >
           <FiArrowLeft className="w-5 h-5 mr-2" />
           Back
@@ -66,21 +120,21 @@ const EcommerceLogin = () => {
             </div>
             
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 py-4">
-              <div className="bg-purple-50 p-4 rounded-xl text-center">
+              <div className="bg-[#F2F7F4] p-4 rounded-xl text-center">
                 <p className="text-xs text-gray-500 mb-1">Total Orders</p>
-                <p className="text-lg font-bold text-purple-700">1,240</p>
+                <p className="text-lg font-bold text-[#2A723D]">1,240</p>
               </div>
-              <div className="bg-purple-50 p-4 rounded-xl text-center">
+              <div className="bg-[#F2F7F4] p-4 rounded-xl text-center">
                 <p className="text-xs text-gray-500 mb-1">Total Sales</p>
-                <p className="text-lg font-bold text-purple-700">₹2,45,680</p>
+                <p className="text-lg font-bold text-[#2A723D]">₹2,45,680</p>
               </div>
-              <div className="bg-purple-50 p-4 rounded-xl text-center">
+              <div className="bg-[#F2F7F4] p-4 rounded-xl text-center">
                 <p className="text-xs text-gray-500 mb-1">Customers</p>
-                <p className="text-lg font-bold text-purple-700">3,456</p>
+                <p className="text-lg font-bold text-[#2A723D]">3,456</p>
               </div>
-              <div className="bg-purple-50 p-4 rounded-xl text-center">
+              <div className="bg-[#F2F7F4] p-4 rounded-xl text-center">
                 <p className="text-xs text-gray-500 mb-1">Total Products</p>
-                <p className="text-lg font-bold text-purple-700">856</p>
+                <p className="text-lg font-bold text-[#2A723D]">856</p>
               </div>
             </div>
           </div>
@@ -88,28 +142,28 @@ const EcommerceLogin = () => {
           {/* Feature Grid Icons */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 w-full">
             <div className="flex flex-col items-center lg:items-start">
-              <div className="w-12 h-12 bg-white border border-gray-200 rounded-xl flex items-center justify-center text-purple-700 mb-2 shadow-sm">
+              <div className="w-12 h-12 bg-white border border-gray-200 rounded-xl flex items-center justify-center text-[#2A723D] mb-2 shadow-sm">
                 <FiBox size={22} />
               </div>
               <span className="text-xs font-semibold text-gray-700">Inventory Management</span>
             </div>
 
             <div className="flex flex-col items-center lg:items-start">
-              <div className="w-12 h-12 bg-white border border-gray-200 rounded-xl flex items-center justify-center text-purple-700 mb-2 shadow-sm">
+              <div className="w-12 h-12 bg-white border border-gray-200 rounded-xl flex items-center justify-center text-[#2A723D] mb-2 shadow-sm">
                 <FiShoppingBag size={22} />
               </div>
               <span className="text-xs font-semibold text-gray-700">Order Processing</span>
             </div>
 
             <div className="flex flex-col items-center lg:items-start">
-              <div className="w-12 h-12 bg-white border border-gray-200 rounded-xl flex items-center justify-center text-purple-700 mb-2 shadow-sm">
+              <div className="w-12 h-12 bg-white border border-gray-200 rounded-xl flex items-center justify-center text-[#2A723D] mb-2 shadow-sm">
                 <FiMessageCircle size={22} />
               </div>
               <span className="text-xs font-semibold text-gray-700">WhatsApp Assistant</span>
             </div>
 
             <div className="flex flex-col items-center lg:items-start">
-              <div className="w-12 h-12 bg-white border border-gray-200 rounded-xl flex items-center justify-center text-purple-700 mb-2 shadow-sm">
+              <div className="w-12 h-12 bg-white border border-gray-200 rounded-xl flex items-center justify-center text-[#2A723D] mb-2 shadow-sm">
                 <FiBarChart2 size={22} />
               </div>
               <span className="text-xs font-semibold text-gray-700">Growth Analytics</span>
@@ -137,7 +191,7 @@ const EcommerceLogin = () => {
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   placeholder="Enter Username" 
-                  className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-700 focus:border-transparent transition-all text-gray-900 placeholder-gray-400 text-sm"
+                  className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#2A723D] focus:border-transparent transition-all text-gray-900 placeholder-gray-400 text-sm"
                   required
                 />
               </div>
@@ -149,16 +203,17 @@ const EcommerceLogin = () => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Enter Password" 
-                  className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-700 focus:border-transparent transition-all text-gray-900 placeholder-gray-400 text-sm"
+                  className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#2A723D] focus:border-transparent transition-all text-gray-900 placeholder-gray-400 text-sm"
                   required
                 />
               </div>
 
               <button 
                 type="submit"
-                className="w-full py-3.5 bg-purple-700 hover:bg-purple-800 text-white font-bold rounded-xl shadow-md transition-all duration-200 cursor-pointer text-sm"
+                disabled={loading}
+                className="w-full py-3.5 bg-[#2A723D] hover:bg-[#235d32] text-white font-bold rounded-xl shadow-md transition-all duration-200 cursor-pointer text-sm disabled:opacity-70"
               >
-                Login
+                {loading ? 'Logging in...' : 'Login'}
               </button>
             </form>
 
@@ -170,7 +225,7 @@ const EcommerceLogin = () => {
             <p className="text-xs text-gray-500 mb-4">Create your store account and start accepting orders online.</p>
             <Link 
               to="/ecommerce-register" 
-              className="block w-full py-3 bg-white border border-purple-700 hover:bg-purple-50 text-purple-700 font-semibold rounded-xl transition-all duration-200 text-sm"
+              className="block w-full py-3 bg-white border border-[#2A723D] hover:bg-[#F2F7F4] text-[#2A723D] font-semibold rounded-xl transition-all duration-200 text-sm"
             >
               Create Store Account
             </Link>
@@ -180,14 +235,14 @@ const EcommerceLogin = () => {
           <p className="text-center text-xs text-gray-400">
             By continuing, you agree to HiCoreSlotify's{' '}
             <span 
-              className="underline cursor-pointer hover:text-purple-700 transition-colors"
+              className="underline cursor-pointer hover:text-[#2A723D] transition-colors"
               onClick={() => setShowTerms(true)}
             >
               Terms of Service
             </span>{' '}
             and{' '}
             <span 
-              className="underline cursor-pointer hover:text-purple-700 transition-colors"
+              className="underline cursor-pointer hover:text-[#2A723D] transition-colors"
               onClick={() => setShowPrivacy(true)}
             >
               Privacy Policy
@@ -198,33 +253,23 @@ const EcommerceLogin = () => {
 
       </div>
 
-      {/* ================= SUCCESS POPUP MODAL ================= */}
-      {showSuccess && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-grey bg-opacity-50 backdrop-blur-sm px-4">
+      {/* ================= ERROR POPUP MODAL ================= */}
+      {errorPopup.show && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm px-4">
           <div className="bg-white rounded-2xl p-8 md:p-10 max-w-sm w-full text-center shadow-2xl transform transition-all animate-fade-in-up">
-            
-            <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-green-100 mb-6">
-              <svg className="h-8 w-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" />
+            <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-red-100 mb-6">
+              <svg className="h-8 w-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M6 18L18 6M6 6l12 12" />
               </svg>
             </div>
-            
-            <h3 className="text-2xl font-bold text-gray-900 mb-2 tracking-tight">
-              Login Successful!
-            </h3>
-            
-            <p className="text-gray-500 mb-8 text-sm md:text-base">
-              Welcome back to your store dashboard.
-            </p>
-            
-            <button 
-              onClick={() => {
-                setShowSuccess(false);
-                navigate('/ecommerce-dashboard'); // Updated routing here
-              }}
-              className="w-full bg-purple-700 text-white font-bold py-3.5 px-4 rounded-xl hover:bg-purple-800 transition-colors shadow-sm hover:shadow-md"
+            <h3 className="text-2xl font-bold text-gray-900 mb-2 tracking-tight">Notice</h3>
+            <p className="text-gray-500 mb-8 text-sm md:text-base">{errorPopup.message}</p>
+            <button
+              type="button"
+              onClick={() => setErrorPopup({ show: false, message: "" })}
+              className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3.5 px-4 rounded-xl transition-colors shadow-sm hover:shadow-md"
             >
-              Continue to Dashboard
+              Close
             </button>
           </div>
         </div>
@@ -232,7 +277,7 @@ const EcommerceLogin = () => {
 
       {/* ================= TERMS OF SERVICE MODAL ================= */}
       {showTerms && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-grey bg-opacity-50 backdrop-blur-sm px-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm px-4">
           <div className="bg-white rounded-2xl p-6 md:p-8 max-w-lg w-full shadow-2xl relative max-h-[90vh] overflow-y-auto">
             <button 
               onClick={() => setShowTerms(false)}
@@ -252,7 +297,7 @@ const EcommerceLogin = () => {
               <div className="pt-4 border-t border-gray-100">
                 <button 
                   onClick={() => setShowTerms(false)}
-                  className="w-full py-3 bg-purple-700 hover:bg-purple-800 text-white font-semibold rounded-xl transition-colors"
+                  className="w-full py-3 bg-[#2A723D] hover:bg-[#235d32] text-white font-semibold rounded-xl transition-colors"
                 >
                   I Understand
                 </button>
@@ -264,7 +309,7 @@ const EcommerceLogin = () => {
 
       {/* ================= PRIVACY POLICY MODAL ================= */}
       {showPrivacy && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-grey bg-opacity-50 backdrop-blur-sm px-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm px-4">
           <div className="bg-white rounded-2xl p-6 md:p-8 max-w-lg w-full shadow-2xl relative max-h-[90vh] overflow-y-auto">
             <button 
               onClick={() => setShowPrivacy(false)}
@@ -284,7 +329,7 @@ const EcommerceLogin = () => {
               <div className="pt-4 border-t border-gray-100">
                 <button 
                   onClick={() => setShowPrivacy(false)}
-                  className="w-full py-3 bg-purple-700 hover:bg-purple-800 text-white font-semibold rounded-xl transition-colors"
+                  className="w-full py-3 bg-[#2A723D] hover:bg-[#235d32] text-white font-semibold rounded-xl transition-colors"
                 >
                   I Understand
                 </button>

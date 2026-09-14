@@ -517,7 +517,7 @@ const Dashboard = () => {
           const data = await response.json();
 
           setDashboardData({
-            doctorName: `Dr. ${data.DoctorName || ''}`.toUpperCase(),
+            doctorName: ` ${data.DoctorName || ''}`.toUpperCase(),
             totalAppointmentsToday: String(data.TodayTotalAppointments ?? 0),
             waitingPatients: String(data.TodayPendingAppointments ?? 0),
             completedCount: String(data.TodayCompletedAppointments ?? 0),

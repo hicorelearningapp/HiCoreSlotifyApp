@@ -64,57 +64,41 @@ const SeamlessBooking = () => {
           </div>
         </div>
 
-        {/* 2-Column Split Content: 30% Left, 70% Right */}
-        <div className="w-full grid grid-cols-1 lg:grid-cols-[20%_80%] gap-8 lg:gap-[40px] items-stretch">
-          
-          {/* Left Side: Sequence of Icons with Pure CSS Dashed Line & Arrowhead */}
-          <div className="hidden lg:flex flex-col items-center justify-around w-full py-4">
-            {steps.map((step, index) => (
-              <React.Fragment key={index}>
-                <div className="flex justify-center items-center w-full my-2">
-                  <img
-                    src={step.icon}
-                    alt={`Step ${index + 1} Icon`}
-                    className="w-[170px] sm:w-[170px] h-[90px] sm:h-[150px]"
-                  />
-                </div>
-                {index < steps.length - 1 && (
-                  <div className="flex flex-col items-center justify-center my-1 relative h-[42px]">
-                    {/* Pure CSS Dashed Vertical Line */}
-                    <div className="w-[2px] h-[32px] border-r-2 border-dashed border-[#346739]"></div>
-                    {/* Pure CSS Down Arrowhead */}
-                    <div className="w-2.5 h-2.5 border-r-2 border-b-2 border-[#346739] transform rotate-45 -mt-[5px]"></div>
-                  </div>
-                )}
-              </React.Fragment>
-            ))}
-          </div>
+        {/* Responsive Grid Layout for Steps (One line on extra large screens) */}
+        <div className="w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-x-4 gap-y-10 lg:gap-y-12 items-stretch mt-4">
+          {steps.map((step, index) => (
+            <div key={index} className="flex flex-col w-full h-full">
+              
+              {/* Icon Container above the card */}
+              <div className="flex justify-center items-center h-[90px] sm:h-[110px] mb-4 sm:mb-6">
+                <img
+                  src={step.icon}
+                  alt={`Step ${index + 1} Icon`}
+                  className="max-h-full max-w-[130px] object-contain"
+                />
+              </div>
 
-          {/* Right Side: Step Cards List */}
-          <div className="flex flex-col gap-4 sm:gap-5 w-full justify-between">
-            {steps.map((step, index) => (
+              {/* Card Container (Original Design Maintained) */}
               <div
-                key={index}
-                className="w-full bg-white border border-[#F1DEC4] rounded-[20px] p-5 sm:p-6 relative flex flex-col justify-center items-start shadow-sm overflow-visible"
+                className="w-full h-full bg-white border border-[#F1DEC4] rounded-[20px] p-5 sm:p-6 relative flex flex-col justify-start items-start shadow-sm overflow-visible transition-all duration-300 hover:shadow-md hover:border-[#346739]/40 hover:-translate-y-1"
               >
                 {/* Step Pill / Badge */}
                 <div 
-                  className="w-[119px] h-[44px] flex items-center justify-center gap-[5px] pt-[4px] pr-[36px] pb-[4px] pl-[36px] rounded-r-[100px] border-l-0 text-[#BD4444] font-bold text-[13px] tracking-wide mb-3 -ml-5 sm:-ml-6 relative z-10 cursor-pointer bg-[#F1DEC440] shadow-[inset_0px_4px_4px_0px_rgba(0,0,0,0.25)] transition-all duration-300 hover:-translate-y-1 hover:scale-105 hover:z-20 hover:shadow-[inset_0px_4px_4px_0px_rgba(0,0,0,0.25),0px_6px_12px_0px_rgba(128,128,128,0.45)]"
+                  className="w-[119px] h-[44px] flex items-center justify-center gap-[5px] pt-[4px] pr-[36px] pb-[4px] pl-[36px] rounded-r-[100px] border-l-0 text-[#BD4444] font-bold text-[13px] tracking-wide mb-3 -ml-5 sm:-ml-6 relative z-10 cursor-pointer bg-[#F1DEC440] shadow-[inset_0px_4px_4px_0px_rgba(0,0,0,0.25)] transition-all duration-300 hover:-translate-y-1 hover:scale-105 hover:z-20 hover:shadow-[inset_0px_4px_4px_0px_rgba(0,0,0,0.25),0px_6px_12px_0px_rgba(128,128,128,0.45)] whitespace-nowrap"
                 >
                   {step.stepNumber}
                 </div>
 
                 {/* Step Content */}
-                <h3 className="text-[17px] sm:text-[18px] mt-1 font-semibold text-[#346739] mb-3">
+                <h3 className="text-[17px] sm:text-[18px] mt-1 font-semibold text-[#346739] mb-3 leading-tight">
                   {step.title}
                 </h3>
                 <p className="text-[13px] sm:text-[14px] text-[#555555] font-normal leading-relaxed">
                   {step.description}
                 </p>
               </div>
-            ))}
-          </div>
-
+            </div>
+          ))}
         </div>
 
       </div>

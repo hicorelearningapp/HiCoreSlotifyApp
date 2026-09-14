@@ -15,7 +15,7 @@ const DoctorHome = () => {
 
       <NavbarDoctor />
 
-      <section id="home">
+      <section id="dhome">
         <HeroSection />
       </section>
       <SeeHowDoctors />

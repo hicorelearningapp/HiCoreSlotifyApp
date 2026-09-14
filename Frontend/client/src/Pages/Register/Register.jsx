@@ -1,22 +1,63 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LuCalendar, LuTrash2 } from 'react-icons/lu';
+import { LuCalendar, LuTrash2, LuX } from 'react-icons/lu';
 
 const RequiredMark = () => (
-  <span
-    className="absolute right-3 bottom-[10px] z-10 text-[11px] font-semibold text-red-800 bg-white px-1 pointer-events-none whitespace-nowrap"
-  >
-    *required
+  <span className="absolute right-3 bottom-[10px] z-10 text-[11px] font-semibold text-red-800 bg-white px-1 pointer-events-none whitespace-nowrap">
+    *
   </span>
 );
+
+const InputField = ({ label, name, type = 'text', value, onChange, placeholder, required = true, maxLength, colSpan = false }) => (
+  <div className={`relative ${colSpan ? 'md:col-span-2' : ''}`}>
+    <label className="block text-[14px] font-semibold text-gray-700 mb-2">
+      {label} {required && <span className="text-red-500">*</span>}
+    </label>
+    <input
+      name={name}
+      value={value}
+      onChange={onChange}
+      type={type}
+      maxLength={maxLength}
+      placeholder={placeholder}
+      className="w-full h-[40px] md:h-[44px] rounded-lg border border-[#AEAEAE] px-3.5 md:px-4 text-sm focus:outline-none focus:border-[#2A723D] placeholder-gray-300 bg-white"
+    />
+  </div>
+);
+
+const SelectField = ({ label, name, value, onChange, options, placeholder = 'Select Option', required = true }) => (
+  <div className="relative">
+    <label className="block text-[14px] font-semibold text-gray-700 mb-2">
+      {label} {required && <span className="text-red-500">*</span>}
+    </label>
+    <select
+      name={name}
+      value={value}
+      onChange={onChange}
+      className="w-full h-[40px] md:h-[44px] rounded-lg border border-[#AEAEAE] px-3.5 md:px-4 text-sm text-gray-700 bg-white focus:outline-none focus:border-[#2A723D]"
+    >
+      <option value="">{placeholder}</option>
+      {options.map((opt) => (
+        <option key={opt} value={opt}>{opt}</option>
+      ))}
+    </select>
+  </div>
+);
+
+const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+const countryCodes = { India: '+91', UK: '+44', USA: '+1' };
 
 const Register = () => {
   const navigate = useNavigate();
   const [activeSection, setActiveSection] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [validationErrors, setValidationErrors] = useState({});
-
   const [profilePhoto, setProfilePhoto] = useState(null);
+  const [previewUrl, setPreviewUrl] = useState(null);
+  
+  // Popup States
+  const [showSuccessPopup, setShowSuccessPopup] = useState(false);
+  const [errorPopup, setErrorPopup] = useState({ show: false, message: '' });
 
   const [formData, setFormData] = useState({
     FullName: '',
@@ -50,22 +91,9 @@ const Register = () => {
     AccountHolderName: ''
   });
 
-  const daysOfWeek = [
-    'Monday',
-    'Tuesday',
-    'Wednesday',
-    'Thursday',
-    'Friday',
-    'Saturday',
-    'Sunday'
-  ];
-
   const [workingHours, setWorkingHours] = useState(
     daysOfWeek.reduce((acc, day) => {
-      acc[day] = {
-        slots: [{ from: '', to: '' }],
-        isOff: false
-      };
+      acc[day] = { slots: [{ from: '', to: '' }], isOff: false };
       return acc;
     }, {})
   );
@@ -78,23 +106,11 @@ const Register = () => {
 
   const profileInputRef = useRef(null);
   const dateInputRef = useRef(null);
-
-  const countryCodes = {
-    India: '+91',
-    UK: '+44',
-    USA: '+1'
-  };
-
   const today = new Date().toISOString().split('T')[0];
-
-  const MAX_PROFILE_PHOTO_SIZE = 2 * 1024 * 1024;
-
-  const selectedCountryCode =
-    countryCodes[formData.Country] || '+91';
+  const selectedCountryCode = countryCodes[formData.Country] || '+91';
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-
     setValidationErrors((prev) => {
       if (!prev[name]) return prev;
       const next = { ...prev };
@@ -102,185 +118,79 @@ const Register = () => {
       return next;
     });
 
-    if (
-      [
-        'MobileNumber',
-        'WhatsAppNumber',
-        'BusinessPhoneNumber'
-      ].includes(name)
-    ) {
-      const digitsOnly = value
-        .replace(/\D/g, '')
-        .slice(0, 10);
-
-      setFormData((prev) => ({
-        ...prev,
-        [name]: digitsOnly
-      }));
+    if (['MobileNumber', 'WhatsAppNumber', 'BusinessPhoneNumber'].includes(name)) {
+      setFormData((prev) => ({ ...prev, [name]: value.replace(/\D/g, '').slice(0, 10) }));
     } else if (name === 'DateOfBirth') {
       if (value > today) {
-        alert(
-          'Date of Birth cannot be a future date.'
-        );
+        setErrorPopup({ show: true, message: 'Date of Birth cannot be a future date.' });
         return;
       }
-
-      setFormData((prev) => ({
-        ...prev,
-        [name]: value
-      }));
+      setFormData((prev) => ({ ...prev, [name]: value }));
     } else {
-      setFormData((prev) => ({
-        ...prev,
-        [name]: value
-      }));
+      setFormData((prev) => ({ ...prev, [name]: value }));
     }
   };
 
-  const handleWorkingHoursChange = (
-    day,
-    field,
-    value
-  ) => {
+  const handleWorkingHoursChange = (day, field, value) => {
     setWorkingHours((prev) => ({
       ...prev,
-      [day]: {
-        ...prev[day],
-        [field]: value
-      }
+      [day]: { ...prev[day], [field]: value }
     }));
   };
 
-  const handleWorkingSlotChange = (
-    day,
-    slotIndex,
-    field,
-    value
-  ) => {
+  const handleWorkingSlotChange = (day, slotIndex, field, value) => {
     setWorkingHours((prev) => {
-      const updatedSlots = [
-        ...prev[day].slots
-      ];
-
-      updatedSlots[slotIndex] = {
-        ...updatedSlots[slotIndex],
-        [field]: value
-      };
-
-      return {
-        ...prev,
-        [day]: {
-          ...prev[day],
-          slots: updatedSlots
-        }
-      };
+      const updatedSlots = [...prev[day].slots];
+      updatedSlots[slotIndex] = { ...updatedSlots[slotIndex], [field]: value };
+      return { ...prev, [day]: { ...prev[day], slots: updatedSlots } };
     });
   };
 
   const addWorkingSlot = (day) => {
     setWorkingHours((prev) => ({
       ...prev,
-      [day]: {
-        ...prev[day],
-        slots: [
-          ...prev[day].slots,
-          {
-            from: '',
-            to: ''
-          }
-        ]
-      }
+      [day]: { ...prev[day], slots: [...prev[day].slots, { from: '', to: '' }] }
     }));
   };
 
-  const deleteWorkingSlot = (
-    day,
-    slotIndex
-  ) => {
+  const deleteWorkingSlot = (day, slotIndex) => {
     setWorkingHours((prev) => {
-      const currentSlots =
-        prev[day].slots;
-
+      const currentSlots = prev[day].slots;
       if (currentSlots.length === 1) {
-        return {
-          ...prev,
-          [day]: {
-            ...prev[day],
-            slots: [
-              {
-                from: '',
-                to: ''
-              }
-            ]
-          }
-        };
+        return { ...prev, [day]: { ...prev[day], slots: [{ from: '', to: '' }] } };
       }
-
       return {
         ...prev,
-        [day]: {
-          ...prev[day],
-          slots: currentSlots.filter(
-            (_, index) =>
-              index !== slotIndex
-          )
-        }
+        [day]: { ...prev[day], slots: currentSlots.filter((_, idx) => idx !== slotIndex) }
       };
     });
   };
 
-  const handleConsentChange = (
-    field,
-    value
-  ) => {
+  const handleConsentChange = (field, value) => {
     setValidationErrors((prev) => {
       if (!prev[field]) return prev;
       const next = { ...prev };
       delete next[field];
       return next;
     });
-
-    setConsents((prev) => ({
-      ...prev,
-      [field]: value
-    }));
+    setConsents((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleProfileChange = (e) => {
-    const file =
-      e.target.files?.[0];
-
+    const file = e.target.files?.[0];
     if (!file) return;
 
-    const allowedTypes = [
-      'image/jpeg',
-      'image/png'
-    ];
-
-    if (!allowedTypes.includes(file.type)) {
-      alert(
-        'Please upload only JPG or PNG images.'
-      );
-
+    if (!['image/jpeg', 'image/png'].includes(file.type)) {
+      setErrorPopup({ show: true, message: 'Please upload only JPG or PNG images.' });
       e.target.value = '';
       setProfilePhoto(null);
-      return;
-    }
-
-    if (
-      file.size >
-      MAX_PROFILE_PHOTO_SIZE
-    ) {
-      alert(
-        'Profile photo must be 2 MB or smaller.'
-      );
-
-      e.target.value = '';
-      setProfilePhoto(null);
+      setPreviewUrl(null);
       return;
     }
 
     setProfilePhoto(file);
+    setPreviewUrl(URL.createObjectURL(file));
+    
     setValidationErrors((prev) => {
       if (!prev.ProfilePhoto) return prev;
       const next = { ...prev };
@@ -289,10 +199,32 @@ const Register = () => {
     });
   };
 
+  const clearProfilePhoto = (e) => {
+    e.stopPropagation();
+    setProfilePhoto(null);
+    setPreviewUrl(null);
+    if (profileInputRef.current) {
+      profileInputRef.current.value = '';
+    }
+  };
+
+  const convertTo24HourFormat = (timeStr) => {
+    if (!timeStr) return '';
+    return timeStr.trim().replace(
+      /(\d{1,2})(?::(\d{2}))?\s*(am|pm)/gi,
+      (match, hourStr, minStr, modifier) => {
+        let hours = parseInt(hourStr, 10);
+        const minutes = minStr || '00';
+        const ampm = modifier.toLowerCase();
+        if (ampm === 'pm' && hours < 12) hours += 12;
+        else if (ampm === 'am' && hours === 12) hours = 0;
+        return `${String(hours).padStart(2, '0')}:${minutes}`;
+      }
+    );
+  };
+
   const handleSubmit = async () => {
     const errors = {};
-
-    // Required fields: all normal form fields except Working Hours, Payment Information, and Profile Photo.
     const requiredFields = {
       FullName: 'Full Name',
       UserName: 'User Name',
@@ -303,7 +235,6 @@ const Register = () => {
       DateOfBirth: 'Date of Birth',
       MobileNumber: 'Mobile Number',
       EmailAddress: 'Email Address',
-      YearsOfExperience: 'Years of Experience',
       Password: 'Password',
       WhatsAppNumber: 'WhatsApp Business Number',
       BusinessPhoneNumber: 'Business Phone Number',
@@ -321,201 +252,111 @@ const Register = () => {
     };
 
     Object.entries(requiredFields).forEach(([field, label]) => {
-      if (!String(formData[field] ?? '').trim()) {
-        errors[field] = `${label} is required.`;
-      }
+      if (!String(formData[field] ?? '').trim()) errors[field] = `${label} is required.`;
     });
 
-    // All consent checkboxes are required before registration.
-    if (!consents.accurate) {
-      errors.accurate = 'Please confirm that the information provided is accurate.';
-    }
-
-    if (!consents.terms) {
-      errors.terms = 'Please agree to the Terms & Conditions and Privacy Policy.';
-    }
-
-    if (!consents.notifications) {
-      errors.notifications = 'Please provide consent for WhatsApp and Email notifications.';
-    }
-
-    // Mobile number validation.
-    if (formData.MobileNumber && formData.MobileNumber.length !== 10) {
-      errors.MobileNumber = 'Mobile Number must be exactly 10 digits.';
-    }
-
-    // DOB can only be today or a past date.
-    if (formData.DateOfBirth && formData.DateOfBirth > today) {
-      errors.DateOfBirth = 'Date of Birth cannot be a future date.';
-    }
-
-    // Profile image validation.
-    if (profilePhoto && profilePhoto.size > MAX_PROFILE_PHOTO_SIZE) {
-      errors.ProfilePhoto = 'Profile Photo must be 2 MB or smaller.';
-    }
+    if (!consents.accurate) errors.accurate = 'Please confirm that the information provided is accurate.';
+    if (!consents.terms) errors.terms = 'Please agree to the Terms & Conditions and Privacy Policy.';
+    if (!consents.notifications) errors.notifications = 'Please provide consent for notifications.';
+    if (formData.MobileNumber && formData.MobileNumber.length !== 10) errors.MobileNumber = 'Mobile Number must be exactly 10 digits.';
+    if (formData.DateOfBirth && formData.DateOfBirth > today) errors.DateOfBirth = 'Date of Birth cannot be a future date.';
 
     setValidationErrors(errors);
 
     if (Object.keys(errors).length > 0) {
-      // Move the user to the first section containing a validation error.
-      const sectionOneFields = [
-        'FullName', 'UserName', 'Qualification', 'Specialization',
-        'MedicalRegistrationNumber', 'Gender', 'DateOfBirth',
-        'MobileNumber', 'EmailAddress', 'YearsOfExperience', 'Password',
-        'WhatsAppNumber', 'BusinessPhoneNumber',
-        'accurate', 'terms', 'notifications'
-      ];
-      const sectionTwoFields = [
-        'ClinicName', 'ClinicAddress', 'City', 'Pincode', 'State', 'Country'
-      ];
-      const sectionThreeFields = [
-        'ClinicConsultationFee', 'ConsultationDuration', 'MaximumPatientsPerDay'
-      ];
+      const sec1 = ['ClinicName', 'FullName', 'UserName', 'EmailAddress', 'Password', 'MobileNumber', 'BusinessPhoneNumber', 'ClinicAddress', 'City', 'Pincode', 'State', 'Country'];
+      const sec2 = ['Qualification', 'Specialization', 'MedicalRegistrationNumber', 'Gender', 'DateOfBirth', 'YearsOfExperience', 'WhatsAppNumber'];
+      const sec3 = ['ClinicConsultationFee', 'VideoConsultationFee', 'SecondOpinionFee', 'ConsultationDuration', 'MaximumPatientsPerDay'];
 
-      let firstSection = 1;
-      if (Object.keys(errors).some((key) => sectionTwoFields.includes(key))) {
-        firstSection = 2;
-      }
-      if (Object.keys(errors).some((key) => sectionThreeFields.includes(key))) {
-        firstSection = 3;
-      }
-      if (Object.keys(errors).some((key) => sectionOneFields.includes(key))) {
-        firstSection = 1;
-      }
+      let targetSection = 1;
+      if (Object.keys(errors).some((key) => sec3.includes(key))) targetSection = 3;
+      if (Object.keys(errors).some((key) => sec2.includes(key))) targetSection = 2;
+      if (Object.keys(errors).some((key) => sec1.includes(key))) targetSection = 1;
 
-      setActiveSection(firstSection);
+      setActiveSection(targetSection);
       setTimeout(() => {
-        document
-          .getElementById(`section-${firstSection}`)
-          ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        document.getElementById(`section-${targetSection}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }, 0);
-
       return;
     }
 
     setIsSubmitting(true);
 
-    const convertTo24HourFormat = (timeStr) => {
-      if (!timeStr) return '';
-
-      const trimmedTime = timeStr.trim();
-
-      return trimmedTime.replace(
-        /(\d{1,2})(?::(\d{2}))?\s*(am|pm)/gi,
-        (match, hourStr, minStr, modifier) => {
-          let hours = parseInt(hourStr, 10);
-          const minutes = minStr || '00';
-          const ampm = modifier.toLowerCase();
-
-          if (ampm === 'pm' && hours < 12) {
-            hours += 12;
-          } else if (ampm === 'am' && hours === 12) {
-            hours = 0;
-          }
-
-          return `${String(hours).padStart(2, '0')}:${minutes}`;
-        }
-      );
-    };
-
     try {
       const submitData = new FormData();
 
-      Object.keys(formData).forEach((key) => {
-        if (formData[key]) {
-          if (
-            [
-              'YearsOfExperience',
-              'ClinicConsultationFee',
-              'VideoConsultationFee',
-              'SecondOpinionFee',
-              'MaximumPatientsPerDay'
-            ].includes(key)
-          ) {
-            submitData.append(key, Number(formData[key]));
-          } else if (key === 'ConsultationDuration') {
-            const durationInt = parseInt(
-              formData[key].split(' ')[0],
-              10
-            );
-
-            submitData.append(key, durationInt);
-          } else if (key === 'MobileNumber') {
-            submitData.append(
-              key,
-              `${selectedCountryCode}${formData[key]}`
-            );
-          } else {
-            submitData.append(key, formData[key]);
-          }
-        }
-      });
-
-      daysOfWeek.forEach((day) => {
-        const value = workingHours[day].isOff
-          ? 'Closed'
-          : workingHours[day].slots
-              .filter((slot) => slot.from || slot.to)
-              .map((slot) => {
-                const fromTime = convertTo24HourFormat(slot.from);
-                const toTime = convertTo24HourFormat(slot.to);
-
-                if (fromTime && toTime) {
-                  return `${fromTime}-${toTime}`;
-                }
-
-                return fromTime || toTime;
-              })
-              .filter(Boolean)
-              .join(';');
-
-        if (value) {
-          submitData.append(day, value);
-        }
-      });
+      // Top Box: Common Industry Standards mapped directly
+      submitData.append('BusinessName', formData.ClinicName || '');
+      submitData.append('IndustryType', 'DoctorAppointment');
+      submitData.append('FullName', formData.FullName || '');
+      submitData.append('EmailAddress', formData.EmailAddress || '');
+      submitData.append('MobileNumber', `${selectedCountryCode}${formData.MobileNumber}`);
+      submitData.append('BusinessPhoneNumber', formData.BusinessPhoneNumber || '');
+      submitData.append('Address', formData.ClinicAddress || '');
+      submitData.append('City', formData.City || '');
+      submitData.append('State', formData.State || '');
+      submitData.append('Pincode', formData.Pincode || '');
+      submitData.append('Country', formData.Country || '');
+      submitData.append('UserName', formData.UserName || '');
+      submitData.append('Password', formData.Password || '');
 
       if (profilePhoto) {
-        submitData.append('ProfilePhoto', profilePhoto);
+        submitData.append('ProfilePic', profilePhoto);
       }
 
-      const apiBase = import.meta.env.VITE_API_BASE || '';
+      // Format working hours (flattened)
+      const workingHoursMap = {};
+      daysOfWeek.forEach((day) => {
+        const val = workingHours[day].isOff
+          ? 'Closed'
+          : workingHours[day].slots
+              .filter((s) => s.from || s.to)
+              .map((s) => `${convertTo24HourFormat(s.from)}-${convertTo24HourFormat(s.to)}`)
+              .filter(Boolean)
+              .join(';');
+        if (val) workingHoursMap[day] = val;
+      });
 
-      const response = await fetch(
-        `${apiBase}/doctors/register`,
-        {
-          method: 'POST',
-          body: submitData
-        }
-      );
+      // Bottom Boxes: Dynamic Data Payload customized for business
+      const businessData = {
+        Qualification: formData.Qualification,
+        Specialization: formData.Specialization,
+        MedicalRegistrationNumber: formData.MedicalRegistrationNumber,
+        Gender: formData.Gender,
+        DateOfBirth: formData.DateOfBirth,
+        YearsOfExperience: Number(formData.YearsOfExperience) || 0,
+        WhatsAppNumber: formData.WhatsAppNumber,
+        ClinicConsultationFee: Number(formData.ClinicConsultationFee) || 0,
+        VideoConsultationFee: Number(formData.VideoConsultationFee) || 0,
+        SecondOpinionFee: Number(formData.SecondOpinionFee) || 0,
+        ConsultationDuration: formData.ConsultationDuration ? parseInt(formData.ConsultationDuration, 10) : 0,
+        MaximumPatientsPerDay: Number(formData.MaximumPatientsPerDay) || 0,
+        UpiId: formData.UpiId,
+        AccountNumber: formData.AccountNumber,
+        BankName: formData.BankName,
+        IfscCode: formData.IfscCode,
+        AccountHolderName: formData.AccountHolderName,
+        ...workingHoursMap // Flattened directly into the JSON
+      };
+
+      // Appended as Stringified Dynamic JSON Payload
+      submitData.append('BusinessData', JSON.stringify(businessData));
+
+      const apiBase = import.meta.env.VITE_API_BASE || '/api';
+      const response = await fetch(`${apiBase}/businesses/register`, {
+        method: 'POST',
+        body: submitData
+      });
 
       if (response.ok) {
-        alert('Registration Successful!');
-        navigate('/login');
+        setShowSuccessPopup(true);
       } else {
-        let errorData = null;
-
-        try {
-          errorData = await response.json();
-        } catch {
-          errorData = null;
-        }
-
-        console.error('Validation Error:', errorData);
-
-        const backendMessage =
-          errorData?.detail ||
-          errorData?.message ||
-          'Registration Failed. Please check the fields and try again.';
-
-        alert(
-          typeof backendMessage === 'string'
-            ? backendMessage
-            : 'Registration Failed. Please check the fields and try again.'
-        );
+        const errorData = await response.json().catch(() => null);
+        setErrorPopup({ show: true, message: errorData?.detail || errorData?.message || 'Registration Failed. Please check the fields and try again.' });
       }
     } catch (error) {
       console.error('API Error:', error);
-      alert('An error occurred while submitting the form. Please try again.');
+      setErrorPopup({ show: true, message: 'An error occurred while submitting the form. Please try again.' });
     } finally {
       setIsSubmitting(false);
     }
@@ -524,1772 +365,422 @@ const Register = () => {
   const sections = [
     {
       id: 1,
-      stepLabel:
-        '1. Personal Information',
+      stepLabel: '1. General Information',
       tag: 'SECTION 01',
-      title:
-        'PERSONAL INFORMATION',
-      subtitle:
-        'Tell us about yourself.',
-      height: '1120px',
+      title: 'GENERAL INFORMATION',
+      subtitle: 'Enter your basic and business details.',
       content: (
-        <>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-8">
-
-            <div className="relative">
-              <label className="block text-[14px] font-semibold text-gray-700 mb-3">
-                Full Name
-              </label>
-
-              <input
-                name="FullName"
-                value={
-                  formData.FullName
-                }
-                onChange={
-                  handleInputChange
-                }
-                type="text"
-                placeholder="Enter Your Full Name"
-                style={{
-                  width: '100%',
-                  height: '44px',
-                  borderRadius: '8px',
-                  borderWidth: '1px',
-                  borderColor:
-                    '#AEAEAE',
-                  padding:
-                    '8px 16px'
-                }}
-                className="text-sm focus:outline-none focus:border-[#2A723D] placeholder-gray-300 bg-white"
-              />
-              <RequiredMark />
-            </div>
-
-            <div className="relative">
-              <label className="block text-[14px] font-semibold text-gray-700 mb-3">
-                User Name
-              </label>
-
-              <input
-                name="UserName"
-                value={
-                  formData.UserName
-                }
-                onChange={
-                  handleInputChange
-                }
-                type="text"
-                placeholder="Enter User Name"
-                style={{
-                  width: '100%',
-                  height: '44px',
-                  borderRadius: '8px',
-                  borderWidth: '1px',
-                  borderColor:
-                    '#AEAEAE',
-                  padding:
-                    '8px 16px'
-                }}
-                className="text-sm focus:outline-none focus:border-[#2A723D] placeholder-gray-300 bg-white"
-              />
-              <RequiredMark />
-            </div>
-
-            <div className="relative">
-              <label className="block text-[14px] font-semibold text-gray-700 mb-3">
-                Qualification
-              </label>
-
-              <input
-                name="Qualification"
-                value={
-                  formData.Qualification
-                }
-                onChange={
-                  handleInputChange
-                }
-                type="text"
-                placeholder="e.g., MBBS, MD - Pediatrics"
-                style={{
-                  width: '100%',
-                  height: '44px',
-                  borderRadius: '8px',
-                  borderWidth: '1px',
-                  borderColor:
-                    '#AEAEAE',
-                  padding:
-                    '8px 16px'
-                }}
-                className="text-sm focus:outline-none focus:border-[#2A723D] placeholder-gray-300 bg-white"
-              />
-              <RequiredMark />
-            </div>
-
-            <div className="relative">
-              <label className="block text-[14px] font-semibold text-gray-700 mb-3">
-                Specialization
-              </label>
-
-              <select
-                name="Specialization"
-                value={
-                  formData.Specialization
-                }
-                onChange={
-                  handleInputChange
-                }
-                style={{
-                  width: '100%',
-                  height: '44px',
-                  borderRadius: '8px',
-                  borderWidth: '1px',
-                  borderColor:
-                    '#AEAEAE',
-                  padding:
-                    '8px 16px'
-                }}
-                className="text-sm text-gray-500 bg-white focus:outline-none focus:border-[#2A723D]"
-              >
-                <option value="">
-                  Select Specialization
-                </option>
-
-                <option value="Dermatology">
-                  Dermatology
-                </option>
-
-                <option value="Psychiatry">
-                  Psychiatry
-                </option>
-
-                <option value="Cardiology">
-                  Cardiology
-                </option>
-
-                <option value="Gynecology">
-                  Gynecology
-                </option>
-
-                <option value="Orthopedics">
-                  Orthopedics
-                </option>
-
-                <option value="ENT">
-                  ENT
-                </option>
-
-                <option value="Dentistry">
-                  Dentistry
-                </option>
-
-                <option value="Other">
-                  Other
-                </option>
-              </select>
-              <RequiredMark />
-            </div>
-
-            <div className="relative">
-              <label className="block text-[14px] font-semibold text-gray-700 mb-3">
-                Medical Registration Number
-              </label>
-
-              <input
-                name="MedicalRegistrationNumber"
-                value={
-                  formData.MedicalRegistrationNumber
-                }
-                onChange={
-                  handleInputChange
-                }
-                type="text"
-                placeholder="Enter Registration Number"
-                style={{
-                  width: '100%',
-                  height: '44px',
-                  borderRadius: '8px',
-                  borderWidth: '1px',
-                  borderColor:
-                    '#AEAEAE',
-                  padding:
-                    '8px 16px'
-                }}
-                className="text-sm focus:outline-none focus:border-[#2A723D] placeholder-gray-300 bg-white"
-              />
-              <RequiredMark />
-            </div>
-
-            <div className="relative">
-              <label className="block text-[14px] font-semibold text-gray-700 mb-3">
-                Gender
-              </label>
-
-              <select
-                name="Gender"
-                value={
-                  formData.Gender
-                }
-                onChange={
-                  handleInputChange
-                }
-                style={{
-                  width: '100%',
-                  height: '44px',
-                  borderRadius: '8px',
-                  borderWidth: '1px',
-                  borderColor:
-                    '#AEAEAE',
-                  padding:
-                    '8px 16px'
-                }}
-                className="text-sm text-gray-800 bg-white focus:outline-none focus:border-[#2A723D]"
-              >
-                <option value="">
-                  Select Gender
-                </option>
-
-                <option value="Male">
-                  Male
-                </option>
-
-                <option value="Female">
-                  Female
-                </option>
-              </select>
-              <RequiredMark />
-            </div>
-
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-6">
+            <InputField label="Clinic / Business Name" name="ClinicName" value={formData.ClinicName} onChange={handleInputChange} placeholder="Enter Business Name" />
+            <InputField label="Full Name" name="FullName" value={formData.FullName} onChange={handleInputChange} placeholder="Enter Your Full Name" />
+            <InputField label="User Name" name="UserName" value={formData.UserName} onChange={handleInputChange} placeholder="Enter User Name" />
+            <InputField label="Email Address" name="EmailAddress" type="email" value={formData.EmailAddress} onChange={handleInputChange} placeholder="Enter Professional Email" />
+            
             <div>
-              <label className="block text-[14px] font-semibold text-gray-700 mb-3">
-                Date of Birth
+              <label className="block text-[14px] font-semibold text-gray-700 mb-2">
+                Mobile Number <span className="text-red-500">*</span>
               </label>
-
-              <div className="relative flex items-center">
-                <input
-                  ref={
-                    dateInputRef
-                  }
-                  name="DateOfBirth"
-                  value={
-                    formData.DateOfBirth
-                  }
-                  onChange={
-                    handleInputChange
-                  }
-                  type="date"
-                  max={today}
-                  placeholder="YYYY-MM-DD"
-                  style={{
-                    width: '100%',
-                    height: '44px',
-                    borderRadius: '8px',
-                    borderWidth: '1px',
-                    borderColor:
-                      '#AEAEAE',
-                    padding:
-                      '8px 16px'
-                  }}
-                  className="text-sm focus:outline-none focus:border-[#2A723D] text-gray-700 bg-white [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-3 [&::-webkit-calendar-picker-indicator]:w-8 [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer"
-                />
-              <RequiredMark />
-
-                <LuCalendar
-                  className="absolute right-4 text-gray-400 cursor-pointer pointer-events-none"
-                  size={18}
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-[14px] font-semibold text-gray-700 mb-3">
-                Mobile Number
-              </label>
-
-              <div
-                style={{
-                  width: '100%',
-                  height: '44px',
-                  borderRadius: '8px',
-                  borderWidth: '1px',
-                  borderColor:
-                    '#AEAEAE',
-                  display: 'flex',
-                  alignItems:
-                    'center',
-                  backgroundColor:
-                    '#FFFFFF',
-                  overflow: 'hidden'
-                }}
-               className="relative">
-                <span
-                  className="text-sm font-semibold text-gray-700"
-                  style={{
-                    padding: '0 12px',
-                    height: '100%',
-                    display: 'flex',
-                    alignItems:
-                      'center',
-                    backgroundColor:
-                      '#F7F7F7',
-                    borderRight:
-                      '1px solid #AEAEAE',
-                    whiteSpace:
-                      'nowrap'
-                  }}
-                >
-                  {
-                    selectedCountryCode
-                  }
+              <div className="relative flex items-center h-[40px] md:h-[44px] border border-[#AEAEAE] rounded-lg bg-white overflow-hidden">
+                <span className="text-sm font-semibold text-gray-700 px-3 h-full flex items-center bg-[#F7F7F7] border-r border-[#AEAEAE]">
+                  {selectedCountryCode}
                 </span>
-
                 <input
                   name="MobileNumber"
-                  value={
-                    formData.MobileNumber
-                  }
-                  onChange={
-                    handleInputChange
-                  }
+                  value={formData.MobileNumber}
+                  onChange={handleInputChange}
                   type="tel"
-                  inputMode="numeric"
                   maxLength={10}
-                  placeholder="Enter 10-digit Mobile Number"
-                  style={{
-                    flex: 1,
-                    width: '100%',
-                    height: '100%',
-                    border: 'none',
-                    outline: 'none',
-                    padding:
-                      '8px 16px'
-                  }}
-                  className="text-sm focus:outline-none placeholder-gray-300 bg-white"
+                  placeholder="10-digit Mobile Number"
+                  className="w-full h-full px-3 text-sm focus:outline-none placeholder-gray-300 bg-white"
                 />
-              <RequiredMark />
               </div>
             </div>
 
-            <div className="relative">
-              <label className="block text-[14px] font-semibold text-gray-700 mb-3">
-                Email Address
-              </label>
-
-              <input
-                name="EmailAddress"
-                value={
-                  formData.EmailAddress
-                }
-                onChange={
-                  handleInputChange
-                }
-                type="email"
-                placeholder="Enter Professional Email Address"
-                style={{
-                  width: '100%',
-                  height: '44px',
-                  borderRadius: '8px',
-                  borderWidth: '1px',
-                  borderColor:
-                    '#AEAEAE',
-                  padding:
-                    '8px 16px'
-                }}
-                className="text-sm focus:outline-none focus:border-[#2A723D] placeholder-gray-300 bg-white"
-              />
-              <RequiredMark />
-            </div>
-
-            <div className="relative">
-              <label className="block text-[14px] font-semibold text-gray-700 mb-3">
-                Years of Experience
-              </label>
-
-              <input
-                name="YearsOfExperience"
-                value={
-                  formData.YearsOfExperience
-                }
-                onChange={
-                  handleInputChange
-                }
-                type="text"
-                placeholder="e.g., 10"
-                style={{
-                  width: '100%',
-                  height: '44px',
-                  borderRadius: '8px',
-                  borderWidth: '1px',
-                  borderColor:
-                    '#AEAEAE',
-                  padding:
-                    '8px 16px'
-                }}
-                className="text-sm focus:outline-none focus:border-[#2A723D] placeholder-gray-300 bg-white"
-              />
-              <RequiredMark />
-            </div>
-
-            <div className="relative">
-              <label className="block text-[14px] font-semibold text-gray-700 mb-3">
-                Password
-              </label>
-
-              <input
-                name="Password"
-                value={
-                  formData.Password
-                }
-                onChange={
-                  handleInputChange
-                }
-                type="password"
-                placeholder="Create Password"
-                style={{
-                  width: '100%',
-                  height: '44px',
-                  borderRadius: '8px',
-                  borderWidth: '1px',
-                  borderColor:
-                    '#AEAEAE',
-                  padding:
-                    '8px 16px'
-                }}
-                className="text-sm focus:outline-none focus:border-[#2A723D] placeholder-gray-300 bg-white"
-              />
-              <RequiredMark />
-            </div>
-
-            <div className="relative">
-              <label className="block text-[14px] font-semibold text-gray-700 mb-3">
-                WhatsApp Business Number
-              </label>
-
-              <input
-                name="WhatsAppNumber"
-                value={
-                  formData.WhatsAppNumber
-                }
-                onChange={
-                  handleInputChange
-                }
-                type="text"
-                maxLength={10}
-                placeholder="Enter 10-digit WhatsApp Number"
-                style={{
-                  width: '100%',
-                  height: '44px',
-                  borderRadius: '8px',
-                  borderWidth: '1px',
-                  borderColor:
-                    '#AEAEAE',
-                  padding:
-                    '8px 16px'
-                }}
-                className="text-sm focus:outline-none focus:border-[#2A723D] placeholder-gray-300 bg-white"
-              />
-              <RequiredMark />
-            </div>
-
-            <div className="relative">
-              <label className="block text-[14px] font-semibold text-gray-700 mb-3">
-                Business Phone Number
-              </label>
-
-              <input
-                name="BusinessPhoneNumber"
-                value={
-                  formData.BusinessPhoneNumber
-                }
-                onChange={
-                  handleInputChange
-                }
-                type="text"
-                maxLength={10}
-                placeholder="Enter 10-digit Business Phone"
-                style={{
-                  width: '100%',
-                  height: '44px',
-                  borderRadius: '8px',
-                  borderWidth: '1px',
-                  borderColor:
-                    '#AEAEAE',
-                  padding:
-                    '8px 16px'
-                }}
-                className="text-sm focus:outline-none focus:border-[#2A723D] placeholder-gray-300 bg-white"
-              />
-              <RequiredMark />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-[14px] font-semibold text-gray-700 mb-3 mt-5">
-              Upload Profile Photo (optional)
-            </label>
-
-            <input
-              type="file"
-              ref={
-                profileInputRef
-              }
-              onChange={
-                handleProfileChange
-              }
-              accept="image/jpeg,image/png"
-              className="hidden"
-            />
-
-            <div
-              onClick={() =>
-                profileInputRef.current?.click()
-              }
-              style={{
-                width: '100%',
-                height: '140px',
-                borderRadius: '8px',
-                borderWidth: '1px',
-                borderColor:
-                  '#AEAEAE',
-                borderStyle:
-                  'dashed',
-                padding: '20px'
-              }}
-              className="flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50 transition bg-white"
-            >
-              <span className="text-sm font-semibold text-gray-600">
-                {profilePhoto
-                  ? profilePhoto.name
-                  : 'Click to upload the image'}
-              </span>
-
-              <span className="text-sm text-gray-400 mt-0.5">
-                JPG, PNG - max 2MB
-              </span>
-            </div>
+            <InputField label="Business Phone Number (Hicore)" name="BusinessPhoneNumber" value={formData.BusinessPhoneNumber} onChange={handleInputChange} maxLength={10} placeholder="Enter Business Phone" />
+            <InputField label="Password" name="Password" type="password" value={formData.Password} onChange={handleInputChange} placeholder="Create Password" />
             
-          </div>
-        </>
-      )
-    },
-
-    {
-      id: 2,
-      stepLabel:
-        '2. Clinic Information',
-      tag: 'SECTION 02',
-      title:
-        'CLINIC INFORMATION',
-      subtitle:
-        'Help patients find your clinic.',
-      height: '555px',
-      content: (
-        <div className="space-y-4">
-
-          <div className="relative">
-            <label className="block text-[14px] font-semibold text-gray-700 mb-2">
-              Clinic Name
-            </label>
-
-            <input
-              name="ClinicName"
-              value={
-                formData.ClinicName
-              }
-              onChange={
-                handleInputChange
-              }
-              type="text"
-              placeholder="Enter Clinic Name"
-              style={{
-                width: '100%',
-                height: '40px',
-                borderRadius: '8px',
-                borderWidth: '1px',
-                borderColor:
-                  '#AEAEAE',
-                padding:
-                  '6px 14px'
-              }}
-              className="text-sm focus:outline-none focus:border-[#2A723D] placeholder-gray-300 bg-white"
-            />
-              <RequiredMark />
-          </div>
-
-          <div className="relative">
-            <label className="block text-[14px] font-semibold text-gray-700 mb-1.5">
-              Clinic Address
-            </label>
-
-            <textarea
-              name="ClinicAddress"
-              value={
-                formData.ClinicAddress
-              }
-              onChange={
-                handleInputChange
-              }
-              rows="4"
-              placeholder="Enter Complete Address"
-              style={{
-                width: '100%',
-                borderRadius: '8px',
-                borderWidth: '1px',
-                borderColor:
-                  '#AEAEAE',
-                padding:
-                  '6px 14px'
-              }}
-              className="text-sm focus:outline-none focus:border-[#2A723D] placeholder-gray-300 bg-white resize-none"
-            />
-              <RequiredMark />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3">
-
-            <div className="relative">
-              <label className="block text-[14px] font-semibold text-gray-700 mb-2">
-                City
-              </label>
-
-              <input
-                name="City"
-                value={
-                  formData.City
-                }
-                onChange={
-                  handleInputChange
-                }
-                type="text"
-                placeholder="Enter City Name"
-                style={{
-                  width: '100%',
-                  height: '40px',
-                  borderRadius: '8px',
-                  borderWidth: '1px',
-                  borderColor:
-                    '#AEAEAE',
-                  padding:
-                    '6px 14px'
-                }}
-                className="text-sm focus:outline-none focus:border-[#2A723D] placeholder-gray-300 bg-white"
-              />
-              <RequiredMark />
-            </div>
-
-            <div className="relative">
-              <label className="block text-[14px] font-semibold text-gray-700 mb-1.5">
-                Pincode
-              </label>
-
-              <input
-                name="Pincode"
-                value={
-                  formData.Pincode
-                }
-                onChange={
-                  handleInputChange
-                }
-                type="text"
-                placeholder="Enter Pincode"
-                style={{
-                  width: '100%',
-                  height: '40px',
-                  borderRadius: '8px',
-                  borderWidth: '1px',
-                  borderColor:
-                    '#AEAEAE',
-                  padding:
-                    '6px 14px'
-                }}
-                className="text-sm focus:outline-none focus:border-[#2A723D] placeholder-gray-300 bg-white"
-              />
-              <RequiredMark />
-            </div>
-
-            <div className="relative">
-              <label className="block text-[14px] font-semibold text-gray-700 mb-2">
-                State
-              </label>
-
-              <select
-                name="State"
-                value={
-                  formData.State
-                }
-                onChange={
-                  handleInputChange
-                }
-                style={{
-                  width: '100%',
-                  height: '40px',
-                  borderRadius: '8px',
-                  borderWidth: '1px',
-                  borderColor:
-                    '#AEAEAE',
-                  padding:
-                    '6px 14px'
-                }}
-                className="text-sm text-gray-500 bg-white focus:outline-none focus:border-[#2A723D]"
+            <div className="relative md:col-span-1">
+              <label className="block text-[14px] font-semibold text-gray-700 mb-2">Upload Profile Photo (optional)</label>
+              <input type="file" ref={profileInputRef} onChange={handleProfileChange} accept="image/jpeg,image/png" className="hidden" />
+              <div
+                onClick={() => !previewUrl && profileInputRef.current?.click()}
+                className={`w-full rounded-lg border border-dashed border-[#AEAEAE] flex flex-col items-center justify-center transition bg-white relative overflow-hidden ${
+                  previewUrl ? 'h-[140px]' : 'h-[40px] md:h-[44px] cursor-pointer hover:bg-gray-50'
+                }`}
               >
-                <option value="">
-                  Select State
-                </option>
-
-                <option value="Andhra Pradesh">
-                  Andhra Pradesh
-                </option>
-
-                <option value="Tamil Nadu">
-                  Tamil Nadu
-                </option>
-
-                <option value="Kerala">
-                  Kerala
-                </option>
-
-                <option value="Maharastra">
-                  Maharastra
-                </option>
-
-                <option value="Karnataka">
-                  Karnataka
-                </option>
-
-                <option value="Delhi">
-                  Delhi
-                </option>
-              </select>
-              <RequiredMark />
-            </div>
-
-            <div className="relative">
-              <label className="block text-[14px] font-semibold text-gray-700 mb-1.5">
-                Country
-              </label>
-
-              <select
-                name="Country"
-                value={
-                  formData.Country
-                }
-                onChange={
-                  handleInputChange
-                }
-                style={{
-                  width: '100%',
-                  height: '40px',
-                  borderRadius: '8px',
-                  borderWidth: '1px',
-                  borderColor:
-                    '#AEAEAE',
-                  padding:
-                    '6px 14px'
-                }}
-                className="text-sm text-gray-500 bg-white focus:outline-none focus:border-[#2A723D]"
-              >
-                <option value="">
-                  Select Country
-                </option>
-
-                <option value="India">
-                  India
-                </option>
-
-                <option value="UK">
-                  UK
-                </option>
-
-                <option value="USA">
-                  USA
-                </option>
-              </select>
-              <RequiredMark />
-            </div>
-          </div>
-        </div>
-      )
-    },
-
-    {
-      id: 3,
-      stepLabel:
-        '3. Consultation Details',
-      tag: 'SECTION 03',
-      title:
-        'CONSULTATION DETAILS',
-      subtitle:
-        'Configure your consultation preferences.',
-      height: '416px',
-      content: (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
-
-          <div className="relative">
-            <label className="block text-[14px] font-semibold text-gray-700 mb-1.5">
-              Clinic Consultation Fee (₹)
-            </label>
-
-            <input
-              name="ClinicConsultationFee"
-              value={
-                formData.ClinicConsultationFee
-              }
-              onChange={
-                handleInputChange
-              }
-              type="text"
-              placeholder="Enter Amount"
-              style={{
-                width: '100%',
-                height: '40px',
-                borderRadius: '8px',
-                borderWidth: '1px',
-                borderColor:
-                  '#AEAEAE',
-                padding:
-                  '6px 14px'
-              }}
-              className="text-sm focus:outline-none focus:border-[#2A723D] placeholder-gray-300 bg-white"
-            />
-              <RequiredMark />
-          </div>
-
-          <div className="relative">
-            <label className="block text-[14px] font-semibold text-gray-700 mb-1.5">
-              Video Consultation Fee (₹)
-            </label>
-
-            <input
-              name="VideoConsultationFee"
-              value={
-                formData.VideoConsultationFee
-              }
-              onChange={
-                handleInputChange
-              }
-              type="text"
-              placeholder="Enter Amount"
-              style={{
-                width: '100%',
-                height: '40px',
-                borderRadius: '8px',
-                borderWidth: '1px',
-                borderColor:
-                  '#AEAEAE',
-                padding:
-                  '6px 14px'
-              }}
-              className="text-sm focus:outline-none focus:border-[#2A723D] placeholder-gray-300 bg-white"
-            />
-              <RequiredMark />
-          </div>
-
-          <div className="relative">
-            <label className="block text-[14px] font-semibold text-gray-700 mb-1.5">
-              Second Opinion Fee (₹)
-            </label>
-
-            <input
-              name="SecondOpinionFee"
-              value={
-                formData.SecondOpinionFee
-              }
-              onChange={
-                handleInputChange
-              }
-              type="text"
-              placeholder="Enter Amount"
-              style={{
-                width: '100%',
-                height: '40px',
-                borderRadius: '8px',
-                borderWidth: '1px',
-                borderColor:
-                  '#AEAEAE',
-                padding:
-                  '6px 14px'
-              }}
-              className="text-sm focus:outline-none focus:border-[#2A723D] placeholder-gray-300 bg-white"
-            />
-              <RequiredMark />
-          </div>
-
-          <div className="relative">
-            <label className="block text-[14px] font-semibold text-gray-700 mb-1.5">
-              Consultation Duration
-            </label>
-
-            <select
-              name="ConsultationDuration"
-              value={
-                formData.ConsultationDuration
-              }
-              onChange={
-                handleInputChange
-              }
-              style={{
-                width: '100%',
-                height: '40px',
-                borderRadius: '8px',
-                borderWidth: '1px',
-                borderColor:
-                  '#AEAEAE',
-                padding:
-                  '6px 14px'
-              }}
-              className="text-sm text-gray-500 bg-white focus:outline-none focus:border-[#2A723D]"
-            >
-              <option value="">
-                Select Duration
-              </option>
-
-              <option value="10 Minutes">
-                10 Minutes
-              </option>
-
-              <option value="15 Minutes">
-                15 Minutes
-              </option>
-
-              <option value="20 Minutes">
-                20 Minutes
-              </option>
-
-              <option value="30 Minutes">
-                30 Minutes
-              </option>
-
-              <option value="45 Minutes">
-                45 Minutes
-              </option>
-
-              <option value="60 Minutes">
-                60 Minutes
-              </option>
-            </select>
-              <RequiredMark />
-          </div>
-
-          <div className="md:col-span-2 relative">
-            <label className="block text-[14px] font-semibold text-gray-700 mb-1.5">
-              Maximum Patients Per Day
-            </label>
-
-            <input
-              name="MaximumPatientsPerDay"
-              value={
-                formData.MaximumPatientsPerDay
-              }
-              onChange={
-                handleInputChange
-              }
-              type="text"
-              placeholder="Enter Patients Limit"
-              style={{
-                width: '100%',
-                maxWidth: '49%',
-                height: '40px',
-                borderRadius: '8px',
-                borderWidth: '1px',
-                borderColor:
-                  '#AEAEAE',
-                padding:
-                  '6px 14px'
-              }}
-              className="text-sm focus:outline-none focus:border-[#2A723D] placeholder-gray-300 bg-white"
-            />
-              <RequiredMark />
-          </div>
-        </div>
-      )
-    },
-
-    {
-      id: 4,
-      stepLabel:
-        '4. Working Hours',
-      tag: 'SECTION 04',
-      title:
-        'WORKING HOURS',
-      subtitle:
-        'Set your weekly availability. Tick "Off" to close a day.',
-      height: '772px',
-      content: (
-        <div className="border border-[#D9D9D9] rounded-xl p-4 md:p-5 bg-white">
-
-          <div className="flex justify-between items-center pb-3 mb-6 border-b border-[#D9D9D9] text-sm font-bold text-[#2A723D] uppercase tracking-wider">
-
-            <span className="w-1/4">
-              Day
-            </span>
-
-            <span className="w-2/4 text-center">
-              Working Hours
-            </span>
-
-            <span className="w-1/4 text-right pr-1">
-              Off
-            </span>
-
-          </div>
-
-          <div className="space-y-7">
-
-            {daysOfWeek.map(
-              (day) => (
-                <div
-                  key={day}
-                  className="flex items-start justify-between text-sm font-semibold text-gray-700"
-                >
-
-                  <div className="w-1/4 pt-2.5">
-                    <span className="text-[14px]">
-                      {day}
-                    </span>
-                  </div>
-
-                  <div className="w-full px-2">
-
-                    <div className="space-y-2.5">
-
-                      {workingHours[
-                        day
-                      ].slots.map(
-                        (
-                          slot,
-                          slotIndex
-                        ) => (
-                          <div
-                            key={`${day}-${slotIndex}`}
-                            className="flex items-center gap-2"
-                          >
-
-                            <input
-                              type="text"
-                              placeholder="From Time (e.g. 09:00 AM)"
-                              value={
-                                slot.from
-                              }
-                              onChange={(
-                                e
-                              ) =>
-                                handleWorkingSlotChange(
-                                  day,
-                                  slotIndex,
-                                  'from',
-                                  e.target.value
-                                )
-                              }
-                              disabled={
-                                workingHours[
-                                  day
-                                ].isOff
-                              }
-                              style={{
-                                width: '100%',
-                                height:
-                                  '40px',
-                                borderRadius:
-                                  '8px',
-                                borderWidth:
-                                  '1px',
-                                borderColor:
-                                  '#AEAEAE',
-                                padding:
-                                  '6px 12px'
-                              }}
-                              className={`text-sm font-normal focus:outline-none focus:border-[#2A723D] placeholder-gray-300 bg-white ${
-                                workingHours[
-                                  day
-                                ].isOff
-                                  ? 'opacity-50 cursor-not-allowed bg-gray-100'
-                                  : ''
-                              }`}
-                            />
-
-                            <span className="shrink-0 text-xs font-semibold text-gray-400">
-                              TO
-                            </span>
-
-                            <input
-                              type="text"
-                              placeholder="To Time (e.g. 12:00 PM)"
-                              value={
-                                slot.to
-                              }
-                              onChange={(
-                                e
-                              ) =>
-                                handleWorkingSlotChange(
-                                  day,
-                                  slotIndex,
-                                  'to',
-                                  e.target.value
-                                )
-                              }
-                              disabled={
-                                workingHours[
-                                  day
-                                ].isOff
-                              }
-                              style={{
-                                width: '100%',
-                                height:
-                                  '40px',
-                                borderRadius:
-                                  '8px',
-                                borderWidth:
-                                  '1px',
-                                borderColor:
-                                  '#AEAEAE',
-                                padding:
-                                  '6px 12px'
-                              }}
-                              className={`text-sm font-normal focus:outline-none focus:border-[#2A723D] placeholder-gray-300 bg-white ${
-                                workingHours[
-                                  day
-                                ].isOff
-                                  ? 'opacity-50 cursor-not-allowed bg-gray-100'
-                                  : ''
-                              }`}
-                            />
-
-                            <button
-                              type="button"
-                              onClick={() =>
-                                deleteWorkingSlot(
-                                  day,
-                                  slotIndex
-                                )
-                              }
-                              disabled={
-                                workingHours[
-                                  day
-                                ].isOff
-                              }
-                              title="Delete time slot"
-                              aria-label={`Delete ${day} time slot ${
-                                slotIndex + 1
-                              }`}
-                              className={`shrink-0 w-9 h-9 rounded-lg border border-red-200 text-red-500 flex items-center justify-center transition ${
-                                workingHours[
-                                  day
-                                ].isOff
-                                  ? 'opacity-40 cursor-not-allowed'
-                                  : 'hover:bg-red-50 hover:border-red-300 cursor-pointer'
-                              }`}
-                            >
-                              <LuTrash2
-                                size={17}
-                                strokeWidth={2}
-                              />
-                            </button>
-
-                          </div>
-                        )
-                      )}
-
-                    </div>
-
+                {previewUrl ? (
+                  <>
+                    <img src={previewUrl} alt="Profile Preview" className="w-full h-full object-contain" />
                     <button
                       type="button"
-                      onClick={() =>
-                        addWorkingSlot(day)
-                      }
-                      disabled={
-                        workingHours[
-                          day
-                        ].isOff
-                      }
-                      className={`mt-2.5 inline-flex items-center gap-1.5 text-xs font-semibold transition ${
-                        workingHours[
-                          day
-                        ].isOff
-                          ? 'text-gray-300 cursor-not-allowed'
-                          : 'text-[#2A723D] hover:text-[#235d32] cursor-pointer'
-                      }`}
+                      onClick={clearProfilePhoto}
+                      className="absolute top-2 right-2 bg-white/90 hover:bg-white text-red-600 p-1.5 rounded-full shadow transition"
+                      title="Remove Image"
                     >
-                      <span className="text-base leading-none">
-                        +
-                      </span>
-
-                      Add Slot
+                      <LuX size={16} strokeWidth={3} />
                     </button>
+                  </>
+                ) : (
+                  <span className="text-sm font-semibold text-gray-600">Click to upload image</span>
+                )}
+              </div>
+            </div>
 
-                  </div>
+            <div className="relative md:col-span-2">
+              <label className="block text-[14px] font-semibold text-gray-700 mb-2">
+                Full Street Address <span className="text-red-500">*</span>
+              </label>
+              <textarea
+                name="ClinicAddress"
+                value={formData.ClinicAddress}
+                onChange={handleInputChange}
+                rows="2"
+                placeholder="Enter Complete Address"
+                className="w-full rounded-lg border border-[#AEAEAE] p-3 text-sm focus:outline-none focus:border-[#2A723D] placeholder-gray-300 bg-white resize-none"
+              />
+            </div>
 
-                  <div className="w-1/4 flex justify-end pr-2 pt-2">
-
-                    <input
-                      type="checkbox"
-                      checked={
-                        workingHours[
-                          day
-                        ].isOff
-                      }
-                      onChange={(e) =>
-                        handleWorkingHoursChange(
-                          day,
-                          'isOff',
-                          e.target.checked
-                        )
-                      }
-                      style={{
-                        width: '18px',
-                        height: '18px',
-                        borderRadius:
-                          '4px',
-                        borderColor:
-                          '#AEAEAE'
-                      }}
-                      className="rounded border-[#AEAEAE] accent-[#2A723D] cursor-pointer"
-                    />
-
-                  </div>
-
-                </div>
-              )
-            )}
-
+            <InputField label="City" name="City" value={formData.City} onChange={handleInputChange} placeholder="Enter City Name" />
+            <InputField label="Pincode" name="Pincode" value={formData.Pincode} onChange={handleInputChange} placeholder="Enter Pincode" />
+            <SelectField
+              label="State"
+              name="State"
+              value={formData.State}
+              onChange={handleInputChange}
+              options={['Andhra Pradesh', 'Tamil Nadu', 'Kerala', 'Maharastra', 'Karnataka', 'Delhi']}
+            />
+            <SelectField
+              label="Country"
+              name="Country"
+              value={formData.Country}
+              onChange={handleInputChange}
+              options={['India', 'UK', 'USA']}
+            />
           </div>
         </div>
       )
     },
-
     {
-      id: 5,
-      stepLabel:
-        '5. Payment Information',
-      tag: 'SECTION 05',
-      title:
-        'PAYMENT INFORMATION',
-      subtitle:
-        'Receive consultation payments securely.',
-      height: '416px',
+      id: 2,
+      stepLabel: '2. Professional Details',
+      tag: 'SECTION 02',
+      title: 'PROFESSIONAL DETAILS',
+      subtitle: 'Tell us about your medical background.',
+      content: (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-6">
+          <InputField label="Qualification" name="Qualification" value={formData.Qualification} onChange={handleInputChange} placeholder="e.g., MBBS, MD" />
+          <SelectField
+            label="Specialization"
+            name="Specialization"
+            value={formData.Specialization}
+            onChange={handleInputChange}
+            options={['Dermatology', 'Psychiatry', 'Cardiology', 'Gynecology', 'Orthopedics', 'ENT', 'Dentistry', 'Other']}
+          />
+          <InputField label="Medical Registration Number" name="MedicalRegistrationNumber" value={formData.MedicalRegistrationNumber} onChange={handleInputChange} placeholder="Enter Registration Number" />
+          <SelectField label="Gender" name="Gender" value={formData.Gender} onChange={handleInputChange} options={['Male', 'Female']} />
+          
+          <div className="relative">
+            <label className="block text-[14px] font-semibold text-gray-700 mb-2">
+              Date of Birth <span className="text-red-500">*</span>
+            </label>
+            <div className="relative flex items-center">
+              <input
+                ref={dateInputRef}
+                name="DateOfBirth"
+                value={formData.DateOfBirth}
+                onChange={handleInputChange}
+                type="date"
+                max={today}
+                className="w-full h-[40px] md:h-[44px] rounded-lg border border-[#AEAEAE] px-3.5 md:px-4 text-sm text-gray-700 bg-white focus:outline-none focus:border-[#2A723D] [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-3 [&::-webkit-calendar-picker-indicator]:w-8 [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+              />
+              <LuCalendar className="absolute right-4 text-gray-400 pointer-events-none" size={18} />
+            </div>
+          </div>
+          
+          <InputField label="Years of Experience" name="YearsOfExperience" value={formData.YearsOfExperience} onChange={handleInputChange} placeholder="e.g., 10" required={false} />
+          <InputField label="WhatsApp Business Number" name="WhatsAppNumber" value={formData.WhatsAppNumber} onChange={handleInputChange} maxLength={10} placeholder="Enter WhatsApp Number" />
+        </div>
+      )
+    },
+    {
+      id: 3,
+      stepLabel: '3. Consultation Details',
+      tag: 'SECTION 03',
+      title: 'CONSULTATION DETAILS',
+      subtitle: 'Configure your consultation preferences.',
       content: (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
-
-          <div>
-            <label className="block text-[14px] font-semibold text-gray-700 mb-1.5">
-              UPI ID (optional)
-            </label>
-
-            <input
-              name="UpiId"
-              value={
-                formData.UpiId
-              }
-              onChange={
-                handleInputChange
-              }
-              type="text"
-              placeholder="name@upi"
-              style={{
-                width: '100%',
-                height: '40px',
-                borderRadius: '8px',
-                borderWidth: '1px',
-                borderColor:
-                  '#AEAEAE',
-                padding:
-                  '6px 14px'
-              }}
-              className="text-sm focus:outline-none focus:border-[#2A723D] placeholder-gray-300 bg-white"
-            />
-              
-          </div>
-
-          <div>
-            <label className="block text-[14px] font-semibold text-gray-700 mb-1.5">
-              Account Number
-            </label>
-
-            <input
-              name="AccountNumber"
-              value={
-                formData.AccountNumber
-              }
-              onChange={
-                handleInputChange
-              }
-              type="text"
-              placeholder="Enter Account Number"
-              style={{
-                width: '100%',
-                height: '40px',
-                borderRadius: '8px',
-                borderWidth: '1px',
-                borderColor:
-                  '#AEAEAE',
-                padding:
-                  '6px 14px'
-              }}
-              className="text-sm focus:outline-none focus:border-[#2A723D] placeholder-gray-300 bg-white"
-            />
-              
-          </div>
-
-          <div>
-            <label className="block text-[14px] font-semibold text-gray-700 mb-1.5">
-              Bank Name
-            </label>
-
-            <input
-              name="BankName"
-              value={
-                formData.BankName
-              }
-              onChange={
-                handleInputChange
-              }
-              type="text"
-              placeholder="Enter Bank Name"
-              style={{
-                width: '100%',
-                height: '40px',
-                borderRadius: '8px',
-                borderWidth: '1px',
-                borderColor:
-                  '#AEAEAE',
-                padding:
-                  '6px 14px'
-              }}
-              className="text-sm focus:outline-none focus:border-[#2A723D] placeholder-gray-300 bg-white"
-            />
-              
-          </div>
-
-          <div>
-            <label className="block text-[14px] font-semibold text-gray-700 mb-1.5">
-              IFSC Code
-            </label>
-
-            <input
-              name="IfscCode"
-              value={
-                formData.IfscCode
-              }
-              onChange={
-                handleInputChange
-              }
-              type="text"
-              placeholder="Enter IFSC Code"
-              style={{
-                width: '100%',
-                height: '40px',
-                borderRadius: '8px',
-                borderWidth: '1px',
-                borderColor:
-                  '#AEAEAE',
-                padding:
-                  '6px 14px'
-              }}
-              className="text-sm focus:outline-none focus:border-[#2A723D] placeholder-gray-300 bg-white"
-            />
-              
-          </div>
-
-          <div className="md:col-span-2">
-            <label className="block text-[14px] font-semibold text-gray-700 mb-1.5">
-              Account Holder Name (optional)
-            </label>
-
-            <input
-              name="AccountHolderName"
-              value={
-                formData.AccountHolderName
-              }
-              onChange={
-                handleInputChange
-              }
-              type="text"
-              placeholder="Enter Account Holder Name"
-              style={{
-                width: '100%',
-                height: '40px',
-                borderRadius: '8px',
-                borderWidth: '1px',
-                borderColor:
-                  '#AEAEAE',
-                padding:
-                  '6px 14px'
-              }}
-              className="text-sm focus:outline-none focus:border-[#2A723D] placeholder-gray-300 bg-white"
-            />
-              
-          </div>
-
+          <InputField label="Clinic Consultation Fee (₹)" name="ClinicConsultationFee" value={formData.ClinicConsultationFee} onChange={handleInputChange} placeholder="Enter Amount" />
+          <InputField label="Video Consultation Fee (₹)" name="VideoConsultationFee" value={formData.VideoConsultationFee} onChange={handleInputChange} placeholder="Enter Amount" />
+          <InputField label="Second Opinion Fee (₹)" name="SecondOpinionFee" value={formData.SecondOpinionFee} onChange={handleInputChange} placeholder="Enter Amount" />
+          <SelectField
+            label="Consultation Duration"
+            name="ConsultationDuration"
+            value={formData.ConsultationDuration}
+            onChange={handleInputChange}
+            options={['10 Minutes', '15 Minutes', '20 Minutes', '30 Minutes', '45 Minutes', '60 Minutes']}
+          />
+          <InputField label="Maximum Patients Per Day" name="MaximumPatientsPerDay" value={formData.MaximumPatientsPerDay} onChange={handleInputChange} placeholder="Enter Patients Limit" colSpan={true} />
         </div>
       )
     },
-
     {
-  id: 6,
-  stepLabel: '6. Verification & Consent',
-  tag: 'SECTION 06',
-  title: 'ACCOUNT VERIFICATION & CONSENT',
-  subtitle: 'Please review and confirm your details.',
-  height: '250px',
-  content: (
-    <div className="space-y-4">
+      id: 4,
+      stepLabel: '4. Working Hours',
+      tag: 'SECTION 04',
+      title: 'WORKING HOURS',
+      subtitle: 'Set your weekly availability. Tick "Off" to close a day.',
+      content: (
+        <div className="border border-[#D9D9D9] rounded-xl p-4 md:p-5 bg-white space-y-5">
+          <div className="flex justify-between items-center pb-2 border-b border-[#D9D9D9] text-sm font-bold text-[#2A723D] uppercase tracking-wider">
+            <span className="w-1/4">Day</span>
+            <span className="w-2/4 text-center">Working Hours</span>
+            <span className="w-1/4 text-right pr-1">Off</span>
+          </div>
 
-      <div className="space-y-2.5 pt-1">
-
-        {/* Accurate Information */}
-        <label className="flex items-center space-x-[12px] text-xs font-semibold text-gray-700 cursor-pointer">
-
-          <input
-            type="checkbox"
-            checked={consents.accurate}
-            onChange={(e) =>
-              handleConsentChange(
-                'accurate',
-                e.target.checked
-              )
-            }
-            style={{
-              width: '18px',
-              height: '18px',
-              borderRadius: '4px',
-              borderColor: '#AEAEAE'
-            }}
-            className="rounded border-[#AEAEAE] accent-[#2A723D] cursor-pointer"
-          />
-
-          <span className="text-[14px]">
-            I confirm that the information provided is accurate.
-          </span>
-
-        </label>
-
-        {/* Terms & Privacy */}
-        <label className="flex items-center space-x-[12px] text-xs font-semibold text-gray-700 cursor-pointer">
-
-          <input
-            type="checkbox"
-            checked={consents.terms}
-            onChange={(e) =>
-              handleConsentChange(
-                'terms',
-                e.target.checked
-              )
-            }
-            style={{
-              width: '18px',
-              height: '18px',
-              borderRadius: '4px',
-              borderColor: '#AEAEAE'
-            }}
-            className="rounded border-[#AEAEAE] accent-[#2A723D] cursor-pointer"
-          />
-
-          <span className="text-[14px]">
-            I agree to the Terms & Conditions and Privacy Policy.
-          </span>
-
-        </label>
-
-        {/* WhatsApp & Email Notifications */}
-        <label className="flex items-center space-x-[12px] text-xs font-semibold text-gray-700 cursor-pointer">
-
-          <input
-            type="checkbox"
-            checked={consents.notifications}
-            onChange={(e) =>
-              handleConsentChange(
-                'notifications',
-                e.target.checked
-              )
-            }
-            style={{
-              width: '18px',
-              height: '18px',
-              borderRadius: '4px',
-              borderColor: '#AEAEAE'
-            }}
-            className="rounded border-[#AEAEAE] accent-[#2A723D] cursor-pointer"
-          />
-
-          <span className="text-[14px]">
-            I consent to receive appointment notifications via WhatsApp and Email.
-          </span>
-
-        </label>
-
-      </div>
-
-    </div>
-  )
-}
-  ];
-
-  const sidebarItemHeights = [
-    '1120px',
-    '591px',
-    '452px',
-    '808px',
-    '452px',
-    '250px'
-  ];
-
-  const scrollToSection = (
-    id
-  ) => {
-    setActiveSection(id);
-
-    const element =
-      document.getElementById(
-        `section-${id}`
-      );
-
-    if (element) {
-      element.scrollIntoView({
-        behavior: 'smooth',
-        block: 'start'
-      });
+          <div className="space-y-5">
+            {daysOfWeek.map((day) => (
+              <div key={day} className="flex items-start justify-between text-sm font-semibold text-gray-700">
+                <span className="w-1/4 pt-2 text-[14px]">{day}</span>
+                <div className="w-full px-2 space-y-2">
+                  {workingHours[day].slots.map((slot, slotIndex) => (
+                    <div key={`${day}-${slotIndex}`} className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        placeholder="From (e.g. 09:00 AM)"
+                        value={slot.from}
+                        onChange={(e) => handleWorkingSlotChange(day, slotIndex, 'from', e.target.value)}
+                        disabled={workingHours[day].isOff}
+                        className={`w-full h-[38px] rounded-lg border border-[#AEAEAE] px-3 text-sm focus:outline-none focus:border-[#2A723D] placeholder-gray-300 bg-white ${
+                          workingHours[day].isOff ? 'opacity-50 cursor-not-allowed bg-gray-100' : ''
+                        }`}
+                      />
+                      <span className="text-xs font-semibold text-gray-400">TO</span>
+                      <input
+                        type="text"
+                        placeholder="To (e.g. 12:00 PM)"
+                        value={slot.to}
+                        onChange={(e) => handleWorkingSlotChange(day, slotIndex, 'to', e.target.value)}
+                        disabled={workingHours[day].isOff}
+                        className={`w-full h-[38px] rounded-lg border border-[#AEAEAE] px-3 text-sm focus:outline-none focus:border-[#2A723D] placeholder-gray-300 bg-white ${
+                          workingHours[day].isOff ? 'opacity-50 cursor-not-allowed bg-gray-100' : ''
+                        }`}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => deleteWorkingSlot(day, slotIndex)}
+                        disabled={workingHours[day].isOff}
+                        className="shrink-0 w-8 h-8 rounded-lg border border-red-200 text-red-500 flex items-center justify-center hover:bg-red-50 disabled:opacity-40"
+                      >
+                        <LuTrash2 size={16} />
+                      </button>
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => addWorkingSlot(day)}
+                    disabled={workingHours[day].isOff}
+                    className="inline-flex items-center gap-1 text-xs font-semibold text-[#2A723D] hover:underline disabled:text-gray-300 cursor-pointer"
+                  >
+                    + Add Slot
+                  </button>
+                </div>
+                <div className="w-1/4 flex justify-end pr-2 pt-2">
+                  <input
+                    type="checkbox"
+                    checked={workingHours[day].isOff}
+                    onChange={(e) => handleWorkingHoursChange(day, 'isOff', e.target.checked)}
+                    className="w-[18px] h-[18px] rounded border-[#AEAEAE] accent-[#2A723D] cursor-pointer"
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )
+    },
+    {
+      id: 5,
+      stepLabel: '5. Payment Information',
+      tag: 'SECTION 05',
+      title: 'PAYMENT INFORMATION',
+      subtitle: 'Receive consultation payments securely.',
+      content: (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
+          <InputField label="UPI ID (optional)" name="UpiId" value={formData.UpiId} onChange={handleInputChange} placeholder="name@upi" required={false} />
+          <InputField label="Account Number" name="AccountNumber" value={formData.AccountNumber} onChange={handleInputChange} placeholder="Enter Account Number" required={false} />
+          <InputField label="Bank Name" name="BankName" value={formData.BankName} onChange={handleInputChange} placeholder="Enter Bank Name" required={false} />
+          <InputField label="IFSC Code" name="IfscCode" value={formData.IfscCode} onChange={handleInputChange} placeholder="Enter IFSC Code" required={false} />
+          <InputField label="Account Holder Name (optional)" name="AccountHolderName" value={formData.AccountHolderName} onChange={handleInputChange} placeholder="Enter Account Holder Name" required={false} colSpan={true} />
+        </div>
+      )
+    },
+    {
+      id: 6,
+      stepLabel: '6. Verification & Consent',
+      tag: 'SECTION 06',
+      title: 'ACCOUNT VERIFICATION & CONSENT',
+      subtitle: 'Please review and confirm your details.',
+      content: (
+        <div className="space-y-3 pt-1">
+          {[
+            { key: 'accurate', text: 'I confirm that the information provided is accurate.' },
+            { key: 'terms', text: 'I agree to the Terms & Conditions and Privacy Policy.' },
+            { key: 'notifications', text: 'I consent to receive appointment notifications via WhatsApp and Email.' }
+          ].map((item) => (
+            <label key={item.key} className="flex items-center space-x-3 text-xs font-semibold text-gray-700 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={consents[item.key]}
+                onChange={(e) => handleConsentChange(item.key, e.target.checked)}
+                className="w-[18px] h-[18px] rounded border-[#AEAEAE] accent-[#2A723D]"
+              />
+              <span className="text-[14px]">{item.text}</span>
+            </label>
+          ))}
+        </div>
+      )
     }
+  ];
+
+  const scrollToSection = (id) => {
+    setActiveSection(id);
+    document.getElementById(`section-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
   useEffect(() => {
     const handleScroll = () => {
       sections.forEach((sec) => {
-        const element =
-          document.getElementById(
-            `section-${sec.id}`
-          );
-
-        if (element) {
-          const rect =
-            element.getBoundingClientRect();
-
-          if (
-            rect.top <= 250 &&
-            rect.bottom >= 250
-          ) {
-            setActiveSection(
-              sec.id
-            );
-          }
+        const el = document.getElementById(`section-${sec.id}`);
+        if (el) {
+          const rect = el.getBoundingClientRect();
+          if (rect.top <= 250 && rect.bottom >= 250) setActiveSection(sec.id);
         }
       });
     };
-
-    window.addEventListener(
-      'scroll',
-      handleScroll
-    );
-
-    return () =>
-      window.removeEventListener(
-        'scroll',
-        handleScroll
-      );
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
   }, [sections]);
 
   return (
     <div className="min-h-screen bg-[#FDFDFD] text-[#333333] font-sans p-6 md:p-8">
+      
+      {/* Success Popup Modal */}
+      {showSuccessPopup && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+          <div className="bg-white rounded-2xl p-8 max-w-sm w-full text-center shadow-xl">
+            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8 text-[#2A723D]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <h3 className="text-2xl font-bold text-gray-800 mb-2">Registration Successful!</h3>
+            <p className="text-gray-500 mb-6">Your profile has been created successfully.</p>
+            <button
+              onClick={() => {
+                setShowSuccessPopup(false);
+                navigate('/login');
+              }}
+              className="w-full h-[44px] bg-[#2A723D] hover:bg-[#235d32] text-white rounded-xl font-semibold transition"
+            >
+              Continue to Login
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Error Popup Modal */}
+      {errorPopup.show && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+          <div className="bg-white rounded-2xl p-8 max-w-sm w-full text-center shadow-xl">
+            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </div>
+            <h3 className="text-2xl font-bold text-gray-800 mb-2">Notice</h3>
+            <p className="text-gray-500 mb-6">{errorPopup.message}</p>
+            <button
+              onClick={() => setErrorPopup({ show: false, message: '' })}
+              className="w-full h-[44px] bg-red-600 hover:bg-red-700 text-white rounded-xl font-semibold transition"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="w-full mb-8">
-
-        <a
-          href="/doctor"
-          className="flex items-center text-gray-500 text-sm font-medium mb-4 hover:text-gray-700 transition w-fit"
-        >
-          <span className="mr-1">
-            &laquo;
-          </span>
-
-          Back
+        <a href="/doctor" className="flex items-center text-gray-500 text-sm font-medium mb-4 hover:text-gray-700 transition w-fit">
+          <span className="mr-1">&laquo;</span> Back
         </a>
-
         <div className="text-center">
-
-          <h1
-            style={{
-              fontFamily:
-                'Roboto, sans-serif',
-              fontWeight: 600,
-              fontStyle: 'normal',
-              fontSize: '24px',
-              lineHeight: '40px',
-              letterSpacing: '0%',
-              color: '#346739'
-            }}
-            className="tracking-wide uppercase"
-          >
+          <h1 className="text-[24px] font-semibold text-[#346739] tracking-wide uppercase">
             Create Your Doctor Profile
           </h1>
-
-          <p
-            style={{
-              fontFamily:
-                'Roboto, sans-serif',
-              fontWeight: 400,
-              fontStyle: 'normal',
-              fontSize: '16px',
-              lineHeight: '28px',
-              letterSpacing: '0%',
-              color: '#626262'
-            }}
-            className="mt-2"
-          >
-            Complete the six sections below to start accepting appointments through WhatsApp and manage your practice effortlessly.
+          <p className="text-[16px] text-[#626262] mt-2">
+            Complete the sections below to start accepting appointments through WhatsApp and manage your practice effortlessly.
           </p>
-
         </div>
       </div>
 
       <div className="flex flex-col lg:flex-row gap-8 items-start">
-
-        <div className="w-full lg:w-72 shrink-0 lg:top-8 bg-white rounded-2xl border border-[#D9D9D9] p-4 shadow-sm overflow-hidden hidden lg:block">
-
-          <div className="relative">
-
-            <div className="absolute left-[20px] top-4 bottom-4 w-[2px] bg-[#E5E7EB] z-0" />
-
-            <div className="flex flex-col">
-
-              {sections.map(
-                (sec, index) => (
-                  <div
-                    key={sec.id}
-                    style={{
-                      height:
-                        sidebarItemHeights[
-                          index
-                        ]
-                    }}
-                    className="relative z-10 flex items-start pt-2 transition-all duration-150"
-                  >
-
-                    <div
-                      className={`w-3.5 h-3.5 rounded-full border-2 absolute left-[14px] top-[22px] z-20 transition-all ${
-                        activeSection ===
-                        sec.id
-                          ? 'bg-[#128807] border-[#128807]'
-                          : 'bg-white border-[#D9D9D9]'
-                      }`}
-                    />
-
-                    <button
-                      onClick={() =>
-                        scrollToSection(
-                          sec.id
-                        )
-                      }
-                      className={`w-full text-left py-2.5 pl-9 pr-3 rounded-xl text-xs md:text-sm font-medium transition-all ${
-                        activeSection ===
-                        sec.id
-                          ? 'bg-[#128807] text-white shadow-md font-semibold'
-                          : 'text-gray-500 hover:text-gray-800 bg-transparent'
-                      }`}
-                    >
-                      {
-                        sec.stepLabel
-                      }
-                    </button>
-
-                  </div>
-                )
-              )}
-
-            </div>
+        {/* Left Vertical Stepper Sidebar */}
+        <div className="w-full lg:w-72 shrink-0 bg-white rounded-2xl border border-[#D9D9D9] p-4 shadow-sm sticky top-8 hidden lg:block">
+          <div className="relative flex flex-col space-y-3">
+            {sections.map((sec) => (
+              <button
+                key={sec.id}
+                onClick={() => scrollToSection(sec.id)}
+                className={`w-full text-left py-2.5 px-4 rounded-xl text-xs md:text-sm font-medium transition-all ${
+                  activeSection === sec.id
+                    ? 'bg-[#128807] text-white shadow-md font-semibold'
+                    : 'text-gray-500 hover:text-gray-800 bg-transparent'
+                }`}
+              >
+                {sec.stepLabel}
+              </button>
+            ))}
           </div>
         </div>
 
-        <div
-          className="flex-1 w-full flex flex-col"
-          style={{
-            gap: '36px'
-          }}
-        >
-
+        {/* Right Form Cards Container */}
+        <div className="flex-1 w-full flex flex-col gap-8">
           {Object.keys(validationErrors).length > 0 && (
             <div className="w-full rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
               <p className="font-semibold">Please complete all required fields.</p>
-              <p className="mt-1 text-xs">Fields marked *required must be completed. Working Hours, Payment Information, and Profile Photo are optional.</p>
+              <p className="mt-1 text-xs">Fields marked * are required. Working Hours, Payment Information, and Profile Photo are optional.</p>
             </div>
           )}
 
-          {sections.map(
-            (sec) => (
-              <div
-                key={sec.id}
-                id={`section-${sec.id}`}
-                style={{
-                  width: '100%',
-                  height:
-                    sec.height,
-                  borderRadius:
-                    '16px',
-                  borderWidth:
-                    '1px',
-                  padding:
-                    '20px',
-                  opacity: 1
-                }}
-                className="bg-white border border-[#D9D9D9] shadow-sm scroll-mt-8 overflow-hidden flex flex-col"
-              >
-
-                <div className="mb-4 shrink-0">
-
-                  <span className="text-xs font-semibold uppercase tracking-wider text-[#E26A6A]">
-                    {sec.tag}
-                  </span>
-
-                  <h2 className="text-xl font-bold text-[#2A723D] mt-3 mb-1">
-                    {
-                      sec.title
-                    }
-                  </h2>
-
-                  <p className="text-md mt-3 mb-1 text-gray-500">
-                    {
-                      sec.subtitle
-                    }
-                  </p>
-
-                </div>
-
-                <div className="flex-1 overflow-y-auto pr-1">
-                  {
-                    sec.content
-                  }
-                </div>
-
+          {sections.map((sec) => (
+            <div
+              key={sec.id}
+              id={`section-${sec.id}`}
+              className="bg-white border border-[#D9D9D9] rounded-2xl p-6 shadow-sm scroll-mt-8 flex flex-col"
+            >
+              <div className="mb-4">
+                <span className="text-xs font-semibold uppercase tracking-wider text-[#E26A6A]">{sec.tag}</span>
+                <h2 className="text-xl font-bold text-[#2A723D] mt-2 mb-1">{sec.title}</h2>
+                <p className="text-sm text-gray-500">{sec.subtitle}</p>
               </div>
-            )
-          )}
+              <div>{sec.content}</div>
+            </div>
+          ))}
 
           <div className="w-full pt-2 flex justify-end">
-
             <button
               type="button"
-              onClick={
-                handleSubmit
-              }
-              disabled={
-                isSubmitting
-              }
-              style={{
-                width: '220px',
-                height: '50px',
-                borderRadius:
-                  '12px',
-                backgroundColor:
-                  isSubmitting
-                    ? '#a0c4a8'
-                    : '#2A723D'
-              }}
-              className="text-white text-base font-bold shadow-md hover:bg-[#235d32] transition flex items-center justify-center cursor-pointer"
+              onClick={handleSubmit}
+              disabled={isSubmitting}
+              className={`w-[220px] h-[50px] rounded-xl text-white text-base font-bold shadow-md transition flex items-center justify-center cursor-pointer ${
+                isSubmitting ? 'bg-[#a0c4a8] cursor-not-allowed' : 'bg-[#2A723D] hover:bg-[#235d32]'
+              }`}
             >
-              {isSubmitting
-                ? 'Submitting...'
-                : 'Submit Details'}
+              {isSubmitting ? 'Submitting...' : 'Submit Details'}
             </button>
-
           </div>
-
         </div>
       </div>
     </div>

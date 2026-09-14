@@ -45,7 +45,7 @@ const NavbarDoctor = () => {
   }, []);
 
   const navLinks = [
-    { label: 'HOME', id: 'home' },
+    { label: 'HOME', id: 'dhome' },
     { label: 'WHY US', id: 'why-us' },
     { label: 'HOW IT WORKS', id: 'how-it-works' },
     { label: 'FEATURES', id: 'powerful-features' },

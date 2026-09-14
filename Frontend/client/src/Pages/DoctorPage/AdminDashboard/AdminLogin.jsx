@@ -19,8 +19,7 @@ const AdminLogin = () => {
     setLoading(true);
 
     try {
-      const API_BASE =
-        import.meta.env.VITE_API_BASE || "/api";
+      const API_BASE = import.meta.env.VITE_API_BASE || "/api";
 
       const loginUrl = `${API_BASE}/admin/login`;
 
@@ -34,8 +33,8 @@ const AdminLogin = () => {
           Accept: "application/json",
         },
         body: JSON.stringify({
-          username: username.trim(),
-          password: password,
+          UserName: username.trim(),
+          Password: password,
         }),
       });
 
@@ -44,8 +43,7 @@ const AdminLogin = () => {
         response.status
       );
 
-      const contentType =
-        response.headers.get("content-type") || "";
+      const contentType = response.headers.get("content-type") || "";
 
       let data = {};
 
@@ -76,10 +74,7 @@ const AdminLogin = () => {
       // GET TOKEN FROM API RESPONSE
       // =====================================================
 
-      const token =
-        data.token ||
-        data.accessToken ||
-        data.access_token;
+      const token = data.access_token || data.token || data.accessToken;
 
       // =====================================================
       // GET ADMIN NAME FROM API RESPONSE

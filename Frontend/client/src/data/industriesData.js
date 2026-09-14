@@ -66,7 +66,7 @@ export const industriesData = [
     title: "E-COMMERCE",
     label: "E-commerce",
     icon: ecommerceIcon,
-    path: "/ecommerce",
+    path: "/ecommerce-login",
     image: ecommerceImg,
     description:
       "Manage products, inventory, orders, customers, and sales across your online store.",

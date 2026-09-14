@@ -18,24 +18,27 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const [legalModal, setLegalModal] = useState(null);
 
+  // Popup States
+  const [showSuccessPopup, setShowSuccessPopup] = useState(false);
+  const [errorPopup, setErrorPopup] = useState({ show: false, message: '' });
+
   const navigate = useNavigate();
 
   const handleLogin = async (e) => {
     e.preventDefault();
 
     if (!username || !password) {
-      alert('Please enter both username and password.');
+      setErrorPopup({ show: true, message: 'Please enter both username and password.' });
       return;
     }
 
     setLoading(true);
 
     try {
-      const apiBase =
-        import.meta.env.VITE_API_BASE || '/api';
+      const apiBase = import.meta.env.VITE_API_BASE || '/api';
 
       const response = await fetch(
-        `${apiBase}/doctors/login`,
+        `${apiBase}/businesses/login`,
         {
           method: 'POST',
           headers: {
@@ -45,6 +48,7 @@ const Login = () => {
           body: JSON.stringify({
             UserName: username,
             Password: password,
+            IndustryType: 'DoctorAppointment'
           }),
         }
       );
@@ -53,114 +57,62 @@ const Login = () => {
       // SAFE RESPONSE PARSING
       // =====================================================
 
-      const contentType =
-        response.headers.get('content-type');
+      const contentType = response.headers.get('content-type');
 
       let data = {};
 
-      if (
-        contentType &&
-        contentType.includes('application/json')
-      ) {
+      if (contentType && contentType.includes('application/json')) {
         const text = await response.text();
-
-        data = text
-          ? JSON.parse(text)
-          : {};
+        data = text ? JSON.parse(text) : {};
       }
 
-      console.log(
-        'Login API status:',
-        response.status
-      );
-
-      console.log(
-        'Login API response:',
-        data
-      );
+      console.log('Login API status:', response.status);
+      console.log('Login API response:', data);
 
       // =====================================================
       // LOGIN SUCCESS
       // =====================================================
 
       if (response.ok) {
-        console.log(
-          'Login successful - Raw API Response Data:',
-          data
-        );
+        console.log('Login successful - Raw API Response Data:', data);
 
         // ===================================================
         // 1. SAVE TOKEN
         // ===================================================
 
-        const token =
-          data.token ||
-          data.accessToken ||
-          'mock-doctor-token';
-
-        localStorage.setItem(
-          'doctorToken',
-          token
-        );
-
-        console.log(
-          'Saved doctorToken:',
-          localStorage.getItem(
-            'doctorToken'
-          )
-        );
+        const token = data.access_token || data.token || 'mock-doctor-token';
+        localStorage.setItem('doctorToken', token);
+        console.log('Saved doctorToken:', localStorage.getItem('doctorToken'));
 
         // ===================================================
         // 2. SAVE DOCTOR ID
         // ===================================================
 
-        if (data.Id) {
-          localStorage.setItem(
-            'doctorId',
-            data.Id
-          );
-
-          console.log(
-            'Saved doctorId:',
-            localStorage.getItem(
-              'doctorId'
-            )
-          );
+        if (data.business && data.business.Id) {
+          localStorage.setItem('doctorId', data.business.Id);
+          console.log('Saved doctorId:', localStorage.getItem('doctorId'));
         } else {
-          console.warn(
-            'Warning: "Id" was not found in the response data object.'
-          );
+          console.warn('Warning: "Id" was not found in the response business object.');
         }
 
         // ===================================================
         // 3. SAVE COMPLETE DOCTOR PROFILE
         // ===================================================
 
-        localStorage.setItem(
-          'doctorProfile',
-          JSON.stringify(data)
-        );
-
-        console.log(
-          'Saved doctorProfile:',
-          localStorage.getItem(
-            'doctorProfile'
-          )
-        );
+        localStorage.setItem('doctorProfile', JSON.stringify(data.business || data));
+        console.log('Saved doctorProfile:', localStorage.getItem('doctorProfile'));
 
         // ===================================================
         // 4. AUTH CHANGE EVENT
         // ===================================================
 
-        window.dispatchEvent(
-          new Event('authChange')
-        );
+        window.dispatchEvent(new Event('authChange'));
 
         // ===================================================
-        // 5. REDIRECT TO DASHBOARD
+        // 5. SHOW SUCCESS POPUP
         // ===================================================
 
-        navigate('/doctor-dashboard');
+        setShowSuccessPopup(true);
 
       } else {
 
@@ -168,24 +120,15 @@ const Login = () => {
         // LOGIN FAILED
         // ===================================================
 
-        alert(
-          data.message ||
-            data.detail ||
-            'Login failed. Please check your credentials.'
-        );
+        setErrorPopup({
+          show: true, 
+          message: data.message || data.detail || 'Login failed. Please check your credentials.'
+        });
       }
 
     } catch (error) {
-
-      console.error(
-        'API Error:',
-        error
-      );
-
-      alert(
-        'An error occurred while connecting to the server. Please try again.'
-      );
-
+      console.error('API Error:', error);
+      setErrorPopup({ show: true, message: 'An error occurred while connecting to the server. Please try again.' });
     } finally {
       setLoading(false);
     }
@@ -297,6 +240,55 @@ const Login = () => {
 
   return (
     <div className="min-h-screen w-full bg-[#FFFFFF] flex flex-col xl:flex-row items-center justify-center xl:justify-between px-4 sm:px-8 xl:px-[64px] py-8 xl:py-[36px] box-border overflow-x-hidden relative">
+
+      {/* =====================================================
+          SUCCESS POPUP MODAL
+      ===================================================== */}
+      {showSuccessPopup && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/50 px-4">
+          <div className="bg-white rounded-2xl p-8 max-w-sm w-full text-center shadow-xl">
+            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8 text-[#2A723D]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <h3 className="text-2xl font-bold text-gray-800 mb-2">Login Successful!</h3>
+            <p className="text-gray-500 mb-6">Welcome back to your dashboard.</p>
+            <button
+              onClick={() => {
+                setShowSuccessPopup(false);
+                navigate('/doctor-dashboard');
+              }}
+              className="w-full h-[44px] bg-[#346739] hover:bg-[#2c5730] text-white rounded-xl font-semibold transition"
+            >
+              Continue to Dashboard
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* =====================================================
+          ERROR POPUP MODAL
+      ===================================================== */}
+      {errorPopup.show && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/50 px-4">
+          <div className="bg-white rounded-2xl p-8 max-w-sm w-full text-center shadow-xl">
+            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </div>
+            <h3 className="text-2xl font-bold text-gray-800 mb-2">Notice</h3>
+            <p className="text-gray-500 mb-6">{errorPopup.message}</p>
+            <button
+              onClick={() => setErrorPopup({ show: false, message: '' })}
+              className="w-full h-[44px] bg-red-600 hover:bg-red-700 text-white rounded-xl font-semibold transition"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* =====================================================
           TERMS / PRIVACY POPUP
