@@ -68,7 +68,7 @@ class SessionService:
 
             initial_state = {
                 "IndustryName" : industry,
-                "SequenceName": "MainWorkSequence",
+                "SequenceName": "",
                 "CurrentFlow": "",
                 "WorkflowIndex": 0,
                 "UserType": "",

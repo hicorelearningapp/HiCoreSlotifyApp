@@ -23,6 +23,14 @@ class EcommerceWorkflow(Workflow):
     }
 
     @classmethod
+    def get_param_workflow(cls, name: str):
+        _, param, options = (name.split(";", 2) + ["", ""])[:3]
+        return create_get_param_workflow(
+            param or "Option",
+            [x.strip() for x in options.split(",") if x.strip()],
+        )
+
+    @classmethod
     def get_workflow(cls, name: str):
         if not name:
             return None
@@ -30,11 +38,8 @@ class EcommerceWorkflow(Workflow):
         name = name.strip()
 
         if name.startswith("GetParam;"):
-            _, param, options = (name.split(";", 2) + ["", ""])[:3]
-            return create_get_param_workflow(
-                param or "Option",
-                [x.strip() for x in options.split(",") if x.strip()],
-            )
+            return cls.get_param_workflow(name)
 
         return cls.WORKFLOW.get(name)
+
 

@@ -35,7 +35,7 @@ class ConversationManager:
             logger.log_received(customer_phone, message.Text or message.InteractiveId)
 
         print(f"[DEBUG MESSAGE] Phone: {message.PhoneNumber}, Text: {message.Text}, InteractiveId: {message.InteractiveId}")
-        business_phone = message.BusinessPhoneNumber if message else None
+        business_phone = message.BusinessPhoneNumber
         session = SessionService().load_session(message)
         sequenceManager = SequenceFactory.GetSequenceManager(session.state.IndustryName)
 
