@@ -74,7 +74,7 @@ class SessionService:
                 "WorkflowData": {},
                 "Initialized": False,
                 "BusinessPhoneNumber": business_phone_number,
-                "ProductKey" : msg
+                "ProductId" : msg
             }
             session_create = schemas.SessionCreate(
                     PhoneNumber=phone_number,

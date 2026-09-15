@@ -35,12 +35,13 @@ class ConversationManager:
         print(f"[DEBUG MESSAGE] Phone: {message.PhoneNumber}, Text: {message.Text}, InteractiveId: {message.InteractiveId}")
         business_phone = message.BusinessPhoneNumber
         session = SessionService().load_session(message)
-        sequenceManager = SequenceFactory.GetSequenceManager(session.state.IndustryName)
-
         try:
+            sequenceManager = SequenceFactory.GetSequenceManager(session.state.IndustryName)
             self.Sequence = sequenceManager.GetSequence(session)
-        except ValueError:
+        except Exception as e:
+            print(f"[ConversationManager] Sequence error: {e}")
             SessionService().reset_session(customer_phone, business_phone)
+            return
 
         self.Workflows = self.Sequence.Workflows
         self.CurrentWorkflowIndex = session.state.WorkflowIndex
