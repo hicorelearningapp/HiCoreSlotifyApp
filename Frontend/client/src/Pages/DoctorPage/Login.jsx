@@ -48,7 +48,7 @@ const Login = () => {
           body: JSON.stringify({
             UserName: username,
             Password: password,
-            IndustryType: 'DoctorAppointment'
+            IndustryType: 'HealthcareDoctorAppointment'
           }),
         }
       );

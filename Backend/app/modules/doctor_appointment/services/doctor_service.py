@@ -49,7 +49,7 @@ class DoctorService:
 
     def list_doctors(self, skip: int = 0, limit: int = 100, status: Optional[str] = None, approved_only: bool = False) -> List[models.Doctor]:
         query = self.db.query(models.Doctor).filter(
-            (models.Doctor.IndustryType == "DoctorAppointment") |
+            (models.Doctor.IndustryType == "HealthcareDoctorAppointment") |
             (models.Doctor.IndustryType.ilike("%doctor%"))
         )
         if status:
@@ -62,7 +62,7 @@ class DoctorService:
         from app.core.phone_utils import build_phone_filter
         phone_filter = build_phone_filter(models.Doctor.BusinessPhoneNumber, business_phone)
         query = self.db.query(models.Doctor).filter(
-            (models.Doctor.IndustryType == "DoctorAppointment") |
+            (models.Doctor.IndustryType == "HealthcareDoctorAppointment") |
             (models.Doctor.IndustryType.ilike("%doctor%")),
             phone_filter
         )
@@ -276,7 +276,7 @@ class DoctorService:
 
     def get_admin_dashboard(self) -> dict:
         doc_query = self.db.query(models.Doctor).filter(
-            (models.Doctor.IndustryType == "DoctorAppointment") |
+            (models.Doctor.IndustryType == "HealthcareDoctorAppointment") |
             (models.Doctor.IndustryType.ilike("%doctor%"))
         )
         total_doctors = doc_query.count()

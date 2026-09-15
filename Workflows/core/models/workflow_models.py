@@ -64,7 +64,7 @@ class ConversationSession:
         industry = self.state.IndustryName or self.WorkflowData.get("industry", "healthcare") if self.state else "healthcare"
         
         # Map DB industry names to actual folder names
-        if industry == "DoctorAppointment":
+        if industry == "HealthcareDoctorAppointment":
             folder_name = "healthcare"
         elif industry == "Ecommerce":
             folder_name = "ecommerce"

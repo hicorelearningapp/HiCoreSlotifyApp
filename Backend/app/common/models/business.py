@@ -11,7 +11,7 @@ class Business(Base):
     # Common Primary & Profile Columns
     Id = Column(String(36), primary_key=True, default=generate_uuid, index=True)
     BusinessName = Column(String(200), nullable=False)
-    IndustryType = Column(String(100), nullable=False, index=True)  # e.g., 'DoctorAppointment', 'Ecommerce', etc.
+    IndustryType = Column(String(100), nullable=False, index=True)  # e.g., 'HealthcareDoctorAppointment', 'Ecommerce', etc.
     FullName = Column(String(150), nullable=False)
     EmailAddress = Column(String(150), unique=True, nullable=False, index=True)
     MobileNumber = Column(String(20), nullable=False, index=True)

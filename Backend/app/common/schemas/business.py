@@ -4,7 +4,7 @@ from typing import Optional, Dict, Any, Union
 from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator
 
 class IndustryTypeEnum(str, Enum):
-    DoctorAppointment = "DoctorAppointment"
+    HealthcareDoctorAppointment = "HealthcareDoctorAppointment"
     Ecommerce = "Ecommerce"
     Salon = "Salon"
     Hospitality = "Hospitality"
@@ -21,7 +21,7 @@ class BusinessStatusEnum(str, Enum):
 
 class BusinessBase(BaseModel):
     BusinessName: str = Field(..., max_length=200, description="Name of the business / entity")
-    IndustryType: str = Field(..., max_length=100, description="Industry sector, e.g. DoctorAppointment, Ecommerce, Salon, Hospitality, etc.")
+    IndustryType: str = Field(..., max_length=100, description="Industry sector, e.g. HealthcareDoctorAppointment, Ecommerce, Salon, Hospitality, etc.")
     FullName: Optional[str] = Field(None, max_length=150, description="Name of the business owner / representative")
     EmailAddress: str = Field(..., max_length=150, description="Primary email address")
     MobileNumber: str = Field(..., max_length=20, description="Primary mobile phone number")

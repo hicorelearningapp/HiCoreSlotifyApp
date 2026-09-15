@@ -101,7 +101,7 @@ class BusinessRouter:
         self,
         request: Request,
         BusinessName: Optional[str] = Form(None, description="Name of the business / entity"),
-        IndustryType: Optional[str] = Form(None, description="Industry sector, e.g. DoctorAppointment, Ecommerce, Salon, Hospitality, etc."),
+        IndustryType: Optional[str] = Form(None, description="Industry sector, e.g. HealthcareDoctorAppointment, Ecommerce, Salon, Hospitality, etc."),
         FullName: Optional[str] = Form(None, description="Name of the business owner / representative"),
         EmailAddress: Optional[str] = Form(None, description="Primary email address"),
         MobileNumber: Optional[str] = Form(None, description="Primary mobile phone number"),

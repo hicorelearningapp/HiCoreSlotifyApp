@@ -6,6 +6,8 @@ from typing import Optional, Dict, Any, List, Tuple
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
 
+from app.common.schemas.business import IndustryTypeEnum
+
 logger = logging.getLogger("uvicorn")
 
 
@@ -22,37 +24,57 @@ class BusinessWorkflowConfigService:
     @classmethod
     def normalize_industry(cls, raw_industry: Optional[str]) -> Tuple[str, str]:
         """
-        Returns (pascal_case_name, folder_name)
+        Returns (pascal_case_name, folder_name) strictly mapped to IndustryTypeEnum values.
         Directory name is exactly the IndustryType in PascalCase.
-        e.g. 'doctor_appointment' -> ('DoctorAppointment', 'DoctorAppointment')
+        e.g. 'doctor_appointment' -> ('HealthcareDoctorAppointment', 'HealthcareDoctorAppointment')
              'ecommerce' -> ('Ecommerce', 'Ecommerce')
              'salon' -> ('Salon', 'Salon')
         """
         if not raw_industry:
-            return ("DoctorAppointment", "DoctorAppointment")
+            default_val = IndustryTypeEnum.HealthcareDoctorAppointment.value
+            return (default_val, default_val)
+
+        if isinstance(raw_industry, IndustryTypeEnum):
+            return (raw_industry.value, raw_industry.value)
 
         ind_clean = str(raw_industry).strip()
+
+        # Direct match against IndustryTypeEnum members
+        for member in IndustryTypeEnum:
+            if ind_clean.lower() == member.value.lower() or ind_clean.lower() == member.name.lower():
+                return (member.value, member.value)
+
         lower_ind = ind_clean.lower().replace("-", "_").replace(" ", "_")
 
-        if lower_ind in ["doctor_appointment", "doctorappointment", "healthcare", "doctor", "health"]:
-            pascal_name = "DoctorAppointment"
-        elif lower_ind in ["ecommerce", "e_commerce", "ecom"]:
-            pascal_name = "Ecommerce"
+        if lower_ind in [
+            "doctor_appointment", "doctorappointment", "healthcare",
+            "doctor", "health", "healthcare_doctor_appointment",
+            "healthcaredoctorappointment", "clinic", "hospital"
+        ]:
+            enum_val = IndustryTypeEnum.HealthcareDoctorAppointment.value
+        elif lower_ind in ["ecommerce", "e_commerce", "ecom", "e_com"]:
+            enum_val = IndustryTypeEnum.Ecommerce.value
+        elif lower_ind in ["salon", "salons", "beauty", "spa", "parlour", "barber"]:
+            enum_val = IndustryTypeEnum.Salon.value
+        elif lower_ind in ["hospitality", "hotel", "hotels", "restaurant", "restaurants", "resort", "cafe"]:
+            enum_val = IndustryTypeEnum.Hospitality.value
+        elif lower_ind in ["fitness", "gym", "gyms", "workout", "trainer"]:
+            enum_val = IndustryTypeEnum.Fitness.value
+        elif lower_ind in ["retail", "shop", "shops", "store", "stores", "shopping", "mart"]:
+            enum_val = IndustryTypeEnum.Retail.value
         else:
-            # Generic PascalCase conversion
-            parts = re.split(r"[\s_\-]+", ind_clean)
-            pascal_name = "".join(p.capitalize() for p in parts if p) or "DoctorAppointment"
+            enum_val = IndustryTypeEnum.Other.value
 
-        return (pascal_name, pascal_name)
+        return (enum_val, enum_val)
 
     @classmethod
-    def get_backend_configs_dir(cls, industry: str = "DoctorAppointment") -> str:
+    def get_backend_configs_dir(cls, industry: str = IndustryTypeEnum.HealthcareDoctorAppointment.value) -> str:
         # File: Backend/app/common/services/business_workflow_config_service.py
         # 1: services, 2: common, 3: app, 4: Backend
         backend_dir = os.path.dirname(
             os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         )
-        if industry and str(industry).lower() in ["ecommerce", "e_commerce", "ecom"]:
+        if industry and str(industry).lower() in ["ecommerce", "e_commerce", "ecom", IndustryTypeEnum.Ecommerce.value.lower()]:
             target_dir = os.path.join(backend_dir, "industry_configs", "Ecommerce", "Businesses")
         else:
             target_dir = os.path.join(backend_dir, "industry_configs", industry)
@@ -62,7 +84,7 @@ class BusinessWorkflowConfigService:
     @classmethod
     def build_generic_industry_config(cls, industry_pascal: str) -> Dict[str, Any]:
         """
-        Builds empty template for non-DoctorAppointment industries:
+        Builds empty template for non-HealthcareDoctorAppointment industries:
         {
           "industry": "<IndustryName>",
           "settings": {},
@@ -86,7 +108,7 @@ class BusinessWorkflowConfigService:
         db: Optional[Session] = None
     ) -> Dict[str, Any]:
         """
-        Builds the DoctorAppointment / Healthcare workflow configuration dictionary.
+        Builds the HealthcareDoctorAppointment / Healthcare workflow configuration dictionary.
         """
         b_data = getattr(business, "BusinessData", None) or {}
         if not isinstance(b_data, dict):
@@ -155,7 +177,7 @@ class BusinessWorkflowConfigService:
         session_timeout = int(b_data.get("session_timeout_minutes", 10))
 
         config_data = {
-            "industry": "DoctorAppointment",
+            "industry": IndustryTypeEnum.HealthcareDoctorAppointment.value,
             "settings": {
                 "welcome_message_override": welcome_override,
                 "welcome_image_filename": welcome_image,
@@ -243,7 +265,7 @@ class BusinessWorkflowConfigService:
         strictly inside Backend/industry_configs/{IndustryType}/
         """
         try:
-            raw_industry = getattr(business, "IndustryType", "DoctorAppointment")
+            raw_industry = getattr(business, "IndustryType", IndustryTypeEnum.HealthcareDoctorAppointment.value)
             pascal_name, folder_name = cls.normalize_industry(raw_industry)
 
             clean_phone = cls.clean_phone(getattr(business, "BusinessPhoneNumber", None) or getattr(business, "MobileNumber", None))
@@ -251,7 +273,7 @@ class BusinessWorkflowConfigService:
                 logger.warning("Business has no valid phone number to generate workflow config.")
                 return None
 
-            if pascal_name == "DoctorAppointment":
+            if pascal_name == IndustryTypeEnum.HealthcareDoctorAppointment.value:
                 config_data = cls.build_doctor_appointment_config(business, db)
             else:
                 config_data = cls.build_generic_industry_config(pascal_name)
@@ -346,7 +368,9 @@ class BusinessWorkflowConfigService:
         Returns only the Industry type string from the configuration for the given business phone number.
         """
         config = cls.get_config_by_phone(phone_number, db)
-        return config.get("Industry") or config.get("industry") or "DoctorAppointment"
+        raw_ind = config.get("Industry") or config.get("industry") or IndustryTypeEnum.HealthcareDoctorAppointment.value
+        pascal_name, _ = cls.normalize_industry(raw_ind)
+        return pascal_name
 
     @classmethod
     def update_doctor_phone_in_config(
@@ -373,7 +397,7 @@ class BusinessWorkflowConfigService:
                 # Save back to file strictly inside Backend/industry_configs/
                 file_path = cls.find_config_file(clean_biz)
                 if not file_path:
-                    backend_dir = cls.get_backend_configs_dir("DoctorAppointment")
+                    backend_dir = cls.get_backend_configs_dir(IndustryTypeEnum.HealthcareDoctorAppointment.value)
                     file_path = os.path.join(backend_dir, f"{clean_biz}.json")
 
                 with open(file_path, "w", encoding="utf-8") as f:
