@@ -40,6 +40,10 @@ class EcommerceWorkflow(WorkflowClass):
         if name.startswith("GetParam;"):
             return cls.get_param_workflow(name)
 
-        return cls.WORKFLOW.get(name)
+        if name in cls.WORKFLOW:
+            return cls.WORKFLOW[name]
+
+        name_clean = name.replace("WorkFlow", "Workflow").replace("WorkFLow", "Workflow")
+        return cls.WORKFLOW.get(name_clean)
 
 

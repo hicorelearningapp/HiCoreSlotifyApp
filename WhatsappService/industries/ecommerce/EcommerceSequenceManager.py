@@ -8,11 +8,17 @@ class EcommerceSequenceManager(BaseSequenceManager):
 
     @classmethod
     def GetSequence(cls, sessionData: ConversationSession) -> Sequence:
-        config = BackendAPIClient().get_industry_config_by_product_id(
-            sessionData.state.ProductId
-        )
+        config = None
+        if sessionData.state.ProductId:
+            config = BackendAPIClient().get_product_config_by_id(
+                sessionData.state.ProductId
+            )
 
-        industry = config.get("industry")
+        if not config:
+            greeting_wf = WorkflowFactory.get_workflow_factory("Ecommerce").get_workflow("GreetingWorkflow")
+            return Sequence("MainWorkSequence", [greeting_wf] if greeting_wf else [])
+
+        industry = config.get("industry", "Ecommerce")
         sequences = config.get("sequences", {})
 
         if not sessionData.state.SequenceName:

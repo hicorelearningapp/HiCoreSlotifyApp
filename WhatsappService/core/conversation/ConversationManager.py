@@ -38,12 +38,11 @@ class ConversationManager:
             business_phone = ""
             
         session = SessionService().load_session(message)
-        sequenceManager = SequenceFactory.GetSequenceManager(session.state.IndustryName)
-
         try:
+            sequenceManager = SequenceFactory.GetSequenceManager(session.state.IndustryName)
             self.Sequence = sequenceManager.GetSequence(session)
-        except ValueError:
-            # If the current sequence is invalid, reset and start fresh!
+        except Exception as e:
+            print(f"[ConversationManager] Sequence error: {e}")
             SessionService().reset_session(customer_phone, business_phone)
             return
 
