@@ -1,4 +1,4 @@
-from core.workflow_factory.workflow_factory_base import Workflow
+from core.workflow_factory.workflow_factory_base import WorkflowClass
 
 from industries.ecommerce.workflows.common.GreetingMessageWorkflow import GreetingMessageWorkflow
 from industries.ecommerce.workflows.customer.get_param_workflow import create_get_param_workflow
@@ -10,7 +10,7 @@ from industries.ecommerce.workflows.customer.confirm_order_workflow import Confi
 from industries.ecommerce.workflows.common.ExitWorkflow import ExitWorkflow
 
 
-class EcommerceWorkflow(Workflow):
+class EcommerceWorkflow(WorkflowClass):
 
     WORKFLOW = {
         "GreetingWorkflow": GreetingMessageWorkflow,

@@ -7,6 +7,16 @@ from core.models import ConversationSession
 class HealthcareSequenceManager(BaseSequenceManager):
 
     @classmethod
+    def get_settings(cls, business_phone: str):
+        if not business_phone:
+            return {}
+        try:
+            config = BackendAPIClient().get_industry_config_by_phone(str(business_phone))
+            return config.get("settings")
+        except:
+            return {}
+
+    @classmethod
     def GetSequence(cls, sessionData: ConversationSession) -> Sequence:
         config = BackendAPIClient().get_industry_config_by_phone(
             sessionData.state.BusinessPhoneNumber

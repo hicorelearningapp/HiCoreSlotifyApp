@@ -7,10 +7,9 @@ from core.api_client import api_client
 class SelectDoctorWorkflow(Workflow):
     def Initialize(self, session: ConversationSession):
         business_phone = session.state.BusinessPhoneNumber
+        doctors = []
         if business_phone:
-            doctors = (api_client.list_doctors_by_business_phone(business_phone, approved_only=False) or [])[:9]
-        else:
-            doctors = (api_client.list_doctors(approved_only=False) or [])[:9]
+            doctors = (api_client.list_doctors_by_business_phone(business_phone) or [])[:9]
             
         if not doctors:
             return WorkflowResult.end_sequence(reply=Reply("text", "Sorry, no doctors are currently available for this clinic."))

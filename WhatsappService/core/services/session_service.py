@@ -63,8 +63,7 @@ class SessionService:
         session = self.get_session(phone_number, business_phone_number)
 
         if not session or not session.StateData:
-            from core.SequenceFactory import SequenceFactory
-            industry = SequenceFactory().getIndustry(business_phone_number)
+            industry = BackendAPIClient().get_industry_by_phone(business_phone_number)
 
             initial_state = {
                 "IndustryName" : industry,

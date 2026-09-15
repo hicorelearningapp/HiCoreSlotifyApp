@@ -1,5 +1,3 @@
-from pyasn1_modules.rfc2985 import sequenceNumber
-
 from core.SequenceFactory import SequenceFactory, BaseSequenceManager
 from core.models.workflow_models import Message, WorkflowStatus, WorkflowResult, Reply
 from core.services.session_service import SessionService
@@ -135,7 +133,7 @@ class ConversationManager:
             break
 
     def move_to_next_workflow(self, session) -> bool:
-        sequenceManager = SequenceFactory.GetBaseSequenceManager(session.state.IndustryName)
+        sequenceManager = SequenceFactory.GetSequenceManager(session.state.IndustryName)
         seq = sequenceManager.GetSequence(session)
         next_workflow = seq.Next(session.state.WorkflowIndex)
         if next_workflow is None:

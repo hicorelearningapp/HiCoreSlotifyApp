@@ -12,7 +12,7 @@ from core.services.whatsapp_service import whatsapp as WhatsAppService
 
 class SelectDateWorkflow(Workflow):
     def Initialize(self, session: ConversationSession):
-        from core.SequenceFactory import SequenceFactory
+        from industries.healthcare.HealthcareSequenceManager import HealthcareSequenceManager
         sections = [{"title": "Upcoming Dates", "rows": []}]
         doctor_id = session.WorkflowData.get("DoctorId")
         if not doctor_id and session.state.BusinessPhoneNumber:
@@ -25,7 +25,8 @@ class SelectDateWorkflow(Workflow):
         doctor = api_client.get_doctor(doctor_id)
 
         biz_phone = session.state.BusinessPhoneNumber if session.state else None
-        default_hours = SequenceFactory.get_setting(biz_phone, "business_hours")
+        settings = HealthcareSequenceManager.get_settings(biz_phone) or {}
+        default_hours = settings.get("business_hours")
 
         days_added = 0
         current_date = date.today()

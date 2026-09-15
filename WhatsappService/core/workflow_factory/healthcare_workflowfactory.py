@@ -1,4 +1,4 @@
-from core.workflow_factory.workflow_factory_base import Workflow
+from core.workflow_factory.workflow_factory_base import WorkflowClass
 
 # Customer workflows
 from industries.healthcare.workflows.customer.main_menu_workflow import MainMenuWorkflow
@@ -30,7 +30,7 @@ from industries.healthcare.workflows.common.GreetingMessageWorkflow import Greet
 from industries.healthcare.workflows.common.ExitWorkflow import ExitWorkflow
 
 
-class HealthcareWorkflow(Workflow):
+class HealthcareWorkflow(WorkflowClass):
 
     WORKFLOW = {
         # Customer workflows

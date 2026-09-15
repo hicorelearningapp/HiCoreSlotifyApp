@@ -1,9 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import List, Type
 from core.models import ConversationSession
-from industries.ecommerce.EcommerceSequenceManager import EcommerceSequenceManager
-from industries.healthcare.HealthcareSequenceManager import HealthcareSequenceManager
-
 
 class Sequence:
     def __init__(self, name: str, workflows: List[Type]):
@@ -42,15 +39,17 @@ class BaseSequenceManager(ABC):
 
 class SequenceFactory:
 
-    SEQUENCE_FACTORY = {
-            "Ecommerce": EcommerceSequenceManager,
-            "HealthcareDoctorAppointment": HealthcareSequenceManager,
-    }
-
     @classmethod
     def GetSequenceManager(cls, industry: str) -> Type[BaseSequenceManager]:
-                
-        factory = cls.SEQUENCE_FACTORY.get(industry)
+        from industries.ecommerce.EcommerceSequenceManager import EcommerceSequenceManager
+        from industries.healthcare.HealthcareSequenceManager import HealthcareSequenceManager
+        
+        SEQUENCE_FACTORY = {
+            "Ecommerce": EcommerceSequenceManager,
+            "HealthcareDoctorAppointment": HealthcareSequenceManager,
+        }
+
+        factory = SEQUENCE_FACTORY.get(industry)
         if not factory:
             raise ValueError(f"No sequence factory registered for industry '{industry}'.")
         return factory
