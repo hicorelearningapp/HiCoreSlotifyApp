@@ -2,12 +2,12 @@ from core.workflows.BaseWorkflow import Workflow
 from core.models.workflow_models import ConversationSession, Message, WorkflowResult, Reply
 from config import PUBLIC_BASE_URL
 from core.api_client import api_client
-from industries.healthcare.HealthcareSequenceManager import HealthcareSequenceManager
 import urllib.parse
 
 
 class GreetingMessageWorkflow(Workflow):
     def Initialize(self, session: ConversationSession) -> WorkflowResult:
+        from industries.healthcare.HealthcareSequenceManager import HealthcareSequenceManager
         role = session.WorkflowData.get("role", "customer")
         user_name = session.WorkflowData.get("name") or ((c := api_client.get_customer_by_phone(session.PhoneNumber)) and (c.get("CustomerName") or c.get("PatientName")))
 

@@ -1,4 +1,4 @@
-from core.SequenceFactory import Sequence, BaseSequenceManager, SequenceFactory
+from core.sequence import Sequence, BaseSequenceManager
 from core.workflow_factory.workflow_factory_base import WorkflowFactory
 from core.api_client import BackendAPIClient
 from core.models import ConversationSession
