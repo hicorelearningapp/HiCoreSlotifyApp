@@ -43,8 +43,6 @@ class ConversationManager:
             self.Sequence = sequenceManager.GetSequence(session)
         except ValueError:
             SessionService().reset_session(customer_phone, business_phone)
-            session = SessionService().load_session(message)
-            self.Sequence = sequenceManager.GetSequence(session)
 
         self.Workflows = self.Sequence.Workflows
         self.CurrentWorkflowIndex = session.state.WorkflowIndex

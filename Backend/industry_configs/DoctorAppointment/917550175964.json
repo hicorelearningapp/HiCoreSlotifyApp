@@ -1,5 +1,5 @@
 {
-  "industry": "DoctorAppointment",
+  "industry": "HealthcareDoctorAppointment",
   "settings": {
     "welcome_message_override": "Welcome to HiCore Slotify App!",
     "welcome_image_filename": "Welcome to HiCore Image English.jpeg",
@@ -13,7 +13,6 @@
     "language_selection_enabled": false,
     "time_out_enabled": true,
     "session_timeout_minutes": 10,
-    "nlu_enabled": false,
     "order_handoff_sequence": "SareeOrderSequence",
     "product_order_sequences": {
       "6d79cfa6-feb7-42dc-bc0f-600d693e07f7": "SareeOrderSequence",

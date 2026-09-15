@@ -153,7 +153,6 @@ class BusinessWorkflowConfigService:
         lang_sel = bool(b_data.get("language_selection_enabled", False))
         time_out_en = bool(b_data.get("time_out_enabled", True))
         session_timeout = int(b_data.get("session_timeout_minutes", 10))
-        nlu_en = bool(b_data.get("nlu_enabled", False))
 
         config_data = {
             "industry": "DoctorAppointment",
@@ -170,7 +169,6 @@ class BusinessWorkflowConfigService:
                 "language_selection_enabled": lang_sel,
                 "time_out_enabled": time_out_en,
                 "session_timeout_minutes": session_timeout,
-                "nlu_enabled": nlu_en
             },
             "user_type_mappings": {
                 "ADMIN": "AdminFlow",

@@ -44,7 +44,6 @@ class SequenceFactory:
 
     SEQUENCE_FACTORY = {
             "Ecommerce": EcommerceSequenceManager,
-            "DoctorAppointment": HealthcareSequenceManager,
             "HealthcareDoctorAppointment": HealthcareSequenceManager,
     }
 
