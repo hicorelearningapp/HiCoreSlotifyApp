@@ -287,7 +287,7 @@ const Register = () => {
 
       // Top Box: Common Industry Standards mapped directly
       submitData.append('BusinessName', formData.ClinicName || '');
-      submitData.append('IndustryType', 'DoctorAppointment');
+      submitData.append('IndustryType', 'HealthcareDoctorAppointment');
       submitData.append('FullName', formData.FullName || '');
       submitData.append('EmailAddress', formData.EmailAddress || '');
       submitData.append('MobileNumber', `${selectedCountryCode}${formData.MobileNumber}`);

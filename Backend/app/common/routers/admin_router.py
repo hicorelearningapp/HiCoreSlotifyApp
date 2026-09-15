@@ -123,7 +123,7 @@ class AdminRouter:
 
     def list_businesses(
         self,
-        industry_type: Optional[str] = Query(None, description="Filter by industry type (e.g. DoctorAppointment, Ecommerce, Salon)"),
+        industry_type: Optional[str] = Query(None, description="Filter by industry type (e.g. HealthcareDoctorAppointment, Ecommerce, Salon)"),
         status: Optional[str] = Query(None, description="Filter by status (e.g. Pending, Approved, Rejected)"),
         skip: int = Query(0, ge=0),
         limit: int = Query(100, ge=1, le=500)
