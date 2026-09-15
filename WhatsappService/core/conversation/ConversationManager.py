@@ -1,4 +1,5 @@
 from core.SequenceFactory import SequenceFactory, BaseSequenceManager
+from core.utils.logging_utils import debug
 from core.models.workflow_models import Message, WorkflowStatus, WorkflowResult, Reply
 from core.services.session_service import SessionService
 from core.services.channel_messenger import channel_messenger as ChannelMessenger
@@ -27,20 +28,24 @@ class ConversationManager:
     async def process(self, message: Message | None):
         logger = MessageLogger()
 
-        customer_phone = message.PhoneNumber
-
+        customer_phone = message.PhoneNumber 
+        
         if message:
             logger.log_received(customer_phone, message.Text or message.InteractiveId)
-
-        print(f"[DEBUG MESSAGE] Phone: {message.PhoneNumber}, Text: {message.Text}, InteractiveId: {message.InteractiveId}")
-        business_phone = message.BusinessPhoneNumber
+            debug(f"Phone: {message.PhoneNumber}, Text: {message.Text}, InteractiveId: {message.InteractiveId}")
+            business_phone = message.BusinessPhoneNumber
+        else:
+            business_phone = ""
+            
         session = SessionService().load_session(message)
         sequenceManager = SequenceFactory.GetSequenceManager(session.state.IndustryName)
 
         try:
             self.Sequence = sequenceManager.GetSequence(session)
         except ValueError:
+            # If the current sequence is invalid, reset and start fresh!
             SessionService().reset_session(customer_phone, business_phone)
+            return
 
         self.Workflows = self.Sequence.Workflows
         self.CurrentWorkflowIndex = session.state.WorkflowIndex
@@ -59,7 +64,7 @@ class ConversationManager:
             skip_process = False
             if not session.workflow_initialized:
                 result = workflow.Initialize(session)
-                print(f"[DEBUG] [{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Initialize {session.current_workflow} returned {result.status} with reply={bool(result.reply)}")
+                debug(f"Initialize {session.current_workflow} returned {result.status} with reply={bool(result.reply)}")
 
                 if result.reply:
                     await ChannelMessenger.send_reply(customer_phone, result.reply, session.state.BusinessPhoneNumber, session.state.BusinessPhoneNumberId)
@@ -82,7 +87,7 @@ class ConversationManager:
             if message and not skip_process:
                 result = workflow.Process(session=session, message=message)
 
-                print(f"[DEBUG] [{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Process {session.current_workflow} returned {result.status} with reply={bool(result.reply)}")
+                debug(f"Process {session.current_workflow} returned {result.status} with reply={bool(result.reply)}")
 
                 if result.reply:
                     await ChannelMessenger.send_reply(customer_phone, result.reply, session.state.BusinessPhoneNumber, session.state.BusinessPhoneNumberId)
@@ -97,14 +102,14 @@ class ConversationManager:
                     break
             elif skip_process:
                 result = WorkflowResult.completed()
-                print(f"[DEBUG] [{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Process skipped (Initialize returned COMPLETED)")
+                debug(f"Process skipped (Initialize returned COMPLETED)")
             else:
                 result = WorkflowResult.completed()
-                print(f"[DEBUG] [{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Process skipped (message is None), assuming COMPLETED")
+                debug(f"Process skipped (message is None), assuming COMPLETED")
 
             # STEP 3 : Complete
             complete_result = workflow.Complete(session)
-            print(f"[DEBUG] [{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Complete {session.current_workflow} returned {complete_result.status} with reply={bool(complete_result.reply)}")
+            debug(f"Complete {session.current_workflow} returned {complete_result.status} with reply={bool(complete_result.reply)}")
             if complete_result and complete_result.reply:
                 await ChannelMessenger.send_reply(customer_phone, complete_result.reply, session.state.BusinessPhoneNumber, session.state.BusinessPhoneNumberId)
                 if complete_result.reply.message_type in ["image", "document", "audio", "video"]:
@@ -114,7 +119,7 @@ class ConversationManager:
             if result.status == WorkflowStatus.COMPLETED:
                 if session.current_workflow == original_workflow:
                     moved = self.move_to_next_workflow(session)
-                    print(f"[DEBUG] [{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] move_to_next_workflow returned {moved}, new workflow: {session.current_workflow}")
+                    debug(f"move_to_next_workflow returned {moved}, new workflow: {session.current_workflow}")
                     if not moved:
                         SessionService().reset_session(customer_phone, session.state.BusinessPhoneNumber)
                         break
@@ -122,7 +127,7 @@ class ConversationManager:
                 session.workflow_initialized = False
                 message = None
                 SessionService().save_session(session)
-                print(f"[DEBUG] [{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Looping to next workflow: {session.current_workflow}")
+                debug(f"Looping to next workflow: {session.current_workflow}")
                 continue
 
             if result.status == WorkflowStatus.END_SEQUENCE:
