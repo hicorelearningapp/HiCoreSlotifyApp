@@ -14,7 +14,6 @@ class WorkflowFactory:
 
     WORKFLOW_FACTORY = {
         "Ecommerce": EcommerceWorkflow,
-        "HealthcareDoctorAppointment": HealthcareWorkflow,
         "DoctorAppointment": HealthcareWorkflow,
     }
 

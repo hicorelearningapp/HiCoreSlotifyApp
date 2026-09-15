@@ -54,3 +54,4 @@ class SequenceFactory:
         if not factory:
             raise ValueError(f"No sequence factory registered for industry '{industry}'.")
         return factory
+    

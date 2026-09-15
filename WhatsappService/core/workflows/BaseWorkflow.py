@@ -17,4 +17,3 @@ class Workflow(ABC):
     @abstractmethod
     def Complete(self, session: ConversationSession) -> WorkflowResult:
         pass
-

@@ -59,7 +59,6 @@ class ConversationSession:
     def workflow_initialized(self, value: bool):
         self.state.Initialized = value
 
-
 class WorkflowStatus(Enum):
     WAITING = "WAITING"
     SUCCESS = "SUCCESS"
