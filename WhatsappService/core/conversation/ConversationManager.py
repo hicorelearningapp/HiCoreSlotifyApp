@@ -1,10 +1,8 @@
 from core.SequenceFactory import SequenceFactory, BaseSequenceManager
 from core.models.workflow_models import Message, WorkflowStatus, WorkflowResult, Reply
 from core.services.session_service import SessionService
-from core.services.channel_messenger import channel_messenger as ChannelMessenger
-from core.SequenceFactory import Sequence
+from core.services.whatsapp_service import whatsapp as WhatsAppService
 from core.services.message_logger import MessageLogger
-from core.database import db_session
 from core.api_client import api_client as product_service
 import asyncio
 import logging
@@ -63,7 +61,7 @@ class ConversationManager:
                 print(f"[DEBUG] [{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Initialize {session.current_workflow} returned {result.status} with reply={bool(result.reply)}")
 
                 if result.reply:
-                    await ChannelMessenger.send_reply(customer_phone, result.reply, session.state.BusinessPhoneNumber, session.state.BusinessPhoneNumberId)
+                    await WhatsAppService.send_reply(customer_phone, result.reply, business_phone_id=session.state.BusinessPhoneNumberId)
                     if result.reply.message_type in ["image", "document", "audio", "video"]:
                         await asyncio.sleep(1.5)
 
@@ -86,7 +84,7 @@ class ConversationManager:
                 print(f"[DEBUG] [{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Process {session.current_workflow} returned {result.status} with reply={bool(result.reply)}")
 
                 if result.reply:
-                    await ChannelMessenger.send_reply(customer_phone, result.reply, session.state.BusinessPhoneNumber, session.state.BusinessPhoneNumberId)
+                    await WhatsAppService.send_reply(customer_phone, result.reply, business_phone_id=session.state.BusinessPhoneNumberId)
                     if result.reply.message_type in ["image", "document", "audio", "video"]:
                         await asyncio.sleep(1.5)
 
@@ -107,7 +105,7 @@ class ConversationManager:
             complete_result = workflow.Complete(session)
             print(f"[DEBUG] [{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Complete {session.current_workflow} returned {complete_result.status} with reply={bool(complete_result.reply)}")
             if complete_result and complete_result.reply:
-                await ChannelMessenger.send_reply(customer_phone, complete_result.reply, session.state.BusinessPhoneNumber, session.state.BusinessPhoneNumberId)
+                await WhatsAppService.send_reply(customer_phone, complete_result.reply, business_phone_id=session.state.BusinessPhoneNumberId)
                 if complete_result.reply.message_type in ["image", "document", "audio", "video"]:
                     await asyncio.sleep(1.5)
 
