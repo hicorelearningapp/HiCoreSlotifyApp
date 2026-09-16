@@ -1,28 +1,28 @@
 {
   "industry": "Ecommerce",
   "product_info": {
-    "name": "Kanchipuram Silk",
-    "category": "Sarees",
-    "price": 8999.0,
-    "compare_at_price": 10999.0,
-    "description": "Traditional Kanchipuram silk saree featuring rich zari work and elegant South Indian craftsmanship, perfect for weddings and festive occasions.",
+    "name": "Classic Cotton T-Shirt",
+    "category": "Apparel",
+    "price": 499.0,
+    "compare_at_price": 799.0,
+    "description": "Soft and breathable cotton T-shirt designed for everyday comfort, featuring a classic fit and durable stitching. Perfect for casual wear or layering.",
     "images": []
   },
   "sequences": {
     "MainWorkSequence": [
       "GreetingWorkFlow",
-      "GetParam;Color;Royal Blue,Red,Green,Maroon,Purple",
-      "GetParam;Size;Free Size",
-      "GetParam;BlouseIncluded;Yes",
-      "GetParam;Fabric;Pure Silk",
-      "GetParam;Length;5.5 Meters",
-      "GetParam;Occasion;Wedding,Festival,Traditional",
-      "GetParam;Zari;Pure Zari,Half Fine Zari",
+      "GetParam;Color;Black,White,Navy Blue,Gray,Red",
+      "GetParam;Size;S,M,L,XL,XXL",
+      "GetParam;Fabric;100% Cotton,80% Cotton",
+      "GetParam;Fit;Regular, Slim",
+      "GetParam;Sleeve;Half Sleeve,Full Sleeve",
+      "GetParam;Neck;Round Neck,V-Neck",
+      "GetParam;Occasion;Casual,Work,Travel",
       "QuantityWorkFlow",
       "AddressWorkFlow",
       "OrderWorkFlow",
       "PaymentWorkFlow",
-      "ConfirmWorkFLow"
+      "ConfirmWorkFlow"
     ]
   }
 }

@@ -36,10 +36,7 @@ class BackendAPIClient:
     def get_industry_config_by_phone(self, phone_number: str):
         return self._request("GET", f"/businesses/config/{phone_number}")
 
-    def get_product_config_by_phone(self, product_id: str):
-        return self._request("GET", f"/ecommerce/products/{product_id}/product-workflow")
-
-    def get_industry_config_by_product_id(self, product_id: str):
+    def get_product_config_by_id(self, product_id: str):
         return self._request("GET", f"/ecommerce/products/{product_id}/product-workflow")
 
     def get_industry_by_phone(self, phone_number: str):
