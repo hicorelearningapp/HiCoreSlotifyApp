@@ -33,8 +33,7 @@ class GreetingMessageWorkflow(Workflow):
                 return WorkflowResult.completed(
                     reply=Reply(message_type="text", text=greeting)
                 )
-            industry = session.WorkflowData.get("industry")
-            image_url = f"{PUBLIC_BASE_URL}/industries/{industry}/images/{urllib.parse.quote(image_filename)}"
+            image_url = f"{PUBLIC_BASE_URL}/industries/healthcare/images/{urllib.parse.quote(image_filename)}"
             return WorkflowResult.completed(
                 reply=Reply(message_type="image", text=greeting, image_url=image_url)
             )
