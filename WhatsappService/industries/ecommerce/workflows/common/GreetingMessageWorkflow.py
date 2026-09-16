@@ -17,10 +17,10 @@ class GreetingMessageWorkflow(Workflow):
         product_info = session.WorkflowData.get("product_info") or {}
         
         if not product_info:
-            product_id = session.WorkflowData.get("product_id") or session.state.ProductId
+            product_id = session.WorkflowData.get("product_id") or session.state.ProductKey
             if product_id:
                 try:
-                    product_data = api_client.get_product_config_by_id(product_id)
+                    product_data = api_client.get_product_config_by_phone(product_id)
                     if product_data and "product_info" in product_data:
                         product_info = product_data["product_info"]
                         session.WorkflowData["product_info"] = product_info
@@ -68,19 +68,12 @@ class GreetingMessageWorkflow(Workflow):
             )
 
         # 2. Invalid / Wrong Product ID -> Send Warning & Finish Session
-        product_id = (session.WorkflowData.get("product_id") or session.state.ProductId or "").strip()
-        if not product_id or product_id.lower() in ["hi", "hello", "hey", "start", "menu", "help", "order"]:
-            warning_text = (
-                "👋 *Welcome to our Store!*\n\n"
-                "⚠️ *Product Not Specified*\n\n"
-                "Please click or send a valid *Product Link* or *Product ID* to view details and place an order."
-            )
-        else:
-            warning_text = (
-                f"⚠️ *Product Not Found*\n\n"
-                f"We couldn't find any product matching ID:\n👉 *{product_id}*\n\n"
-                f"Please check the Product ID or link and try again."
-            )
+        product_id = session.WorkflowData.get("product_id") or session.state.ProductKey or "Unknown"
+        warning_text = (
+            f"⚠️ *Product Not Found*\n\n"
+            f"We couldn't find any product matching ID:\n👉 *{product_id}*\n\n"
+            f"Please check the Product ID or link and try again."
+        )
         return WorkflowResult.end_sequence(
             reply=Reply(message_type="text", text=warning_text)
         )

@@ -66,7 +66,7 @@ class ConfirmOrderWorkflow:
                 print(f"[ConfirmOrderWorkflow] Customer lookup/create note: {e}")
 
             # 2. Extract order details
-            product_id = session.WorkflowData.get("product_id") or session.state.ProductId
+            product_id = session.WorkflowData.get("product_id") or session.state.ProductKey
             product_info = session.WorkflowData.get("product_info") or {}
             product_name = product_info.get("name") or session.WorkflowData.get("product_name", "Product")
             quantity = session.WorkflowData.get("quantity", 1)
@@ -84,27 +84,24 @@ class ConfirmOrderWorkflow:
             )
 
             order_payload = {
-                "CustomerPhone": session.PhoneNumber,
-                "CustomerName": customer_name,
-                "ShippingAddress": address,
-                "City": "Default",
-                "State": "Default",
-                "Pincode": "000000",
-                "PaymentMethod": "Online" if payment_method == "Pay Online" else "COD",
-                "SellerId": session.state.BusinessPhoneNumber or "default",
-                "OrderData": {
-                    "selected_options": selected_options,
-                    "business_phone": session.state.BusinessPhoneNumber,
-                },
-                "Items": [
+                "customer_phone": session.PhoneNumber,
+                "customer_name": customer_name,
+                "shipping_address": address,
+                "city": "Unknown",
+                "state": "Unknown",
+                "pincode": "000000",
+                "payment_method": payment_method,
+                "selected_options": selected_options,
+                "items": [
                     {
-                        "ProductId": str(product_id),
-                        "ProductName": product_name,
-                        "Quantity": int(quantity),
-                        "UnitPrice": float(price),
-                        "ItemData": selected_options
+                        "product_id": str(product_id),
+                        "product_name": product_name,
+                        "quantity": int(quantity),
+                        "unit_price": float(price),
+                        "options": selected_options
                     }
-                ]
+                ],
+                "store_id": "default"
             }
 
             order = None
@@ -114,7 +111,7 @@ class ConfirmOrderWorkflow:
                 print(f"[ConfirmOrderWorkflow] Error creating order via API: {e}")
 
             order_id = (
-                order.get("OrderNumber") or order.get("Id") or order.get("id")
+                order.get("id") or order.get("OrderId")
                 if (order and isinstance(order, dict))
                 else f"ORD-{int(datetime.now().timestamp()) % 100000}"
             )
