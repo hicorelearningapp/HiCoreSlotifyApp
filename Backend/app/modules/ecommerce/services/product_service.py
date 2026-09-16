@@ -421,6 +421,19 @@ class ProductService:
     @staticmethod
     def create_product(db: Session, data):
         product_dict = data.model_dump() if hasattr(data, "model_dump") else data.dict()
+        
+        # Resolve Instagram media_id if ReelLink is provided
+        reel_link = product_dict.get("ReelLink")
+        if reel_link and str(reel_link).strip():
+            from app.modules.ecommerce.services.instagram_client import resolve_media_id
+            media_id = resolve_media_id(str(reel_link).strip())
+            if media_id:
+                curr_pdata = product_dict.get("ProductData") or {}
+                if isinstance(curr_pdata, dict):
+                    curr_pdata["reel_url"] = str(reel_link).strip()
+                    product_dict["ProductData"] = curr_pdata
+                product_dict["ReelLink"] = str(media_id).strip()
+
         product = Product(**product_dict)
         db.add(product)
         db.commit()
@@ -463,6 +476,20 @@ class ProductService:
                 curr_data.update(update_data["ProductData"])
                 product.ProductData = curr_data
                 del update_data["ProductData"]
+
+        # Resolve Instagram media_id if ReelLink has changed
+        if "ReelLink" in update_data:
+            new_reel_link = str(update_data["ReelLink"] or "").strip()
+            # Only resolve when ReelLink actually changed
+            if new_reel_link and new_reel_link != str(product.ReelLink or "").strip():
+                from app.modules.ecommerce.services.instagram_client import resolve_media_id
+                media_id = resolve_media_id(new_reel_link)
+                if media_id:
+                    curr_data = dict(product.ProductData or {})
+                    curr_data["reel_url"] = new_reel_link
+                    product.ProductData = curr_data
+                    update_data["ReelLink"] = str(media_id).strip()
+
         for key, val in update_data.items():
             setattr(product, key, val)
         db.commit()

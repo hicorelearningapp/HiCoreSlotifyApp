@@ -23,11 +23,15 @@ class Settings(BaseSettings):
     )
     
     # Authentication & Security
-    SECRET_KEY: str = os.getenv("SECRET_KEY", "hicore_platform_super_secret_jwt_key_2026")
+    SECRET_KEY: str = os.getenv("SECRET_KEY")
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7  # 7 days
-    ADMIN_USERNAME: str = os.getenv("ADMIN_USERNAME", "hicore")
-    ADMIN_PASSWORD: str = os.getenv("ADMIN_PASSWORD", "hicore")
+    ADMIN_USERNAME: str = os.getenv("ADMIN_USERNAME")
+    ADMIN_PASSWORD: str = os.getenv("ADMIN_PASSWORD")
+
+    # Instagram Service Integration
+    INSTAGRAM_SERVICE_URL: str = os.getenv("INSTAGRAM_SERVICE_URL")
+    INSTAGRAM_ADMIN_API_KEY: str = os.getenv("INSTAGRAM_ADMIN_API_KEY")
     
     # CORS
     CORS_ORIGINS: List[str] = [
