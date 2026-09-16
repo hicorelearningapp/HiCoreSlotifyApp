@@ -294,12 +294,39 @@ class BusinessWorkflowConfigService:
     def find_config_file(cls, phone_number: str) -> Optional[str]:
         """
         Searches Backend/industry_configs/ directory for {phone_number}.json or {phone_number}.txt
+        Accepts all phone formats: +917550175964, 917550175964, 7550175964, 07550175964, etc.
         """
-        clean = cls.clean_phone(phone_number)
-        if not clean:
+        if not phone_number or not str(phone_number).strip():
             return None
 
-        candidates = [f"{clean}.json", f"{clean}.txt", f"{phone_number}.json", f"{phone_number}.txt"]
+        from app.core.phone_utils import get_phone_variants, normalize_phone_number
+
+        raw_10 = normalize_phone_number(phone_number)
+        clean = cls.clean_phone(phone_number)
+        variants = get_phone_variants(phone_number)
+
+        candidate_names = set()
+        clean_str = str(phone_number).strip()
+        candidate_names.add(f"{clean_str}.json")
+        candidate_names.add(f"{clean_str}.txt")
+
+        if clean:
+            candidate_names.add(f"{clean}.json")
+            candidate_names.add(f"{clean}.txt")
+
+        for v in variants:
+            candidate_names.add(f"{v}.json")
+            candidate_names.add(f"{v}.txt")
+
+        if raw_10:
+            candidate_names.add(f"{raw_10}.json")
+            candidate_names.add(f"{raw_10}.txt")
+            candidate_names.add(f"91{raw_10}.json")
+            candidate_names.add(f"91{raw_10}.txt")
+            candidate_names.add(f"+91{raw_10}.json")
+            candidate_names.add(f"+91{raw_10}.txt")
+            candidate_names.add(f"0{raw_10}.json")
+            candidate_names.add(f"0{raw_10}.txt")
 
         # Search strictly inside Backend/industry_configs/
         backend_dir = os.path.dirname(
@@ -308,10 +335,20 @@ class BusinessWorkflowConfigService:
         base_dir = os.path.join(backend_dir, "industry_configs")
 
         if os.path.exists(base_dir):
+            # 1. Exact candidate match
             for root, _, files in os.walk(base_dir):
-                for candidate in candidates:
+                for candidate in candidate_names:
                     if candidate in files:
                         return os.path.join(root, candidate)
+
+            # 2. Normalized 10-digit match on file names
+            if raw_10 and len(raw_10) >= 7:
+                for root, _, files in os.walk(base_dir):
+                    for file_name in files:
+                        base_name, ext = os.path.splitext(file_name)
+                        if ext.lower() in [".json", ".txt"]:
+                            if normalize_phone_number(base_name) == raw_10:
+                                return os.path.join(root, file_name)
 
         return None
 
@@ -323,16 +360,16 @@ class BusinessWorkflowConfigService:
     ) -> Dict[str, Any]:
         """
         Retrieves the config by business phone number strictly from Backend directory.
+        Accepts: +917550175964, 917550175964, 7550175964, etc.
         If missing from files, checks DB and generates.
         """
-        clean = cls.clean_phone(phone_number)
-        if not clean:
+        if not phone_number or not str(phone_number).strip():
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Invalid business phone number provided."
             )
 
-        file_path = cls.find_config_file(clean)
+        file_path = cls.find_config_file(phone_number)
         if file_path and os.path.exists(file_path):
             try:
                 with open(file_path, "r", encoding="utf-8") as f:
@@ -344,14 +381,34 @@ class BusinessWorkflowConfigService:
         if db:
             from app.common.models.business import Business
             from app.core.phone_utils import build_phone_filter
-            biz = db.query(Business).filter(
-                build_phone_filter(Business.BusinessPhoneNumber, clean),
-                build_phone_filter(Business.MobileNumber, clean)
-            ).first()
-            if biz:
-                generated = cls.generate_and_save_config(biz, db)
-                if generated:
-                    return generated
+            from sqlalchemy import or_
+
+            phone_filter_biz = build_phone_filter(Business.BusinessPhoneNumber, phone_number)
+            phone_filter_mob = build_phone_filter(Business.MobileNumber, phone_number)
+
+            conditions = []
+            if phone_filter_biz is not None:
+                conditions.append(phone_filter_biz)
+            if phone_filter_mob is not None:
+                conditions.append(phone_filter_mob)
+
+            if conditions:
+                biz = db.query(Business).filter(or_(*conditions)).first()
+                if biz:
+                    # Check if config exists under any of the business's stored phone numbers
+                    for p in [biz.BusinessPhoneNumber, biz.MobileNumber]:
+                        if p:
+                            fp = cls.find_config_file(p)
+                            if fp and os.path.exists(fp):
+                                try:
+                                    with open(fp, "r", encoding="utf-8") as f:
+                                        return json.load(f)
+                                except Exception as e:
+                                    logger.error(f"Error reading config file {fp}: {e}")
+
+                    generated = cls.generate_and_save_config(biz, db)
+                    if generated:
+                        return generated
 
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
