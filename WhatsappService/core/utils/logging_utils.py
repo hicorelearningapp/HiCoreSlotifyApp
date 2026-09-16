@@ -1,22 +1,10 @@
 import logging
 from functools import wraps
-import inspect
 import time
 from datetime import datetime
+import inspect
 
 logger = logging.getLogger("uvicorn")
-
-def debug(message: str = ""):
-    frame = inspect.stack()[1]
-    method_name = frame.function
-    
-    class_name = ""
-    if 'self' in frame.frame.f_locals:
-        class_name = frame.frame.f_locals['self'].__class__.__name__ + "."
-        
-    timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    msg_str = f" - {message}" if message else ""
-    print(f"[DEBUG] [{timestamp}] {class_name}{method_name}{msg_str}")
 
 def log_method_call(func):
     @wraps(func)

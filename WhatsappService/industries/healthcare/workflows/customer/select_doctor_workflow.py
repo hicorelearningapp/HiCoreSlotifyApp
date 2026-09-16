@@ -1,6 +1,5 @@
 
 from core.workflows.BaseWorkflow import Workflow
-from core.utils.logging_utils import debug
 from core.models.workflow_models import ConversationSession, Message, WorkflowResult, Reply
 from core.api_client import api_client
 
@@ -37,24 +36,24 @@ class SelectDoctorWorkflow(Workflow):
         try:
             doctor_id = message.InteractiveId or message.Text
             if not doctor_id: 
-                debug(f"doctor_id is empty! message.InteractiveId={message.InteractiveId}, message.Text={message.Text}")
+                print(f"[DEBUG] doctor_id is empty! message.InteractiveId={message.InteractiveId}, message.Text={message.Text}")
                 raise ValueError()
                 
-            debug(f"Calling get_doctor with {doctor_id}")
+            print(f"[DEBUG] Calling get_doctor with {doctor_id}")
             doctor = api_client.get_doctor(doctor_id)
             if not doctor: 
-                debug(f"api_client.get_doctor returned None for {doctor_id}")
+                print(f"[DEBUG] api_client.get_doctor returned None for {doctor_id}")
                 raise ValueError()
 
             if doctor.get("Status") != "Approved":
-                debug(f"Doctor status is not Approved: {doctor.get('Status')}")
+                print(f"[DEBUG] Doctor status is not Approved: {doctor.get('Status')}")
                 session.WorkflowData["doctor_error"] = f"Dr. {doctor.get('FullName')} is currently not available for booking."
                 return self.Initialize(session)
                 
             session.WorkflowData["DoctorId"] = doctor_id
             return WorkflowResult.completed()
         except Exception as e:
-            debug(f"Exception in SelectDoctorWorkflow Process: {repr(e)}")
+            print(f"[DEBUG] Exception in SelectDoctorWorkflow Process: {repr(e)}")
             session.WorkflowData["doctor_error"] = "Please select a valid doctor."
             return self.Initialize(session)
 
