@@ -7,7 +7,7 @@ from typing import List, Optional
 _BACKEND_DIR = os.path.dirname(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 )
-_DEFAULT_SQLITE_PATH = os.path.join(_BACKEND_DIR, "appointments.db")
+_DEFAULT_SQLITE_PATH = os.path.join(_BACKEND_DIR, "hicoreslotify.db")
 
 
 class Settings(BaseSettings):

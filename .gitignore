@@ -41,6 +41,7 @@ htmlcov/
 *.sqlite3
 *.db
 appointments.db
+hicoreslotify.db
 .env
 .env.local
 .env.*.local
