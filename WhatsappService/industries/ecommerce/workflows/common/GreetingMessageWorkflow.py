@@ -1,6 +1,6 @@
 from core.workflows.BaseWorkflow import Workflow
 from core.models.workflow_models import ConversationSession, Message, WorkflowResult, Reply
-from config import PUBLIC_BASE_URL
+from config import SERVER_BASE_URL
 from core.api_client import api_client
 import urllib.parse
 
@@ -55,9 +55,9 @@ class GreetingMessageWorkflow(Workflow):
                 if first_image.startswith("http://") or first_image.startswith("https://"):
                     image_url = first_image
                 elif first_image.startswith("/"):
-                    image_url = f"{PUBLIC_BASE_URL.rstrip('/')}{first_image}"
+                    image_url = f"{SERVER_BASE_URL.rstrip('/')}{first_image}"
                 else:
-                    image_url = f"{PUBLIC_BASE_URL.rstrip('/')}/images/products/{urllib.parse.quote(first_image)}"
+                    image_url = f"{SERVER_BASE_URL.rstrip('/')}/images/products/{urllib.parse.quote(first_image)}"
 
                 return WorkflowResult.completed(
                     reply=Reply(message_type="image", text=greeting_text, image_url=image_url)

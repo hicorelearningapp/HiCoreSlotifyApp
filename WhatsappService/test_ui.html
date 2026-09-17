@@ -655,9 +655,8 @@
                             addMessageBubble(bodyText, false, reply.interactive);
                         } else if (reply.type === 'image') {
                             let imgLink = reply.image.link;
-                            if (imgLink && (imgLink.includes('/industries/') || imgLink.includes('/images/'))) {
-                                const idx = imgLink.includes('/industries/') ? imgLink.indexOf('/industries/') : imgLink.indexOf('/images/');
-                                imgLink = window.location.origin + imgLink.substring(idx);
+                            if (imgLink && imgLink.startsWith('/')) {
+                                imgLink = window.location.origin + imgLink;
                             }
                             addMessageBubble(reply.image.caption || '[Image Message]', false, null, imgLink);
                         }
