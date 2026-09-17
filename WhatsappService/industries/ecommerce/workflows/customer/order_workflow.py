@@ -22,14 +22,23 @@ class OrderWorkFlow:
         options_text = ("\n" + "\n".join(options_lines)) if options_lines else ""
 
         address = session.WorkflowData.get("address", "N/A")
+        customer_name = session.WorkflowData.get("name") or session.WorkflowData.get("customer_name")
+        customer_phone = session.WorkflowData.get("phone") or session.WorkflowData.get("number")
+
+        recipient_line = ""
+        if customer_name and customer_phone:
+            recipient_line = f"• *Deliver To:* {customer_name} ({customer_phone})\n"
+        elif customer_name:
+            recipient_line = f"• *Deliver To:* {customer_name}\n"
 
         summary = (
             f"📦 *Order Review*\n\n"
             f"• *Product:* {product_name}\n"
-            f"{'• *Selected Options:*' + options_text if options_text else ''}\n"
+            f"{'• *Selected Options:*' + options_text + chr(10) if options_text else ''}"
             f"• *Quantity:* {quantity}\n"
             f"• *Price:* ₹{float(price):,.2f} each\n"
             f"• *Subtotal:* ₹{float(total):,.2f}\n"
+            f"{recipient_line}"
             f"• *Delivery Address:* {address}\n\n"
             f"Ready to choose your payment method?"
         )

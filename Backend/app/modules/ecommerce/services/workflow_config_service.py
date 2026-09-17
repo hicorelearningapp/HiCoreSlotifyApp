@@ -397,7 +397,8 @@ class WorkflowConfigService:
                 "price": float(product.Price or 0.0),
                 "compare_at_price": float(product.CompareAtPrice) if product.CompareAtPrice is not None else None,
                 "description": product.Description,
-                "images": list(product.Images or [])
+                "images": list(product.Images or []),
+                "store_name": store_name if store_name != "our E-commerce store" else None
             }
 
             # Merge single-option details and attributes into product_info

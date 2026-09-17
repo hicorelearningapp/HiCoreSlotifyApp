@@ -37,8 +37,10 @@ class ParseManager:
             interactive_type = raw_message["interactive"]["type"]
             if interactive_type == "button_reply":
                 interactive_id = raw_message["interactive"]["button_reply"]["id"]
+                text = raw_message["interactive"]["button_reply"].get("title")
             elif interactive_type == "list_reply":
                 interactive_id = raw_message["interactive"]["list_reply"]["id"]
+                text = raw_message["interactive"]["list_reply"].get("title")
 
         print(f"Customer is chatting with Business Number: {business_phone_number}")
         return Message(

@@ -394,7 +394,8 @@ class WhatsAppService:
                     self.send_interactive_buttons(to_phone, reply.text, reply.options, business_phone_id=business_phone_id)
             elif reply.message_type == "list":
                 logger.log_sent(to_phone, f"[LIST] {reply.text}")
-                self.send_list_message(to_phone, reply.text, "Select Option", reply.sections, business_phone_id=business_phone_id)
+                button_text = getattr(reply, "button_text", None) or "Select Option"
+                self.send_list_message(to_phone, reply.text, button_text, reply.sections, business_phone_id=business_phone_id)
             elif reply.message_type == "image":
                 logger.log_sent(to_phone, f"[IMAGE] {reply.text}")
                 self.send_image(to_phone, link=reply.image_url, caption=reply.text, business_phone_id=business_phone_id)

@@ -19,29 +19,16 @@ class GetParamWorkflow:
         if param_name in selected_options and selected_options[param_name]:
             return WorkflowResult.completed()
 
-        # 2. Format options for customer
-        if len(options) <= 3 and len(options) > 0:
-            button_options = [
-                {"id": f"PARAM_{param_name}_{opt}", "title": opt[:20]}
-                for opt in options
-            ]
-            prompt = f"Please select *{param_name}*:"
-            reply = Reply("buttons", prompt, options=button_options)
-        else:
-            rows = [
-                {"id": f"PARAM_{param_name}_{opt}", "title": opt[:24]}
-                for opt in options
-            ]
-            sections = [{"title": f"Available {param_name}s", "rows": rows}]
-            options_text = "\n".join(f"*{i}.* {opt}" for i, opt in enumerate(options, 1))
-            prompt = (
-                f"Please select *{param_name}*:\n\n"
-                f"{options_text}\n\n"
-                f"Reply with the option number (e.g. *1*) or name."
-            )
-            # If interactive list supported, send list; also includes full text prompt
-            reply = Reply("list", prompt, sections=sections)
+        # 2. Format options for customer using dropdown list button
+        rows = [
+            {"id": f"PARAM_{param_name}_{opt}", "title": opt[:24]}
+            for opt in options
+        ]
+        sections = [{"title": f"Available {param_name}s", "rows": rows}]
+        prompt = f"Please select *{param_name}*:"
+        button_text = f"Select {param_name}"[:20]
 
+        reply = Reply("list", prompt, sections=sections, button_text=button_text)
         return WorkflowResult.waiting(reply)
 
     def Process(self, session: ConversationSession, message: Message) -> WorkflowResult:
@@ -96,14 +83,15 @@ class GetParamWorkflow:
 
             return WorkflowResult.completed()
 
-        # 4. Invalid selection - send retry message
-        options_text = "\n".join(f"*{i}.* {opt}" for i, opt in enumerate(options, 1))
-        error_msg = (
-            f"❌ Invalid selection for *{param_name}*.\n\n"
-            f"Please choose a valid option:\n{options_text}\n\n"
-            f"Reply with the option number (e.g. *1*) or name."
-        )
-        return WorkflowResult.waiting(Reply("text", error_msg))
+        # 4. Invalid selection - re-send dropdown list menu
+        rows = [
+            {"id": f"PARAM_{param_name}_{opt}", "title": opt[:24]}
+            for opt in options
+        ]
+        sections = [{"title": f"Available {param_name}s", "rows": rows}]
+        button_text = f"Select {param_name}"[:20]
+        error_msg = f"❌ Invalid selection for *{param_name}*.\nPlease select an option using the dropdown menu below:"
+        return WorkflowResult.waiting(Reply("list", error_msg, sections=sections, button_text=button_text))
 
     def Complete(self, session: ConversationSession) -> WorkflowResult:
         return WorkflowResult.completed()

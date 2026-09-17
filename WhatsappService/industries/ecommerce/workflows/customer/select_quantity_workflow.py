@@ -17,16 +17,9 @@ class SelectQuantityWorkflow:
         if session.WorkflowData.get("quantity"):
             return WorkflowResult.completed()
 
-        options = [
-            {"id": "QTY_1", "title": "1"},
-            {"id": "QTY_2", "title": "2"},
-            {"id": "QTY_3", "title": "3"},
-        ]
-
         reply = Reply(
-            "buttons",
-            "🔢 *Select Quantity*\n\nHow many units would you like to order?\n(Reply with *1*, *2*, *3*, or type any number like *5*)",
-            options=options
+            "text",
+            "🔢 *Quantity*\n\nPlease enter the quantity you would like to order in the text box below (e.g. *1*, *2*, *5*):"
         )
         return WorkflowResult.waiting(reply)
 
@@ -76,7 +69,7 @@ class SelectQuantityWorkflow:
             return WorkflowResult.completed()
 
         return WorkflowResult.waiting(
-            Reply("text", "Please enter a valid positive quantity (e.g. *1*, *2*, *5*) or choose from the buttons.")
+            Reply("text", "❌ Please enter a valid quantity as a positive number (e.g. *1*, *2*, *5*):")
         )
 
     def Complete(self, session: ConversationSession) -> WorkflowResult:

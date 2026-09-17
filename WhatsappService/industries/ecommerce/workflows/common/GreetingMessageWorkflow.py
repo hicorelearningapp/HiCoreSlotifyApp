@@ -30,6 +30,29 @@ class GreetingMessageWorkflow(Workflow):
 
         product_name = product_info.get("name") or session.WorkflowData.get("product_name")
 
+        # Resolve store name
+        store_name = (
+            session.WorkflowData.get("store_name")
+            or product_info.get("store_name")
+            or product_info.get("StoreName")
+        )
+        if not store_name:
+            business_phone = getattr(session.state, "BusinessPhoneNumber", None) or getattr(session, "BusinessPhoneNumber", None)
+            if business_phone:
+                try:
+                    biz = api_client.get_business_by_phone(business_phone)
+                    if biz and isinstance(biz, dict) and biz.get("BusinessName"):
+                        store_name = biz.get("BusinessName")
+                except Exception:
+                    pass
+
+        if not store_name:
+            store_name = "our Store"
+        else:
+            session.WorkflowData["store_name"] = store_name
+            if hasattr(session, "state") and hasattr(session.state, "WorkflowData"):
+                session.state.WorkflowData["store_name"] = store_name
+
         # 1. Valid Product Found -> Display Product Showcase & Continue Flow
         if product_info and product_name:
             category = product_info.get("category")
@@ -42,7 +65,7 @@ class GreetingMessageWorkflow(Workflow):
             compare_str = f" (~₹{float(compare_at):,.2f}~)" if compare_at else ""
 
             greeting_text = (
-                f"👋 *Welcome to our Store!*\n\n"
+                f"👋 *Welcome to {store_name}!*\n\n"
                 f"🛍️ *{product_name}*\n"
                 f"{f'📂 Category: {category}\n' if category else ''}"
                 f"{f'📝 {description}\n' if description else ''}\n"
@@ -71,7 +94,7 @@ class GreetingMessageWorkflow(Workflow):
         product_id = (session.WorkflowData.get("product_id") or session.state.ProductId or "").strip()
         if not product_id or product_id.lower() in ["hi", "hello", "hey", "start", "menu", "help", "order"]:
             warning_text = (
-                "👋 *Welcome to our Store!*\n\n"
+                f"👋 *Welcome to {store_name}!*\n\n"
                 "⚠️ *Product Not Specified*\n\n"
                 "Please click or send a valid *Product Link* or *Product ID* to view details and place an order."
             )
