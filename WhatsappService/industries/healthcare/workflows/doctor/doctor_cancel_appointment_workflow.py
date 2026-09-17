@@ -14,7 +14,7 @@ class DoctorSelectAppointmentsToCancelWorkflow(Workflow):
         
         rows = []
         for appt in appointments[:10]:
-            pat_name = appt.get("patient", {}).get("Name") if appt.get("patient") else "Unknown"
+            pat_name = appt.get("PatientName") or (appt.get("patient") or {}).get("PatientName") or "Unknown"
             date_str = appt.get("Date") if appt.get("Date") else 'N/A'
             time_str = appt.get("SlotTime") if appt.get("SlotTime") else 'N/A'
             
@@ -23,6 +23,12 @@ class DoctorSelectAppointmentsToCancelWorkflow(Workflow):
                 "title": f"{pat_name}",
                 "description": f"{date_str} at {time_str}"
             })
+            
+        rows.append({
+            "id": "ABORT_CANCELLATION",
+            "title": "❌ Cancel Action",
+            "description": "Keep appointments & go back"
+        })
             
         sections = [{"title": "Select Appointment", "rows": rows}]
         
@@ -35,6 +41,9 @@ class DoctorSelectAppointmentsToCancelWorkflow(Workflow):
         )
 
     def Process(self, session: ConversationSession, message: Message):
+        if message.InteractiveId == "ABORT_CANCELLATION":
+            return WorkflowResult.end_sequence(reply=Reply("text", "Cancellation aborted. Returning to main menu."))
+
         if message.InteractiveId and message.InteractiveId.startswith("DOC_CANCEL_"):
             appt_id = message.InteractiveId.replace("DOC_CANCEL_", "")
             session.WorkflowData["target_cancel_ids"] = [appt_id]
@@ -98,7 +107,7 @@ class DoctorCancellationConfirmationWorkflow(Workflow):
                         f"We apologize, but Dr. {doc_name} had to cancel your appointment scheduled for {time_str} due to an unforeseen emergency.{refund_text}\n\n"
                         f"Please reply with 'hi' to book a new time slot."
                     )
-                    WhatsAppService.send_text(appointment.get("patient", {}).get("PhoneNumber"), patient_msg)
+                    WhatsAppService.send_text(appointment.get("patient", {}).get("PhoneNumber"), patient_msg, business_phone_id=session.state.BusinessPhoneNumberId)
                     
         # Since this is the final step, returning completed will end the flow.
         return WorkflowResult.completed(reply=Reply("text", f"✅ Successfully cancelled {cancelled_count} appointment(s). The patient(s) have been notified."))

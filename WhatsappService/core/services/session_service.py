@@ -74,6 +74,7 @@ class SessionService:
                 "WorkflowData": {},
                 "Initialized": False,
                 "BusinessPhoneNumber": business_phone_number,
+                "BusinessPhoneNumberId": message.BusinessPhoneNumberId,
                 "ProductId" : msg
             }
             session_create = schemas.SessionCreate(
@@ -185,7 +186,7 @@ class SessionService:
                 timeout_msg = f"⏰ You have been inactive for {session_timeout_minutes} minutes. We are closing your session. Type *hi* to get the main menu."
                 try:
                     MessageLogger().log_sent(str(session.PhoneNumber), timeout_msg)
-                    whatsapp.send_text(str(session.PhoneNumber), timeout_msg)
+                    whatsapp.send_text(str(session.PhoneNumber), timeout_msg, business_phone_id=business_phone)
                 except Exception as e:
                     logging.getLogger("uvicorn").error(f"Error sending timeout to {session.PhoneNumber}: {e}")
 

@@ -1,5 +1,6 @@
 import requests
-from config import ACCESS_TOKEN, PHONE_NUMBER_ID
+from config import ACCESS_TOKEN
+from config import PHONE_NUMBERS_MAP
 from core.services.message_logger import MessageLogger
 import threading
 import time
@@ -12,11 +13,19 @@ request_payloads: contextvars.ContextVar[list] = contextvars.ContextVar("request
 class WhatsAppService:
     def __init__(self):
         pass
-        
-        
+
+    def get_phone_id(self, phoneNumber: str):
+        return PHONE_NUMBERS_MAP.get(phoneNumber)
+
     def _post(self, payload, label, business_phone_id=None):
         if not business_phone_id:
-            business_phone_id = PHONE_NUMBER_ID
+            raise ValueError("business_phone_id is required to send messages")
+            
+        # Allow developers to pass the raw phone number instead of the ID
+        mapped_id = self.get_phone_id(business_phone_id)
+        if mapped_id:
+            business_phone_id = mapped_id
+            
         url = f"https://graph.facebook.com/v23.0/{business_phone_id}/messages"
         headers = {
             "Authorization": f"Bearer {ACCESS_TOKEN}",
@@ -64,7 +73,13 @@ class WhatsAppService:
 
     def upload_media(self, file_bytes: bytes, filename: str, mime_type: str, business_phone_id: str | None = None) -> str | None:
         if not business_phone_id:
-            business_phone_id = PHONE_NUMBER_ID
+            raise ValueError("business_phone_id is required to upload media")
+            
+        # Allow developers to pass the raw phone number instead of the ID
+        mapped_id = self.get_phone_id(business_phone_id)
+        if mapped_id:
+            business_phone_id = mapped_id
+            
         url = f"https://graph.facebook.com/v23.0/{business_phone_id}/media"
         headers = {
             "Authorization": f"Bearer {ACCESS_TOKEN}"

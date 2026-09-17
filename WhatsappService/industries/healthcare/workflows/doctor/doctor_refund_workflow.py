@@ -134,7 +134,7 @@ class DoctorProcessRefundWorkflow(Workflow):
                             f"Dr. {doc_name} has successfully processed your refund of ₹{amount} for your cancelled appointment on {date_str}.\n\n"
                             f"Please check your UPI app or bank statement. It may take some time to reflect."
                         )
-                        WhatsAppService.send_text(patient_phone, patient_msg)
+                        WhatsAppService.send_text(patient_phone, patient_msg, business_phone_id=session.state.BusinessPhoneNumberId)
                         
                     return WorkflowResult.completed(reply=Reply("text", "✅ Refund marked as completed! The patient has been notified."))
                 else:

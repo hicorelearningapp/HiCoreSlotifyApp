@@ -49,14 +49,18 @@ class SelectDateWorkflow(Workflow):
                 day_schedule_str = default_hours
 
             if day_schedule_str:
-                sections[0]["rows"].append(
-                    {
-                        "id": f"DATE_{current_date.strftime('%Y-%m-%d')}",
-                        "title": current_date.strftime("%b %d, %Y")[:24],
-                        "description": current_date.strftime("%A")[:72],
-                    }
+                slots_dt = api_client.get_available_slots(
+                    target_date=current_date, doctor_id=doctor_id
                 )
-                days_added += 1
+                if slots_dt:
+                    sections[0]["rows"].append(
+                        {
+                            "id": f"DATE_{current_date.strftime('%Y-%m-%d')}",
+                            "title": current_date.strftime("%b %d, %Y")[:24],
+                            "description": current_date.strftime("%A")[:72],
+                        }
+                    )
+                    days_added += 1
 
             current_date += timedelta(days=1)
 
@@ -94,7 +98,7 @@ class SelectDateWorkflow(Workflow):
             target_date = datetime.strptime(date_str, "%Y-%m-%d").date()
             if target_date < datetime.now().date():
                 WhatsAppService.send_text(
-                    session.PhoneNumber, "That date is in the past. Please select a future date (YYYY-MM-DD):"
+                    session.PhoneNumber, "That date is in the past. Please select a future date (YYYY-MM-DD):", business_phone_id=session.state.BusinessPhoneNumberId
                 )
                 time.sleep(1.5)
                 return self.Initialize(session)
@@ -107,6 +111,7 @@ class SelectDateWorkflow(Workflow):
                 WhatsAppService.send_text(
                     session.PhoneNumber,
                     f"No slots available for {target_date}. Please select another date (YYYY-MM-DD):",
+                    business_phone_id=session.state.BusinessPhoneNumberId
                 )
                 time.sleep(1.5)
                 return self.Initialize(session)
@@ -122,7 +127,7 @@ class SelectDateWorkflow(Workflow):
 
         except ValueError:
             WhatsAppService.send_text(
-                session.PhoneNumber, "Invalid date format. Please use YYYY-MM-DD."
+                session.PhoneNumber, "Invalid date format. Please use YYYY-MM-DD.", business_phone_id=session.state.BusinessPhoneNumberId
             )
             time.sleep(1.5)
             return self.Initialize(session)

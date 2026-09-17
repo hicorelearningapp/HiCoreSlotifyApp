@@ -104,7 +104,7 @@ class ConfirmBookingWorkflow(Workflow):
                 doc_msg = f"New appointment booked for {patient.get('Name') if patient else 'Unknown'} for {start_datetime.strftime('%Y-%m-%d %I:%M %p')}."
                 if meeting_link:
                     doc_msg += f"\n\nMeeting Link: {meeting_link}"
-                WhatsAppService.send_text(doctor.get("MobileNumber"), doc_msg)
+                WhatsAppService.send_text(doctor.get("MobileNumber"), doc_msg, business_phone_id=session.state.BusinessPhoneNumberId)
 
             success_msg = f"Success! Your appointment is confirmed for {start_datetime.strftime('%Y-%m-%d %I:%M %p')}."
             if meeting_link:

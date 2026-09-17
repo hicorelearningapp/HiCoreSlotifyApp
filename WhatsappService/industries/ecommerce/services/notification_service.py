@@ -3,7 +3,7 @@ from config import ADMIN_PHONE_NUMBER
 
 class NotificationService:
     @staticmethod
-    def notify_owner_new_order(order_id: int, customer_name: str, product_name: str, total: float, delivery_slot: str = "N/A", payment_method: str = "COD", address: str = "N/A", quantity: int = 1):
+    def notify_owner_new_order(order_id: int, customer_name: str, product_name: str, total: float, business_phone_id: str, delivery_slot: str = "N/A", payment_method: str = "COD", address: str = "N/A", quantity: int = 1):
         if not ADMIN_PHONE_NUMBER:
             return
             
@@ -20,16 +20,16 @@ class NotificationService:
             {"id": f"VIEW_ORDER_{order_id}", "title": "View Details"}
         ]
         
-        whatsapp.send_interactive_buttons(ADMIN_PHONE_NUMBER, text, buttons)
+        whatsapp.send_interactive_buttons(ADMIN_PHONE_NUMBER, text, buttons, business_phone_id=business_phone_id)
         
     @staticmethod
-    def notify_customer_order_status(customer_phone: str, order_id: int, new_status: str):
+    def notify_customer_order_status(customer_phone: str, order_id: int, new_status: str, business_phone_id: str):
         text = f"📦 *Order Update*\n\nYour order #{order_id} is now: *{new_status}*."
         if new_status == "Preparing":
             text += " 🍰 We are getting it ready!"
         elif new_status == "Delivered":
             text += " 🎉 Enjoy your order!"
             
-        whatsapp.send_text(customer_phone, text)
+        whatsapp.send_text(customer_phone, text, business_phone_id=business_phone_id)
 
 notification_service = NotificationService()

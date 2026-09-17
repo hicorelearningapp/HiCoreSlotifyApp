@@ -41,7 +41,7 @@ class SelectTimeSlotWorkflow(Workflow):
             session.WorkflowData["page"] = session.WorkflowData.get("page", 0) + 1
             return self.Initialize(session)
 
-        WhatsAppService.send_text(session.PhoneNumber, "Invalid slot. Please select from the menu.")
+        WhatsAppService.send_text(session.PhoneNumber, "Invalid slot. Please select from the menu.", business_phone_id=session.state.BusinessPhoneNumberId)
         
         time.sleep(1.5)
         return self.Initialize(session)

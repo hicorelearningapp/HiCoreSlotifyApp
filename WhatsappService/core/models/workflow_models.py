@@ -7,6 +7,7 @@ class Message:
         self.Text = text
         self.InteractiveId = interactive_id
         self.BusinessPhoneNumber = business_phone_number
+        self.BusinessPhoneNumberId = business_phone_number_id
 
 from pydantic import BaseModel, Field
 

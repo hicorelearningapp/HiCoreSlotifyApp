@@ -8,11 +8,11 @@ MERCHANT_NAME = "HiCore%20System"
 class ProcessPaymentWorkflow(Workflow):
     def Initialize(self, session: ConversationSession):
         doctor = api_client.get_doctor(session.WorkflowData.get("DoctorId"))
-        price = doctor.ClinicConsultationFee if doctor and doctor.ClinicConsultationFee else 0.0
+        price = float(doctor.get("ClinicConsultationFee")) if doctor and doctor.get("ClinicConsultationFee") else 0.0
         session.WorkflowData["Price"] = price
-        session.WorkflowData["UpiId"] = doctor.UpiId if doctor and doctor.UpiId else UPI_ID
+        session.WorkflowData["UpiId"] = doctor.get("UpiId") if doctor and doctor.get("UpiId") else UPI_ID
         
-        merchant_name = doctor.FullName if doctor and doctor.FullName else "HiCore System"
+        merchant_name = doctor.get("FullName") if doctor and doctor.get("FullName") else "HiCore System"
         session.WorkflowData["MerchantName"] = merchant_name.replace(" ", "%20")
         
         text = f"The consultation fee is ₹{price}.\n\nHow would you like to pay?"

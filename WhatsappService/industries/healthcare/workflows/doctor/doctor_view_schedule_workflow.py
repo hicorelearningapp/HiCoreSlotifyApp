@@ -158,9 +158,20 @@ class DoctorViewScheduleWorkflow(Workflow):
         filename = f"Schedule_{target_date.strftime('%Y_%m_%d')}.xlsx"
         mime_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         
-        media_id = whatsapp.upload_media(excel_bytes, filename, mime_type)
+        media_id = whatsapp.upload_media(
+            excel_bytes, 
+            filename, 
+            mime_type, 
+            business_phone_id=session.state.BusinessPhoneNumberId
+        )
         if media_id:
-            whatsapp.send_document(session.PhoneNumber, media_id=media_id, filename=filename, caption=f"Here is your schedule for {target_date.strftime('%b %d, %Y')}")
+            whatsapp.send_document(
+                session.PhoneNumber, 
+                media_id=media_id, 
+                filename=filename, 
+                caption=f"Here is your schedule for {target_date.strftime('%b %d, %Y')}",
+                business_phone_id=session.state.BusinessPhoneNumberId
+            )
             return WorkflowResult.end_sequence()
         else:
             return WorkflowResult.end_sequence(reply=Reply("text", "Failed to generate Excel file (media upload error). Note: This only works with a live WhatsApp API connection."))

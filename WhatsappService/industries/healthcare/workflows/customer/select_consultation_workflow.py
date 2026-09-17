@@ -31,7 +31,7 @@ class SelectConsultationWorkflow(Workflow):
             session.WorkflowData["ConsultationType"] = consultation_type
             return WorkflowResult.completed()
         except ValueError:
-            WhatsAppService.send_text(session.PhoneNumber, "Please select a valid consultation type.")
+            WhatsAppService.send_text(session.PhoneNumber, "Please select a valid consultation type.", business_phone_id=session.state.BusinessPhoneNumberId)
             return self.Initialize(session)
 
     def Complete(self, session: ConversationSession):

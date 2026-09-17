@@ -79,7 +79,7 @@ class SelectPatientWorkflow(Workflow):
         if "patient_id" in session.WorkflowData:
             return WorkflowResult.completed()
 
-        WhatsAppService.send_text(session.PhoneNumber, "Please select a valid option.")
+        WhatsAppService.send_text(session.PhoneNumber, "Please select a valid option.", business_phone_id=session.state.BusinessPhoneNumberId)
         time.sleep(1.5)
         return self.Initialize(session)
 
