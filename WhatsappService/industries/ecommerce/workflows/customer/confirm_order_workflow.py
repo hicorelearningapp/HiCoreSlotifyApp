@@ -76,25 +76,52 @@ class ConfirmOrderWorkflow:
             address = session.WorkflowData.get("address", "N/A")
             selected_options = session.WorkflowData.get("selected_options") or {}
 
-            # 3. Build order payload
+            # 3. Customer name from collect name workflow
             customer_name = (
-                customer.get("CustomerName") or customer.get("Name")
-                if (customer and isinstance(customer, dict))
-                else session.PhoneNumber
+                session.WorkflowData.get("name")
+                or (customer.get("CustomerName") if isinstance(customer, dict) else None)
+                or (customer.get("ProfileName") if isinstance(customer, dict) else None)
+                or (customer.get("Name") if isinstance(customer, dict) else None)
+                or session.PhoneNumber
             )
 
+            # 4. Correct seller_id (Business UUID, not phone number)
+            seller_id = (
+                session.WorkflowData.get("seller_id")
+                or (product_info.get("seller_id") if isinstance(product_info, dict) else None)
+                or (product_info.get("SellerId") if isinstance(product_info, dict) else None)
+            )
+            if not seller_id:
+                if product_id:
+                    try:
+                        prod_obj = api_client.get_product(product_id)
+                        if prod_obj and isinstance(prod_obj, dict) and prod_obj.get("SellerId"):
+                            seller_id = prod_obj.get("SellerId")
+                    except Exception as ex:
+                        print(f"[ConfirmOrderWorkflow] Product lookup for seller_id note: {ex}")
+
+                if not seller_id:
+                    biz_phone = session.state.BusinessPhoneNumber
+                    if biz_phone:
+                        try:
+                            biz = api_client.get_business_by_phone(biz_phone)
+                            if biz and isinstance(biz, dict):
+                                seller_id = biz.get("Id") or biz.get("id")
+                        except Exception as ex:
+                            print(f"[ConfirmOrderWorkflow] Business lookup for seller_id note: {ex}")
+
+            # 5. Build order payload with seller_id, customer name, and empty string for uncollected fields
             order_payload = {
                 "CustomerPhone": session.PhoneNumber,
                 "CustomerName": customer_name,
                 "ShippingAddress": address,
-                "City": "Default",
-                "State": "Default",
-                "Pincode": "000000",
+                "City": session.WorkflowData.get("city") or "",
+                "State": session.WorkflowData.get("state") or "",
+                "Pincode": session.WorkflowData.get("pincode") or "",
                 "PaymentMethod": "Online" if payment_method == "Pay Online" else "COD",
-                "SellerId": session.state.BusinessPhoneNumber or "default",
+                "SellerId": str(seller_id),
                 "OrderData": {
                     "selected_options": selected_options,
-                    "business_phone": session.state.BusinessPhoneNumber,
                 },
                 "Items": [
                     {

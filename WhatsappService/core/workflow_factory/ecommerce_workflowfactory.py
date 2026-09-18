@@ -1,8 +1,9 @@
-from core.workflow_factory.workflow_factory_base import WorkflowClass
+from core.workflow_factory.workflow_class import WorkflowClass
 
 from industries.ecommerce.workflows.common.GreetingMessageWorkflow import GreetingMessageWorkflow
 from industries.ecommerce.workflows.customer.get_param_workflow import create_get_param_workflow
 from industries.ecommerce.workflows.customer.select_quantity_workflow import SelectQuantityWorkflow
+from industries.ecommerce.workflows.customer.collect_name_workflow import CollectNameWorkflow
 from industries.ecommerce.workflows.customer.collect_address_workflow import CollectAddressWorkflow
 from industries.ecommerce.workflows.customer.order_workflow import OrderWorkFlow
 from industries.ecommerce.workflows.customer.select_payment_workflow import SelectPaymentWorkflow
@@ -15,6 +16,7 @@ class EcommerceWorkflow(WorkflowClass):
     WORKFLOW = {
         "GreetingWorkflow": GreetingMessageWorkflow,
         "QuantityWorkflow": SelectQuantityWorkflow,
+        "NameWorkflow": CollectNameWorkflow,
         "AddressWorkflow": CollectAddressWorkflow,
         "OrderWorkflow": OrderWorkFlow,
         "PaymentWorkflow": SelectPaymentWorkflow,

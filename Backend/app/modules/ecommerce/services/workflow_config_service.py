@@ -309,6 +309,10 @@ class WorkflowConfigService:
         return flow
 
     @classmethod
+    def build_name_flow(cls) -> List[str]:
+        return ["NameWorkflow"]
+
+    @classmethod
     def build_address_flow(cls, is_booking: bool) -> List[str]:
         return ["AddressWorkFlow"]
 
@@ -376,6 +380,7 @@ class WorkflowConfigService:
 
             greeting_flow = cls.build_greeting_flow()
             get_param_flow = cls.build_get_param_flow(product, multiple_params, is_booking)
+            name_flow = cls.build_name_flow()
             address_flow = cls.build_address_flow(is_booking)
             order_flow = cls.build_order_flow()
             payment_flow = cls.build_payment_flow()
@@ -384,6 +389,7 @@ class WorkflowConfigService:
             product_sequence = (
                 greeting_flow +
                 get_param_flow +
+                name_flow +
                 address_flow +
                 order_flow +
                 payment_flow +

@@ -10,6 +10,7 @@
     "MainWorkSequence": [
       "GreetingWorkFlow",
       "QuantityWorkFlow",
+      "NameWorkflow",
       "AddressWorkFlow",
       "OrderWorkFlow",
       "PaymentWorkFlow",
